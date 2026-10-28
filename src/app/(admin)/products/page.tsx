@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { CsvImport, ProductActiveButton } from "@/components/admin/order-actions";
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
+import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/fields";
 import { requireSession } from "@/lib/auth";
@@ -99,10 +100,15 @@ export default async function ProductsPage({
               {filtered.map((product) => (
                 <tr key={product.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3">
-                    <Link href={`/products/${product.id}`} className="font-medium hover:underline">
-                      {product.name}
-                    </Link>
-                    <div className="text-muted-foreground">{product.sku || "Bez šifre"}</div>
+                    <div className="flex items-center gap-3">
+                      <ProductImage src={product.imageUrl} className="size-12" />
+                      <div className="min-w-0">
+                        <Link href={`/products/${product.id}`} className="font-medium hover:underline">
+                          {product.name}
+                        </Link>
+                        <div className="text-muted-foreground">{product.sku || "Bez šifre"}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">{unitLabel(product.unit)}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{formatRsd(product.pricePara)}</td>

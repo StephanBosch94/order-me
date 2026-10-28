@@ -42,7 +42,12 @@ export function AuthShell({
 }) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-12">
-      <Logo />
+      <Link href="/" className="w-fit rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+        Početna
+      </Link>
+      <Link href="/" aria-label="Poruci, početna" className="mt-6 w-fit rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Logo />
+      </Link>
       <h1 className="mt-8 text-2xl font-semibold tracking-tight">{title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
       <div className="mt-6">{children}</div>

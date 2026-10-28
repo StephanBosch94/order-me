@@ -18,6 +18,7 @@ import { logoutAction } from "@/lib/actions/auth";
 import type { AccountContext } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
+import { SupplierLogo } from "@/components/brand/supplier-logo";
 
 const items = [
   { href: "/dashboard", label: "Pregled", icon: LayoutDashboard },
@@ -79,8 +80,22 @@ export function AdminShell({
         <aside className="sticky top-0 hidden h-dvh flex-col border-r border-border bg-sidebar lg:flex">
           <div className="px-5 py-5">
             <Logo />
-            <p className="mt-3 truncate text-sm font-medium">{session.organization.name}</p>
-            <p className="truncate text-xs text-muted-foreground">/{session.organization.slug}</p>
+            <div className="mt-4 flex items-center gap-2.5">
+              <SupplierLogo name={session.organization.name} logoUrl={session.organization.logoUrl} />
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                  {session.organization.brandColor ? (
+                    <span
+                      aria-hidden="true"
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: session.organization.brandColor }}
+                    />
+                  ) : null}
+                  <span className="truncate">{session.organization.name}</span>
+                </p>
+                <p className="truncate text-xs text-muted-foreground">/{session.organization.slug}</p>
+              </div>
+            </div>
           </div>
           {nav}
           <div className="mt-auto border-t border-border p-3">
@@ -99,7 +114,10 @@ export function AdminShell({
         </aside>
         <div className="min-w-0">
           <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3 lg:hidden">
-            <Logo />
+            <div className="flex min-w-0 items-center gap-2">
+              <SupplierLogo name={session.organization.name} logoUrl={session.organization.logoUrl} className="size-8" />
+              <span className="truncate text-sm font-medium">{session.organization.name}</span>
+            </div>
             <button
               type="button"
               className="inline-flex size-11 cursor-pointer items-center justify-center rounded-md border border-border"

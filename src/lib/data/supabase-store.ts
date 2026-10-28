@@ -65,6 +65,7 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     pib: String(row.pib ?? ""),
     mb: String(row.mb ?? ""),
     logoUrl: row.logo_url ? String(row.logo_url) : null,
+    brandColor: row.brand_color ? String(row.brand_color) : null,
     orderPrefix: String(row.order_prefix),
     nextOrderNumber: Number(row.next_order_number),
     active: Boolean(row.active),
@@ -85,6 +86,7 @@ function toPublic(organization: Organization): PublicSupplier {
     pib: organization.pib,
     mb: organization.mb,
     logoUrl: organization.logoUrl,
+    brandColor: organization.brandColor,
   };
 }
 
@@ -321,6 +323,7 @@ export const supabaseRepository: CommerceRepository = {
         pib: input.pib,
         mb: input.mb,
         logo_url: input.logoUrl,
+        brand_color: input.brandColor,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)

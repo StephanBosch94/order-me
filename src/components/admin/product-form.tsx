@@ -9,6 +9,7 @@ import { UNITS } from "@/lib/constants";
 import type { Category, Product } from "@/lib/data/types";
 import { formatPriceInput } from "@/lib/format";
 import { fieldErrors, productFormSchema } from "@/lib/validators";
+import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fields";
 
@@ -112,8 +113,19 @@ export function ProductForm({ product, categories }: { product?: Product; catego
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="image">Slika</Label>
-          <Input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" className="mt-1.5" />
-          <p className="mt-1 text-xs text-muted-foreground">Opciono. JPG, PNG ili WebP, do 2 MB.</p>
+          <div className="mt-2 flex items-center gap-3">
+            <ProductImage src={product?.imageUrl ?? null} />
+            <div className="min-w-0 flex-1">
+              <Input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" />
+              <p className="mt-1 text-xs text-muted-foreground">Opciono. JPG, PNG ili WebP, do 2 MB. Kupci je vide u katalogu.</p>
+            </div>
+          </div>
+          {product?.imageUrl ? (
+            <label className="mt-2 flex items-center gap-2 text-sm">
+              <input type="checkbox" name="removeImage" className="size-4 accent-zinc-950" />
+              Uklonite sliku
+            </label>
+          ) : null}
         </div>
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
           <input type="checkbox" name="active" defaultChecked={product?.active ?? true} className="size-4 accent-zinc-950" />

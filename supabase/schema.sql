@@ -27,6 +27,7 @@ create table if not exists public.organizations (
   pib text not null default '',
   mb text not null default '',
   logo_url text,
+  brand_color text,
   order_prefix text not null default 'POR',
   next_order_number integer not null default 1001,
   active boolean not null default true,
@@ -237,3 +238,5 @@ on conflict (id) do nothing;
 drop policy if exists product_images_public_read on storage.objects;
 create policy product_images_public_read on storage.objects
 for select using (bucket_id = 'product-images');
+
+alter table public.organizations add column if not exists brand_color text;

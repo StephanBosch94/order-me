@@ -60,6 +60,7 @@ function toPublicSupplier(organization: Organization): PublicSupplier {
     pib: organization.pib,
     mb: organization.mb,
     logoUrl: organization.logoUrl,
+    brandColor: organization.brandColor,
   };
 }
 
@@ -182,6 +183,7 @@ export class DemoStore implements CommerceRepository {
         pib: "",
         mb: "",
         logoUrl: null,
+        brandColor: null,
         orderPrefix: orderPrefixFromName(input.name),
         nextOrderNumber: 1001,
         active: true,

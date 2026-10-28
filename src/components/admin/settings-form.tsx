@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { updateSettingsAction, type FormState } from "@/lib/actions/catalog";
 import type { Organization } from "@/lib/data/types";
+import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
 
@@ -34,7 +35,40 @@ export function SettingsForm({ organization }: { organization: Organization }) {
         <Setting name="pib" label="PIB" defaultValue={organization.pib} error={state.fieldErrors?.pib} />
         <Setting name="mb" label="Matični broj" defaultValue={organization.mb} error={state.fieldErrors?.mb} />
         <div className="sm:col-span-2">
-          <Setting name="logoUrl" label="Adresa logotipa" defaultValue={organization.logoUrl ?? ""} error={state.fieldErrors?.logoUrl} />
+          <Label htmlFor="logo">Logotip</Label>
+          <div className="mt-2 flex items-center gap-3">
+            <SupplierLogo name={organization.name} logoUrl={organization.logoUrl} />
+            <div className="min-w-0 flex-1">
+              <Input id="logo" name="logo" type="file" accept="image/jpeg,image/png,image/webp" />
+              <p className="mt-1 text-xs text-muted-foreground">JPG, PNG ili WebP, do 2 MB. Prikazuje se kupcima na stranici za poručivanje.</p>
+            </div>
+          </div>
+          {organization.logoUrl ? (
+            <label className="mt-2 flex items-center gap-2 text-sm">
+              <input type="checkbox" name="removeLogo" className="size-4 accent-zinc-950" />
+              Uklonite logotip
+            </label>
+          ) : null}
+        </div>
+        <div className="sm:col-span-2">
+          <Label htmlFor="brandColor">Boja brenda</Label>
+          <div className="mt-2 flex items-center gap-3">
+            <input
+              id="brandColor"
+              name="brandColor"
+              type="color"
+              defaultValue={organization.brandColor ?? "#18181b"}
+              className="size-10 cursor-pointer rounded-md border border-border bg-card p-1"
+            />
+            <p className="text-sm text-muted-foreground">Dugmad i oznake na stranici za poručivanje koriste ovu boju.</p>
+          </div>
+          {organization.brandColor ? (
+            <label className="mt-2 flex items-center gap-2 text-sm">
+              <input type="checkbox" name="clearBrandColor" className="size-4 accent-zinc-950" />
+              Bez posebne boje
+            </label>
+          ) : null}
+          <FieldError message={state.fieldErrors?.brandColor} />
         </div>
       </div>
       <Button type="submit" disabled={pending}>

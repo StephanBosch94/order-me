@@ -10,7 +10,10 @@ import type { Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
 import { lineTotalPara } from "@/lib/data/pricing";
 import { fold } from "@/lib/text";
+import { SupplierLogo } from "@/components/brand/supplier-logo";
+import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
+import { supplierTheme } from "@/lib/color";
 import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
 
 type Step = "browse" | "details";
@@ -79,15 +82,18 @@ export function Storefront({ catalog }: { catalog: PublicCatalog }) {
   );
 
   return (
-    <div className="min-h-dvh bg-background pb-24 lg:pb-10">
+    <div className="min-h-dvh bg-background pb-24 lg:pb-10" style={supplierTheme(catalog.supplier.brandColor)}>
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-end justify-between gap-4 px-4 py-4 sm:px-6">
-          <div>
+          <div className="flex min-w-0 items-center gap-3">
+            <SupplierLogo name={catalog.supplier.name} logoUrl={catalog.supplier.logoUrl} className="size-12" />
+            <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">Poručivanje</p>
-            <h1 className="text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
+            <h1 className="truncate text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
             <p className="text-sm text-muted-foreground">
               {[catalog.supplier.city, catalog.supplier.phone].filter(Boolean).join(" · ")}
             </p>
+            </div>
           </div>
           <p className="hidden max-w-xs text-right text-sm text-muted-foreground sm:block">
             Pronađite proizvode, unesite količine i pošaljite porudžbinu.
@@ -135,10 +141,7 @@ export function Storefront({ catalog }: { catalog: PublicCatalog }) {
                   <li key={product.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-3">
-                        {product.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={product.imageUrl} alt="" className="size-12 rounded-md object-cover" />
-                        ) : null}
+                        <ProductImage src={product.imageUrl} />
                         <div>
                           <p className="font-medium">{product.name}</p>
                           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -227,7 +230,7 @@ function CategoryButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`h-9 shrink-0 cursor-pointer rounded-full px-3 text-sm ${active ? "bg-zinc-950 text-white" : "border border-border bg-card text-foreground"}`}
+      className={`h-9 shrink-0 cursor-pointer rounded-full px-3 text-sm ${active ? "bg-primary text-primary-foreground" : "border border-border bg-card text-foreground"}`}
     >
       {children}
     </button>

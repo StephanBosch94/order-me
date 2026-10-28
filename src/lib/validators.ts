@@ -46,6 +46,10 @@ export const organizationSchema = z.object({
     .trim()
     .max(500)
     .refine((value) => value === "" || /^https?:\/\/.+/i.test(value), "Unesite ispravnu adresu logotipa."),
+  brandColor: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || /^#[0-9a-fA-F]{6}$/.test(value), "Unesite boju u formatu #RRGGBB."),
 });
 
 export const customerSchema = z.object({

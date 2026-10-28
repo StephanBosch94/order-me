@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { SupplierLogo } from "@/components/brand/supplier-logo";
+import { supplierTheme } from "@/lib/color";
 import { unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
@@ -27,8 +29,11 @@ export default async function ConfirmationPage({
           : "Porudžbina je primljena.";
 
   return (
-    <main className="mx-auto min-h-dvh max-w-2xl px-4 py-10">
-      <p className="text-sm text-muted-foreground">{supplier.name}</p>
+    <main className="mx-auto min-h-dvh max-w-2xl px-4 py-10" style={supplierTheme(supplier.brandColor)}>
+      <div className="flex items-center gap-3">
+        <SupplierLogo name={supplier.name} logoUrl={supplier.logoUrl} />
+        <p className="text-sm font-medium">{supplier.name}</p>
+      </div>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Porudžbina {order.number} je primljena</h1>
       <p className="mt-2 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
       <p className="mt-4 text-sm">{emailNote}</p>

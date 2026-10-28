@@ -33,6 +33,7 @@ export type Organization = {
   pib: string;
   mb: string;
   logoUrl: string | null;
+  brandColor: string | null;
   orderPrefix: string;
   nextOrderNumber: number;
   active: boolean;
@@ -51,6 +52,7 @@ export type PublicSupplier = {
   pib: string;
   mb: string;
   logoUrl: string | null;
+  brandColor: string | null;
 };
 
 export type Category = {
@@ -245,6 +247,7 @@ export type OrganizationInput = {
   pib: string;
   mb: string;
   logoUrl: string | null;
+  brandColor: string | null;
 };
 
 export type CustomerInput = {

@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
-import { storeImage } from "@/lib/media";
 import { parseProductCsv } from "@/lib/csv";
+import { storeImage } from "@/lib/media";
 import { fieldErrors, organizationSchema, productFormSchema, toProductInput } from "@/lib/validators";
 
 export type FormState = {
@@ -43,8 +43,12 @@ export async function saveProductAction(formData: FormData): Promise<FormState &
 
   try {
     const image = formData.get("image");
-    const imageUrl = image instanceof File ? await storeImage(session.organization.id, image) : undefined;
-    const input = toProductInput(parsed.data, imageUrl ?? undefined);
+    let imageUrl: string | null | undefined;
+    if (formData.get("removeImage") === "on") imageUrl = null;
+    if (image instanceof File && image.size > 0) {
+      imageUrl = await storeImage(session.organization.id, image);
+    }
+    const input = toProductInput(parsed.data, imageUrl);
     const productId = text(formData, "id");
     const product = productId
       ? await getCommerce().updateProduct(session.organization.id, productId, input)
@@ -103,7 +107,7 @@ export async function importProductsAction(csvText: string): Promise<FormState &
 
 export async function updateSettingsAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const session = await requireSession();
-  const parsed = organizationSchema.safeParse({
+  const parsed = organizationSchema.omit({ logoUrl: true }).safeParse({
     name: text(formData, "name"),
     slug: text(formData, "slug"),
     email: text(formData, "email"),
@@ -113,7 +117,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
     city: text(formData, "city"),
     pib: text(formData, "pib"),
     mb: text(formData, "mb"),
-    logoUrl: text(formData, "logoUrl"),
+    brandColor: text(formData, "brandColor"),
   });
   if (!parsed.success) {
     return {
@@ -122,15 +126,24 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
     };
   }
 
+  let logoUrl = session.organization.logoUrl;
+  if (formData.get("removeLogo") === "on") logoUrl = null;
+  const brandColor = formData.get("clearBrandColor") === "on" ? null : parsed.data.brandColor || null;
+  const logo = formData.get("logo");
   try {
+    if (logo instanceof File && logo.size > 0) {
+      logoUrl = await storeImage(session.organization.id, logo);
+    }
     await getCommerce().updateOrganization(session.organization.id, {
       ...parsed.data,
-      logoUrl: parsed.data.logoUrl || null,
+      logoUrl,
+      brandColor,
     });
   } catch (error) {
     if (error instanceof DataError) {
       return { error: error.message, fieldErrors: { slug: error.message } };
     }
+    if (error instanceof Error) return { error: error.message };
     throw error;
   }
 
