@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSession } from "@/lib/auth";
+import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import { parseProductCsv } from "@/lib/csv";
 import { storeImage } from "@/lib/media";
+import { slugify } from "@/lib/text";
 import { fieldErrors, organizationSchema, productFormSchema, toProductInput } from "@/lib/validators";
 
 export type FormState = {
@@ -109,7 +111,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
   const session = await requireSession();
   const parsed = organizationSchema.omit({ logoUrl: true }).safeParse({
     name: text(formData, "name"),
-    slug: text(formData, "slug"),
+    slug: slugify(text(formData, "slug")),
     email: text(formData, "email"),
     notificationEmail: text(formData, "notificationEmail"),
     phone: text(formData, "phone"),
@@ -149,6 +151,8 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
-  revalidatePath(`/s/${parsed.data.slug}`);
+  revalidatePath("/orders");
+  revalidatePath(storePath(session.organization.channel, session.organization.slug));
+  revalidatePath(storePath(session.organization.channel, parsed.data.slug));
   return { ok: true, message: "Podešavanja su sačuvana." };
 }

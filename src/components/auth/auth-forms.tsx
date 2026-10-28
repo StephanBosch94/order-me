@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 
 import { loginAction, signupAction, type AuthState } from "@/lib/actions/auth";
-import { slugify } from "@/lib/text";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
 
@@ -39,8 +38,6 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
 
 export function SignupForm({ mode }: { mode: "b2c" | "b2b" | "buyer" }) {
   const [state, action, pending] = useActionState(signupAction, initial);
-  const [slug, setSlug] = useState("");
-  const [slugEdited, setSlugEdited] = useState(false);
   const supplier = mode !== "buyer";
 
   return (
@@ -57,30 +54,8 @@ export function SignupForm({ mode }: { mode: "b2c" | "b2b" | "buyer" }) {
             name="organizationName"
             label={mode === "b2c" ? "Naziv prodavnice" : "Naziv firme"}
             error={state.fieldErrors?.organizationName}
-            onChange={(value) => {
-              if (!slugEdited) setSlug(slugify(value));
-            }}
           />
-          <div>
-            <Label htmlFor="slug">Adresa stranice</Label>
-            <div className="mt-1.5 flex h-10 overflow-hidden rounded-md border border-input bg-card focus-within:ring-2 focus-within:ring-ring/25">
-              <span className="flex items-center bg-zinc-50 px-3 text-sm text-muted-foreground">
-                {mode === "b2c" ? "/shop/" : "/s/"}
-              </span>
-              <input
-                id="slug"
-                name="slug"
-                value={slug}
-                onChange={(event) => {
-                  setSlugEdited(true);
-                  setSlug(slugify(event.target.value));
-                }}
-                className="min-w-0 flex-1 px-3 text-sm outline-none"
-                required
-              />
-            </div>
-            <FieldError message={state.fieldErrors?.slug} />
-          </div>
+          <p className="text-sm text-muted-foreground">Adresa stranice pravi se od naziva. Možete je promeniti u podešavanjima.</p>
           <Field name="phone" label="Telefon" autoComplete="tel" required={false} error={state.fieldErrors?.phone} />
         </>
       ) : (

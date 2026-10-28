@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { updateSettingsAction, type FormState } from "@/lib/actions/catalog";
 import type { Organization } from "@/lib/data/types";
+import { slugify } from "@/lib/text";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
@@ -18,7 +19,12 @@ export function SettingsForm({ organization }: { organization: Organization }) {
       {state.ok ? <p className="text-sm text-emerald-700">{state.message}</p> : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <Setting name="name" label="Naziv firme" defaultValue={organization.name} error={state.fieldErrors?.name} />
-        <Setting name="slug" label="Adresa stranice" defaultValue={organization.slug} error={state.fieldErrors?.slug} />
+        <SlugSetting
+          key={organization.slug}
+          prefix={organization.channel === "b2c" ? "/shop/" : "/s/"}
+          initial={organization.slug}
+          error={state.fieldErrors?.slug}
+        />
         <Setting name="email" label="Email firme" defaultValue={organization.email} type="email" error={state.fieldErrors?.email} />
         <Setting
           name="notificationEmail"
@@ -75,6 +81,34 @@ export function SettingsForm({ organization }: { organization: Organization }) {
         {pending ? "Čuvanje…" : "Sačuvaj izmene"}
       </Button>
     </form>
+  );
+}
+
+function slugDraft(value: string) {
+  const cleaned = slugify(value);
+  if (cleaned && /[-\s]$/.test(value)) return `${cleaned}-`.slice(0, 48);
+  return cleaned;
+}
+
+function SlugSetting({ prefix, initial, error }: { prefix: string; initial: string; error?: string }) {
+  const [slug, setSlug] = useState(initial);
+  return (
+    <div className="sm:col-span-2">
+      <Label htmlFor="slug">Adresa stranice</Label>
+      <div className="mt-1.5 flex h-10 overflow-hidden rounded-md border border-input bg-card focus-within:ring-2 focus-within:ring-ring/25">
+        <span className="flex items-center bg-zinc-50 px-3 text-sm text-muted-foreground">{prefix}</span>
+        <input
+          id="slug"
+          name="slug"
+          value={slug}
+          onChange={(event) => setSlug(slugDraft(event.target.value))}
+          className="min-w-0 flex-1 px-3 text-sm outline-none"
+          required
+        />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">Pri otvaranju naloga adresa je naziv firme. Ovde je možete promeniti.</p>
+      <FieldError message={error} />
+    </div>
   );
 }
 

@@ -28,6 +28,14 @@ export function slugify(value: string) {
     .slice(0, 48);
 }
 
+export function slugCandidate(name: string, attempt: number) {
+  const root = slugify(name);
+  const start = root.length >= 2 ? root : "firma";
+  if (attempt <= 1) return start.slice(0, 48);
+  const suffix = `-${attempt}`;
+  return `${start.slice(0, Math.max(1, 48 - suffix.length))}${suffix}`;
+}
+
 export function orderPrefixFromName(name: string) {
   const words = name
     .split(/\s+/)

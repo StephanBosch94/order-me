@@ -3,10 +3,11 @@
 import { redirect } from "next/navigation";
 
 import { clearDemoSession, landingPath, setDemoSession } from "@/lib/auth";
+import { RESERVED_SLUGS } from "@/lib/constants";
 import { getDataMode } from "@/lib/config";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
 import { DataError } from "@/lib/errors";
-import { safeNextPath } from "@/lib/text";
+import { safeNextPath, slugCandidate } from "@/lib/text";
 import { fieldErrors, loginSchema, signupSchema } from "@/lib/validators";
 
 export type AuthState = {
@@ -72,7 +73,6 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           password: formData.get("password"),
           channel: formData.get("channel") === "b2c" ? "b2c" : "b2b",
           organizationName: formData.get("organizationName"),
-          slug: formData.get("slug"),
           phone: formData.get("phone") ?? "",
         },
   );
@@ -83,11 +83,8 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
     };
   }
 
-  if (parsed.data.kind === "supplier" && (await getCommerce().isSlugTaken(parsed.data.slug))) {
-    return { error: "Ova adresa je već zauzeta.", fieldErrors: { slug: "Ova adresa je već zauzeta." } };
-  }
-
   try {
+    const slug = parsed.data.kind === "supplier" ? await freeSlug(parsed.data.organizationName) : "";
     if (getDataMode() === "demo") {
       if (await getDemoIdentity().emailExists(parsed.data.email)) {
         return { error: "Nalog sa ovom email adresom već postoji.", fieldErrors: { email: "Email je zauzet." } };
@@ -109,7 +106,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           userName: parsed.data.name,
           userEmail: user.email,
           name: parsed.data.organizationName,
-          slug: parsed.data.slug,
+          slug,
           phone: parsed.data.phone,
           channel: parsed.data.channel,
         });
@@ -146,7 +143,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
         userName: parsed.data.name,
         userEmail: parsed.data.email,
         name: parsed.data.organizationName,
-        slug: parsed.data.slug,
+        slug,
         phone: parsed.data.phone,
         channel: parsed.data.channel,
       });
@@ -167,6 +164,15 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
     if (error instanceof DataError) return { error: error.message };
     throw error;
   }
+}
+
+async function freeSlug(name: string) {
+  for (let attempt = 1; attempt <= 50; attempt += 1) {
+    const candidate = slugCandidate(name, attempt);
+    if (RESERVED_SLUGS.has(candidate)) continue;
+    if (!(await getCommerce().isSlugTaken(candidate))) return candidate;
+  }
+  throw new DataError("Ne možemo da napravimo adresu od ovog naziva.", "conflict");
 }
 
 export async function logoutAction() {

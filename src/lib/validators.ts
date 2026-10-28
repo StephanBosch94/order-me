@@ -31,7 +31,6 @@ export const signupSchema = z.discriminatedUnion("kind", [
     ...signupIdentity,
     channel: z.enum(["b2c", "b2b"]),
     organizationName: z.string().trim().min(2, "Unesite naziv firme.").max(120),
-    slug: slugSchema,
     phone: z.string().trim().max(30),
   }),
   z.object({
