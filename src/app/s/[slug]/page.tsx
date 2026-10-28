@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Storefront } from "@/components/storefront/storefront";
+import { getSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -14,5 +15,6 @@ export default async function SupplierPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const catalog = await getCommerce().getPublicCatalog(slug);
   if (!catalog) notFound();
-  return <Storefront catalog={catalog} />;
+  const session = await getSession();
+  return <Storefront catalog={catalog} buyer={session?.kind === "buyer" ? session : null} />;
 }

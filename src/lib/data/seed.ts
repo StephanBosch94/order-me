@@ -19,6 +19,12 @@ export type DemoUser = {
   email: string;
   name: string;
   passwordHash: string;
+  kind: "supplier" | "buyer";
+  businessName: string;
+  phone: string;
+  address: string;
+  city: string;
+  pib: string;
   createdAt: string;
 };
 
@@ -358,6 +364,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       id: orderId,
       organizationId: orgId,
       customerId: customer.id,
+      buyerUserId: null,
       number,
       status: input.status,
       notes: input.notes,
@@ -495,6 +502,12 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
         email: DEMO_EMAIL,
         name: "Ana Petrović",
         passwordHash,
+        kind: "supplier",
+        businessName: "",
+        phone: "",
+        address: "",
+        city: "",
+        pib: "",
         createdAt: ago(120),
       },
     ],

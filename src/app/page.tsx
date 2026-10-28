@@ -38,7 +38,7 @@ export default function HomePage() {
         <dl className="mt-16 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
           {[
             ["Stranica firme", "Jedinstvena adresa koju šaljete postojećim kupcima."],
-            ["Katalog", "Cene, jedinice i količine, bez otvaranja naloga kupca."],
+            ["Katalog", "Cene i količine. Kupac može da ima nalog ili da poruči bez njega."],
             ["Porudžbine", "Status, potvrda i PDF umesto poruka i beležnica."],
           ].map(([title, body]) => (
             <div key={title} className="bg-card px-5 py-5">

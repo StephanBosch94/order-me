@@ -19,14 +19,33 @@ export const loginSchema = z.object({
   next: z.string().optional(),
 });
 
-export const signupSchema = z.object({
+const signupIdentity = {
   name: z.string().trim().min(2, "Unesite ime i prezime.").max(80),
   email: z.email("Unesite ispravnu email adresu."),
   password: z.string().min(8, "Lozinka mora imati bar 8 karaktera.").max(72),
-  organizationName: z.string().trim().min(2, "Unesite naziv firme.").max(120),
-  slug: slugSchema,
-  phone: z.string().trim().max(30),
-});
+};
+
+export const signupSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("supplier"),
+    ...signupIdentity,
+    organizationName: z.string().trim().min(2, "Unesite naziv firme.").max(120),
+    slug: slugSchema,
+    phone: z.string().trim().max(30),
+  }),
+  z.object({
+    kind: z.literal("buyer"),
+    ...signupIdentity,
+    businessName: z.string().trim().min(2, "Unesite naziv firme.").max(160),
+    phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
+    address: z.string().trim().max(200),
+    city: z.string().trim().max(80),
+    pib: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || /^\d{9}$/.test(value), "PIB ima 9 cifara."),
+  }),
+]);
 
 export const organizationSchema = z.object({
   name: z.string().trim().min(2, "Unesite naziv firme.").max(120),

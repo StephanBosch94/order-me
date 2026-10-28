@@ -44,6 +44,7 @@ export const RESERVED_SLUGS = new Set([
   "poruci",
   "app",
   "prijava",
+  "kupac",
 ]);
 
 export const ORDER_PAGE_SIZE = 10;

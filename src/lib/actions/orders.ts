@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-import { requireSession } from "@/lib/auth";
+import { getSession, requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
 import type { OrderStatus } from "@/lib/data/types";
 import { deliverOrderEmails } from "@/lib/email/order";
@@ -30,6 +30,7 @@ export async function placeOrderAction(input: unknown): Promise<OrderActionState
   const headerStore = await headers();
   const forwarded = headerStore.get("x-forwarded-for");
   const ip = forwarded?.split(",")[0]?.trim() || headerStore.get("x-real-ip") || "local";
+  const session = await getSession();
   const result = await getCommerce().createPublicOrder(
     {
       slug: parsed.data.slug,
@@ -43,6 +44,7 @@ export async function placeOrderAction(input: unknown): Promise<OrderActionState
       city: parsed.data.city,
       notes: parsed.data.notes,
       items: parsed.data.items,
+      buyerUserId: session?.kind === "buyer" ? session.userId : null,
     },
     ip,
   );
@@ -60,6 +62,7 @@ export async function placeOrderAction(input: unknown): Promise<OrderActionState
     revalidatePath("/orders");
     revalidatePath("/dashboard");
     revalidatePath("/customers");
+    revalidatePath("/kupac");
   }
 
   return { ok: true, token: result.order.confirmationToken, slug: result.supplier.slug };

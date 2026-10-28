@@ -16,10 +16,11 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const session = await getSession();
+  if (session?.kind === "buyer") redirect("/kupac");
   if (session) redirect("/dashboard");
   const params = await searchParams;
   return (
-    <AuthShell title="Prijava" subtitle="Prijavite se na nalog dobavljača.">
+    <AuthShell title="Prijava" subtitle="Prijavite se na nalog prodavca ili kupca.">
       <LoginForm nextPath={safeNextPath(params.next)} demo={isDemoMode()} />
       <p className="mt-6 text-sm text-muted-foreground">
         Nemate nalog?{" "}

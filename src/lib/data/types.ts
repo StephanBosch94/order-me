@@ -19,6 +19,33 @@ export type AccountContext = {
   role: MemberRole;
   organization: Organization;
 };
+
+export type BuyerAccount = {
+  kind: "buyer";
+  userId: string;
+  name: string;
+  email: string;
+  businessName: string;
+  phone: string;
+  address: string;
+  city: string;
+  pib: string;
+};
+
+export type SupplierAccount = AccountContext & { kind: "supplier" };
+export type SessionAccount = SupplierAccount | BuyerAccount;
+
+export type BuyerOrder = {
+  id: string;
+  number: string;
+  status: OrderStatus;
+  totalPara: number;
+  createdAt: string;
+  supplierName: string;
+  supplierSlug: string;
+  confirmationToken: string;
+  itemCount: number;
+};
 export type EmailDelivery = "pending" | "sent" | "outbox" | "failed" | "skipped";
 
 export type Organization = {
@@ -108,6 +135,7 @@ export type Order = {
   id: string;
   organizationId: string;
   customerId: string;
+  buyerUserId: string | null;
   number: string;
   status: OrderStatus;
   notes: string;
@@ -273,6 +301,7 @@ export type PublicOrderInput = {
   city: string;
   notes: string;
   items: { productId: string; quantity: number }[];
+  buyerUserId?: string | null;
 };
 
 export type CreateOrderResult =

@@ -1,12 +1,13 @@
 "use client";
 
 import { Minus, Plus, Search } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { placeOrderAction } from "@/lib/actions/orders";
 import { quantityStep, unitLabel } from "@/lib/constants";
-import type { Product, PublicCatalog } from "@/lib/data/types";
+import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
 import { lineTotalPara } from "@/lib/data/pricing";
 import { fold } from "@/lib/text";
@@ -18,7 +19,7 @@ import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
 
 type Step = "browse" | "details";
 
-export function Storefront({ catalog }: { catalog: PublicCatalog }) {
+export function Storefront({ catalog, buyer }: { catalog: PublicCatalog; buyer?: BuyerAccount | null }) {
   const router = useRouter();
   const storageKey = `poruci-cart:${catalog.supplier.slug}`;
   const idempotencyStorage = `poruci-idem:${catalog.supplier.slug}`;
@@ -95,9 +96,16 @@ export function Storefront({ catalog }: { catalog: PublicCatalog }) {
             </p>
             </div>
           </div>
-          <p className="hidden max-w-xs text-right text-sm text-muted-foreground sm:block">
-            Pronađite proizvode, unesite količine i pošaljite porudžbinu.
-          </p>
+          <div className="flex flex-col items-end gap-2">
+            {buyer ? (
+              <Link href="/kupac" className="text-sm font-medium underline-offset-2 hover:underline">
+                Moj nalog
+              </Link>
+            ) : null}
+            <p className="hidden max-w-xs text-right text-sm text-muted-foreground sm:block">
+              Pronađite proizvode, unesite količine i pošaljite porudžbinu.
+            </p>
+          </div>
         </div>
       </header>
 
@@ -170,6 +178,7 @@ export function Storefront({ catalog }: { catalog: PublicCatalog }) {
         ) : (
           <Checkout
             slug={catalog.supplier.slug}
+            buyer={buyer}
             lines={lines}
             total={total}
             idempotencyStorage={idempotencyStorage}
@@ -375,6 +384,7 @@ function CartSummary({
 
 function Checkout({
   slug,
+  buyer,
   lines,
   total,
   idempotencyStorage,
@@ -382,6 +392,7 @@ function Checkout({
   onSuccess,
 }: {
   slug: string;
+  buyer?: BuyerAccount | null;
   lines: { product: Product; quantity: number }[];
   total: number;
   idempotencyStorage: string;
@@ -430,7 +441,10 @@ function Checkout({
           Nazad na proizvode
         </button>
         <h2 className="mt-2 text-lg font-semibold">Podaci za porudžbinu</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Ukupno {formatRsd(total)}. Cene važe u trenutku slanja.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {buyer ? `Prijavljeni ste kao ${buyer.businessName}. ` : null}
+          Ukupno {formatRsd(total)}. Cene važe u trenutku slanja.
+        </p>
       </div>
       {message ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -438,14 +452,14 @@ function Checkout({
         </p>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field name="businessName" label="Naziv firme" error={errors.businessName} required />
-        <Field name="contactName" label="Kontakt osoba" error={errors.contactName} required />
-        <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} required />
-        <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} required />
-        <Field name="pib" label="PIB" error={errors.pib} />
-        <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} />
+        <Field name="businessName" label="Naziv firme" error={errors.businessName} required defaultValue={buyer?.businessName} />
+        <Field name="contactName" label="Kontakt osoba" error={errors.contactName} required defaultValue={buyer?.name} />
+        <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} required defaultValue={buyer?.email} />
+        <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} required defaultValue={buyer?.phone} />
+        <Field name="pib" label="PIB" error={errors.pib} defaultValue={buyer?.pib} />
+        <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} />
         <div className="sm:col-span-2">
-          <Field name="address" label="Adresa isporuke" autoComplete="street-address" error={errors.address} />
+          <Field name="address" label="Adresa isporuke" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} />
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="notes">Napomena</Label>
@@ -472,6 +486,7 @@ function Field({
   required,
   type = "text",
   autoComplete,
+  defaultValue,
 }: {
   name: string;
   label: string;
@@ -479,6 +494,7 @@ function Field({
   required?: boolean;
   type?: string;
   autoComplete?: string;
+  defaultValue?: string;
 }) {
   return (
     <div>
@@ -486,7 +502,7 @@ function Field({
         {label}
         {required ? <span className="text-destructive"> *</span> : null}
       </Label>
-      <Input id={name} name={name} type={type} autoComplete={autoComplete} required={required} className="mt-1.5 h-11" aria-invalid={Boolean(error)} />
+      <Input id={name} name={name} type={type} autoComplete={autoComplete} required={required} defaultValue={defaultValue} className="mt-1.5 h-11" aria-invalid={Boolean(error)} />
       <FieldError message={error} />
     </div>
   );

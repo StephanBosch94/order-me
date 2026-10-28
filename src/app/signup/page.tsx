@@ -10,9 +10,10 @@ export const metadata: Metadata = { title: "Registracija" };
 
 export default async function SignupPage() {
   const session = await getSession();
+  if (session?.kind === "buyer") redirect("/kupac");
   if (session) redirect("/dashboard");
   return (
-    <AuthShell title="Otvorite nalog" subtitle="Naziv firme i adresa su dovoljni da stranica za poručivanje proradi.">
+    <AuthShell title="Otvorite nalog" subtitle="Izaberite da li prodajete ili poručujete od dobavljača.">
       <SignupForm />
       <p className="mt-6 text-sm text-muted-foreground">
         Već imate nalog?{" "}

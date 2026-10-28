@@ -135,3 +135,69 @@ test("isolates suppliers and keeps order snapshots", async () => {
     assert.equal(wrongSupplier, null);
   });
 });
+
+test("buyer account sees only orders placed with that account", async () => {
+  await withStore(async (store) => {
+    const seller = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    const organization = await store.createOrganization({
+      userId: seller.id,
+      userName: seller.name,
+      userEmail: seller.email,
+      name: "Gastro Supply",
+      slug: "gastro-supply",
+      phone: "",
+    });
+    const product = await store.createProduct(organization.id, {
+        name: "Salvete",
+        sku: "SV",
+        description: "",
+        categoryId: null,
+        newCategory: "",
+        unit: "paket",
+        pricePara: 10000,
+        minQuantity: 1,
+        active: true,
+      },
+    );
+    const buyer = await store.createUser({
+      name: "Milan Testić",
+      email: "milan@bistro.rs",
+      password: "lozinka123",
+      kind: "buyer",
+      businessName: "Bistro Test",
+      phone: "064111222",
+    });
+    const account = await store.resolveAccount(buyer.id);
+    assert.equal(account?.kind, "buyer");
+    const sellerAccount = await store.resolveAccount(seller.id);
+    assert.equal(sellerAccount?.kind, "supplier");
+
+    const created = await store.createPublicOrder(
+      {
+        slug: "gastro-supply",
+        idempotencyKey: crypto.randomUUID(),
+        businessName: "Bistro Test",
+        contactName: "Milan Testić",
+        email: "milan@bistro.rs",
+        phone: "064111222",
+        pib: "",
+        address: "",
+        city: "Beograd",
+        notes: "",
+        items: [{ productId: product.id, quantity: 1 }],
+        buyerUserId: buyer.id,
+      },
+      "127.0.0.1",
+    );
+    assert.equal(created.ok, true);
+    const orders = await store.listBuyerOrders(buyer.id);
+    assert.equal(orders.length, 1);
+    assert.equal(orders[0]?.supplierName, "Gastro Supply");
+    assert.deepEqual(await store.listBuyerOrders(seller.id), []);
+    assert.equal(await store.getAccount(buyer.id), null);
+  });
+});

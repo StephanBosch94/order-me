@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getDataMode } from "@/lib/config";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
-import type { AccountContext } from "@/lib/data/types";
+import type { AccountContext, BuyerAccount, SessionAccount } from "@/lib/data/types";
 
 export const SESSION_COOKIE = "poruci_session";
 
@@ -17,25 +17,42 @@ const cookieOptions = {
   maxAge: 60 * 60 * 24 * 14,
 };
 
-export async function getSession(): Promise<AccountContext | null> {
+export function landingPath(account: SessionAccount, nextPath: string) {
+  if (account.kind === "buyer") {
+    if (nextPath.startsWith("/s/")) return nextPath;
+    return "/kupac";
+  }
+  if (nextPath === "/kupac" || nextPath.startsWith("/kupac?")) return "/dashboard";
+  return nextPath;
+}
+
+export async function getSession(): Promise<SessionAccount | null> {
   if (getDataMode() === "demo") {
     const token = (await cookies()).get(SESSION_COOKIE)?.value;
     if (!token) return null;
     const userId = await getDemoIdentity().getUserIdBySession(token);
     if (!userId) return null;
-    return getDemoIdentity().getAccount(userId);
+    return getDemoIdentity().resolveAccount(userId);
   }
 
   const { createSupabaseServer } = await import("@/lib/supabase/server");
   const supabase = await createSupabaseServer();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
-  return getCommerce().getAccount(data.user.id);
+  return getCommerce().resolveAccount(data.user.id);
 }
 
-export async function requireSession() {
+export async function requireSession(): Promise<AccountContext> {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (session.kind === "buyer") redirect("/kupac");
+  return session;
+}
+
+export async function requireBuyerSession(): Promise<BuyerAccount> {
+  const session = await getSession();
+  if (!session) redirect("/login?next=/kupac");
+  if (session.kind === "supplier") redirect("/dashboard");
   return session;
 }
 

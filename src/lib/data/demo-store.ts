@@ -4,7 +4,7 @@ import path from "node:path";
 
 import type { CsvProductRow } from "@/lib/csv";
 import { RESERVED_SLUGS } from "@/lib/constants";
-import type { CommerceRepository, CreateOrganizationInput } from "@/lib/data/repository";
+import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput } from "@/lib/data/repository";
 import { priceOrderLines } from "@/lib/data/pricing";
 import {
   createSeedDatabase,
@@ -14,6 +14,7 @@ import {
   type DemoUser,
 } from "@/lib/data/seed";
 import type {
+  BuyerOrder,
   Category,
   CreateOrderResult,
   Customer,
@@ -38,6 +39,7 @@ import type {
   PublicOrderInput,
   PublicOrderView,
   PublicSupplier,
+  SessionAccount,
 } from "@/lib/data/types";
 import { DataError } from "@/lib/errors";
 import { belgradeDateKey, belgradeMonthKey, belgradeYear } from "@/lib/format";
@@ -114,7 +116,17 @@ export class DemoStore implements CommerceRepository {
     );
   }
 
-  async createUser(input: { name: string; email: string; password: string }) {
+  async createUser(input: {
+    name: string;
+    email: string;
+    password: string;
+    kind?: "supplier" | "buyer";
+    businessName?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    pib?: string;
+  }) {
     const passwordHash = await hashPassword(input.password);
     return this.exclusive(async (db) => {
       if (db.users.some((user) => user.email.toLowerCase() === input.email.toLowerCase())) {
@@ -125,6 +137,12 @@ export class DemoStore implements CommerceRepository {
         email: input.email.toLowerCase(),
         name: input.name,
         passwordHash,
+        kind: input.kind ?? "supplier",
+        businessName: input.businessName ?? "",
+        phone: input.phone ?? "",
+        address: input.address ?? "",
+        city: input.city ?? "",
+        pib: input.pib ?? "",
         createdAt: new Date().toISOString(),
       };
       db.users.push(user);
@@ -200,7 +218,26 @@ export class DemoStore implements CommerceRepository {
       };
       db.organizations.push(organization);
       db.members.push(member);
+      const owner = db.users.find((user) => user.id === input.userId);
+      if (owner) owner.kind = "supplier";
       return organization;
+    });
+  }
+
+  async createBuyerProfile(input: CreateBuyerInput) {
+    await this.exclusive(async (db) => {
+      const user = db.users.find((item) => item.id === input.userId);
+      if (!user) throw new DataError("Nalog nije pronađen.", "not_found");
+      if (db.members.some((member) => member.userId === user.id)) {
+        throw new DataError("Ovaj nalog je već nalog prodavca.", "conflict");
+      }
+      user.kind = "buyer";
+      user.name = input.name;
+      user.businessName = input.businessName;
+      user.phone = input.phone;
+      user.address = input.address;
+      user.city = input.city;
+      user.pib = input.pib;
     });
   }
 
@@ -223,6 +260,48 @@ export class DemoStore implements CommerceRepository {
       role: member.role,
       organization,
     };
+  }
+
+  async resolveAccount(userId: string): Promise<SessionAccount | null> {
+    const db = await this.read();
+    const user = db.users.find((item) => item.id === userId);
+    if (!user) return null;
+    if (user.kind === "buyer") {
+      return {
+        kind: "buyer",
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        businessName: user.businessName,
+        phone: user.phone,
+        address: user.address,
+        city: user.city,
+        pib: user.pib,
+      };
+    }
+    const account = await this.getAccount(userId);
+    return account ? { ...account, kind: "supplier" } : null;
+  }
+
+  async listBuyerOrders(userId: string): Promise<BuyerOrder[]> {
+    const db = await this.read();
+    return db.orders
+      .filter((order) => order.buyerUserId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((order) => {
+        const organization = db.organizations.find((item) => item.id === order.organizationId);
+        return {
+          id: order.id,
+          number: order.number,
+          status: order.status,
+          totalPara: order.totalPara,
+          createdAt: order.createdAt,
+          supplierName: organization?.name ?? "Dobavljač",
+          supplierSlug: organization?.slug ?? "",
+          confirmationToken: order.confirmationToken,
+          itemCount: db.orderItems.filter((item) => item.orderId === order.id).length,
+        };
+      });
   }
 
   async updateOrganization(id: string, input: OrganizationInput) {
@@ -535,6 +614,7 @@ export class DemoStore implements CommerceRepository {
         id: randomUUID(),
         organizationId: organization.id,
         customerId: customer.id,
+        buyerUserId: input.buyerUserId ?? null,
         number,
         status: "nova",
         notes: input.notes,
@@ -677,7 +757,7 @@ export class DemoStore implements CommerceRepository {
       if (parsed.version !== 1) {
         throw new DataError("Demo baza ima nepoznatu verziju.", "validation");
       }
-      return parsed;
+      return normalizeDatabase(parsed);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       const db = this.options.seed === false ? emptyDatabase() : await createSeedDatabase();
@@ -706,6 +786,21 @@ export class DemoStore implements CommerceRepository {
     );
     return job;
   }
+}
+
+function normalizeDatabase(db: DemoDatabase) {
+  for (const user of db.users) {
+    if (user.kind !== "buyer" && user.kind !== "supplier") user.kind = "supplier";
+    user.businessName ??= "";
+    user.phone ??= "";
+    user.address ??= "";
+    user.city ??= "";
+    user.pib ??= "";
+  }
+  for (const order of db.orders) {
+    if (!order.buyerUserId) order.buyerUserId = null;
+  }
+  return db;
 }
 
 function slugTaken(db: DemoDatabase, slug: string, exceptId?: string) {

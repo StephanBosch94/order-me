@@ -2,9 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import type { CsvProductRow } from "@/lib/csv";
 import { RESERVED_SLUGS } from "@/lib/constants";
-import type { CommerceRepository, CreateOrganizationInput } from "@/lib/data/repository";
+import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput } from "@/lib/data/repository";
 import { priceOrderLines } from "@/lib/data/pricing";
 import type {
+  BuyerOrder,
   Category,
   CreateOrderResult,
   Customer,
@@ -31,6 +32,7 @@ import type {
   PublicOrderInput,
   PublicOrderView,
   PublicSupplier,
+  SessionAccount,
   Unit,
 } from "@/lib/data/types";
 import { DataError } from "@/lib/errors";
@@ -39,6 +41,12 @@ import { getServiceClient } from "@/lib/supabase/admin";
 import { fold, orderPrefixFromName } from "@/lib/text";
 
 type DbError = { message: string; code?: string } | null;
+
+function oneRecord(value: unknown) {
+  if (Array.isArray(value)) return (value[0] ?? null) as Record<string, unknown> | null;
+  if (value && typeof value === "object") return value as Record<string, unknown>;
+  return null;
+}
 
 function fail(error: DbError): asserts error is null {
   if (!error) return;
@@ -140,6 +148,7 @@ function mapOrder(row: Record<string, unknown>): Order {
     id: String(row.id),
     organizationId: String(row.organization_id),
     customerId: String(row.customer_id),
+    buyerUserId: row.buyer_user_id ? String(row.buyer_user_id) : null,
     number: String(row.number),
     status: String(row.status) as OrderStatus,
     notes: String(row.notes ?? ""),
@@ -267,6 +276,7 @@ export const supabaseRepository: CommerceRepository = {
       id: input.userId,
       email: input.userEmail,
       name: input.userName,
+      kind: "supplier",
     });
     fail(profile.error);
     const member = await admin.from("organization_members").insert({
@@ -276,6 +286,21 @@ export const supabaseRepository: CommerceRepository = {
     });
     fail(member.error);
     return organization;
+  },
+
+  async createBuyerProfile(input: CreateBuyerInput) {
+    const { error } = await db().from("profiles").upsert({
+      id: input.userId,
+      email: input.email,
+      name: input.name,
+      kind: "buyer",
+      business_name: input.businessName,
+      phone: input.phone,
+      address: input.address,
+      city: input.city,
+      pib: input.pib,
+    });
+    fail(error);
   },
 
   async getOrganization(id) {
@@ -306,6 +331,52 @@ export const supabaseRepository: CommerceRepository = {
       role: String((member.data as Record<string, unknown>).role) as "owner" | "staff",
       organization,
     };
+  },
+
+  async resolveAccount(userId): Promise<SessionAccount | null> {
+    const profile = await db().from("profiles").select("*").eq("id", userId).maybeSingle();
+    fail(profile.error);
+    if (!profile.data) return null;
+    const row = profile.data as Record<string, unknown>;
+    if (row.kind === "buyer") {
+      return {
+        kind: "buyer",
+        userId,
+        name: String(row.name ?? ""),
+        email: String(row.email ?? ""),
+        businessName: String(row.business_name ?? ""),
+        phone: String(row.phone ?? ""),
+        address: String(row.address ?? ""),
+        city: String(row.city ?? ""),
+        pib: String(row.pib ?? ""),
+      };
+    }
+    const account = await this.getAccount(userId);
+    return account ? { ...account, kind: "supplier" } : null;
+  },
+
+  async listBuyerOrders(userId): Promise<BuyerOrder[]> {
+    const { data, error } = await db()
+      .from("orders")
+      .select("id, number, status, total_para, created_at, confirmation_token, organizations(name, slug), order_items(id)")
+      .eq("buyer_user_id", userId)
+      .order("created_at", { ascending: false });
+    fail(error);
+    return ((data ?? []) as Record<string, unknown>[]).map((row) => {
+      const organization = oneRecord(row.organizations);
+      const items = Array.isArray(row.order_items) ? row.order_items : [];
+      return {
+        id: String(row.id),
+        number: String(row.number),
+        status: String(row.status) as OrderStatus,
+        totalPara: Number(row.total_para),
+        createdAt: String(row.created_at),
+        supplierName: String(organization?.name ?? "Dobavljač"),
+        supplierSlug: String(organization?.slug ?? ""),
+        confirmationToken: String(row.confirmation_token),
+        itemCount: items.length,
+      };
+    });
   },
 
   async updateOrganization(id, input: OrganizationInput) {
@@ -681,6 +752,7 @@ export const supabaseRepository: CommerceRepository = {
         idempotency_key: input.idempotencyKey,
         confirmation_token: randomUUID(),
         customer_snapshot: snapshot,
+        buyer_user_id: input.buyerUserId || null,
       })
       .select("*")
       .single();

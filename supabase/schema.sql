@@ -39,6 +39,12 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null,
   name text not null,
+  kind text not null default 'supplier' check (kind in ('supplier', 'buyer')),
+  business_name text not null default '',
+  phone text not null default '',
+  address text not null default '',
+  city text not null default '',
+  pib text not null default '',
   created_at timestamptz not null default now()
 );
 
@@ -94,6 +100,7 @@ create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations (id) on delete cascade,
   customer_id uuid not null references public.customers (id) on delete restrict,
+  buyer_user_id uuid references auth.users (id) on delete set null,
   number text not null,
   status text not null check (status in ('nova', 'potvrdjena', 'u_pripremi', 'isporucena', 'otkazana')),
   notes text not null default '',
@@ -240,3 +247,19 @@ create policy product_images_public_read on storage.objects
 for select using (bucket_id = 'product-images');
 
 alter table public.organizations add column if not exists brand_color text;
+
+alter table public.profiles add column if not exists kind text not null default 'supplier';
+alter table public.profiles add column if not exists business_name text not null default '';
+alter table public.profiles add column if not exists phone text not null default '';
+alter table public.profiles add column if not exists address text not null default '';
+alter table public.profiles add column if not exists city text not null default '';
+alter table public.profiles add column if not exists pib text not null default '';
+alter table public.profiles drop constraint if exists profiles_kind_check;
+alter table public.profiles add constraint profiles_kind_check check (kind in ('supplier', 'buyer'));
+
+alter table public.orders add column if not exists buyer_user_id uuid references auth.users (id) on delete set null;
+create index if not exists orders_buyer_idx on public.orders (buyer_user_id);
+
+drop policy if exists orders_buyer_select on public.orders;
+create policy orders_buyer_select on public.orders
+for select using (buyer_user_id = auth.uid());

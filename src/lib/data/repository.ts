@@ -1,6 +1,7 @@
 import type { CsvProductRow } from "@/lib/csv";
 import type {
   AccountContext,
+  BuyerOrder,
   Category,
   CreateOrderResult,
   Customer,
@@ -22,7 +23,19 @@ import type {
   PublicCatalog,
   PublicOrderInput,
   PublicOrderView,
+  SessionAccount,
 } from "@/lib/data/types";
+
+export type CreateBuyerInput = {
+  userId: string;
+  name: string;
+  email: string;
+  businessName: string;
+  phone: string;
+  address: string;
+  city: string;
+  pib: string;
+};
 
 export type CreateOrganizationInput = {
   userId: string;
@@ -37,8 +50,11 @@ export type { AccountContext };
 
 export interface CommerceRepository {
   createOrganization(input: CreateOrganizationInput): Promise<Organization>;
+  createBuyerProfile(input: CreateBuyerInput): Promise<void>;
   getOrganization(id: string): Promise<Organization | null>;
   getAccount(userId: string): Promise<AccountContext | null>;
+  resolveAccount(userId: string): Promise<SessionAccount | null>;
+  listBuyerOrders(userId: string): Promise<BuyerOrder[]>;
   updateOrganization(id: string, input: OrganizationInput): Promise<Organization>;
   isSlugTaken(slug: string, exceptId?: string): Promise<boolean>;
   listCategories(organizationId: string): Promise<Category[]>;
