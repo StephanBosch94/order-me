@@ -35,7 +35,7 @@ const shopBenefits = [
   "Kupac dodaje u korpu i ide na kasu.",
   "Na kasi ostavlja ime, telefon, email i adresu isporuke.",
   "Boja i znak prodavnice vide se na stranici.",
-  "Kupovina se završava na kasi, bez otvaranja naloga.",
+  "Kupac može da otvori nalog na stranici firme i da vidi svoje kupovine.",
 ];
 
 const businessBenefits = [

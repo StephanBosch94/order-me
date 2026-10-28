@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/auth-forms";
 import { Logo } from "@/components/brand/logo";
-import { getSession } from "@/lib/auth";
+import { getSession, landingPath } from "@/lib/auth";
 import { isDemoMode } from "@/lib/config";
 import { safeNextPath } from "@/lib/text";
 
@@ -15,21 +15,26 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
-  const session = await getSession();
-  if (session?.kind === "buyer") redirect("/kupac");
-  if (session) redirect("/dashboard");
   const params = await searchParams;
+  const nextPath = safeNextPath(params.next);
+  const session = await getSession();
+  if (session) redirect(landingPath(session, nextPath));
   return (
     <AuthShell title="Prijava" subtitle="Prijavite se na nalog prodavca ili kupca.">
-      <LoginForm nextPath={safeNextPath(params.next)} demo={isDemoMode()} />
+      <LoginForm nextPath={nextPath} demo={isDemoMode()} />
       <p className="mt-6 text-sm text-muted-foreground">
         Nemate nalog?{" "}
-        <Link href="/signup" className="font-medium text-foreground underline-offset-2 hover:underline">
+        <Link href={accountHref(nextPath)} className="font-medium text-foreground underline-offset-2 hover:underline">
           Otvorite nalog
         </Link>
       </p>
     </AuthShell>
   );
+}
+
+function accountHref(nextPath: string) {
+  if (/^\/(?:s|shop)\/[^/]+$/.test(nextPath)) return `${nextPath}/nalog`;
+  return "/signup";
 }
 
 export function AuthShell({

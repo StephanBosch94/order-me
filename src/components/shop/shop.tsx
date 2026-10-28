@@ -1,6 +1,7 @@
 "use client";
 
 import { Minus, Plus, ShoppingBag } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
@@ -8,7 +9,7 @@ import { placeShopOrderAction } from "@/lib/actions/orders";
 import { supplierTheme } from "@/lib/color";
 import { quantityStep } from "@/lib/constants";
 import { lineTotalPara } from "@/lib/data/pricing";
-import type { Product, PublicCatalog } from "@/lib/data/types";
+import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
 import { formatRsd } from "@/lib/format";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { ProductImage } from "@/components/catalog/product-image";
@@ -17,7 +18,15 @@ import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
 
 type Step = "browse" | "cart" | "checkout";
 
-export function Shop({ catalog }: { catalog: PublicCatalog }) {
+export function Shop({
+  catalog,
+  buyer,
+  showAccount = true,
+}: {
+  catalog: PublicCatalog;
+  buyer?: BuyerAccount | null;
+  showAccount?: boolean;
+}) {
   const router = useRouter();
   const storageKey = `poruci-shop:${catalog.supplier.slug}`;
   const idempotencyStorage = `poruci-shop-idem:${catalog.supplier.slug}`;
@@ -63,11 +72,22 @@ export function Shop({ catalog }: { catalog: PublicCatalog }) {
               <h1 className="truncate text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
             </div>
           </div>
-          <Button variant="secondary" onClick={() => setStep(step === "browse" ? "cart" : "browse")}>
-            <ShoppingBag className="size-4" aria-hidden="true" />
-            Korpa
-            <span className="tabular-nums">{count}</span>
-          </Button>
+          <div className="flex items-center gap-3">
+            {buyer ? (
+              <Link href="/kupac" className="text-sm font-medium underline-offset-2 hover:underline">
+                Moj nalog
+              </Link>
+            ) : showAccount ? (
+              <Link href={`/shop/${catalog.supplier.slug}/nalog`} className="text-sm font-medium underline-offset-2 hover:underline">
+                Otvorite nalog
+              </Link>
+            ) : null}
+            <Button variant="secondary" onClick={() => setStep(step === "browse" ? "cart" : "browse")}>
+              <ShoppingBag className="size-4" aria-hidden="true" />
+              Korpa
+              <span className="tabular-nums">{count}</span>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -128,6 +148,7 @@ export function Shop({ catalog }: { catalog: PublicCatalog }) {
         {step === "checkout" ? (
           <Checkout
             slug={catalog.supplier.slug}
+            buyer={buyer}
             lines={lines}
             total={total}
             idempotencyStorage={idempotencyStorage}
@@ -222,6 +243,7 @@ function Cart({
 
 function Checkout({
   slug,
+  buyer,
   lines,
   total,
   idempotencyStorage,
@@ -229,6 +251,7 @@ function Checkout({
   onSuccess,
 }: {
   slug: string;
+  buyer?: BuyerAccount | null;
   lines: { product: Product; quantity: number }[];
   total: number;
   idempotencyStorage: string;
@@ -273,17 +296,20 @@ function Checkout({
         Nazad na korpu
       </button>
       <h2 className="text-lg font-semibold">Kasa</h2>
-      <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}. Isporuka na adresu koju unesete.</p>
+      <p className="text-sm text-muted-foreground">
+        {buyer ? `Prijavljeni ste kao ${buyer.name}. ` : null}
+        Ukupno {formatRsd(total)}. Isporuka na adresu koju unesete.
+      </p>
       {message ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {message}
         </p>
       ) : null}
-      <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} />
-      <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} />
-      <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} />
-      <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} />
-      <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} />
+      <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} defaultValue={buyer?.name} />
+      <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={buyer?.email} />
+      <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={buyer?.phone} />
+      <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} />
+      <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} />
       <div>
         <Label htmlFor="notes">Napomena</Label>
         <Textarea id="notes" name="notes" className="mt-1.5" />
@@ -307,17 +333,19 @@ function Field({
   error,
   type = "text",
   autoComplete,
+  defaultValue,
 }: {
   name: string;
   label: string;
   error?: string;
   type?: string;
   autoComplete?: string;
+  defaultValue?: string;
 }) {
   return (
     <div>
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} type={type} autoComplete={autoComplete} required className="mt-1.5 h-11" aria-invalid={Boolean(error)} />
+      <Input id={name} name={name} type={type} autoComplete={autoComplete} defaultValue={defaultValue} required className="mt-1.5 h-11" aria-invalid={Boolean(error)} />
       <FieldError message={error} />
     </div>
   );

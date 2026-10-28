@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { clearDemoSession, landingPath, setDemoSession } from "@/lib/auth";
+import { buyerDestination, clearDemoSession, landingPath, setDemoSession } from "@/lib/auth";
 import { RESERVED_SLUGS } from "@/lib/constants";
 import { getDataMode } from "@/lib/config";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
@@ -53,6 +53,9 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
 
 export async function signupAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const kind = formData.get("kind") === "buyer" ? "buyer" : "supplier";
+  const person = formData.get("profile") === "osoba";
+  const rawNext = formData.get("next");
+  const requestedNext = safeNextPath(typeof rawNext === "string" ? rawNext : undefined);
   const parsed = signupSchema.safeParse(
     kind === "buyer"
       ? {
@@ -60,7 +63,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           name: formData.get("name"),
           email: formData.get("email"),
           password: formData.get("password"),
-          businessName: formData.get("businessName"),
+          businessName: person ? formData.get("name") : formData.get("businessName"),
           phone: formData.get("phone") ?? "",
           address: formData.get("address") ?? "",
           city: formData.get("city") ?? "",
@@ -113,7 +116,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
       }
       const token = await getDemoIdentity().createSession(user.id);
       await setDemoSession(token);
-      redirect(parsed.data.kind === "buyer" ? "/kupac" : "/dashboard");
+      redirect(parsed.data.kind === "buyer" ? buyerDestination(requestedNext) : "/dashboard");
     }
 
     const { createSupabaseServer } = await import("@/lib/supabase/server");
@@ -159,7 +162,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
         };
       }
     }
-    redirect(parsed.data.kind === "buyer" ? "/kupac" : "/dashboard");
+    redirect(parsed.data.kind === "buyer" ? buyerDestination(requestedNext) : "/dashboard");
   } catch (error) {
     if (error instanceof DataError) return { error: error.message };
     throw error;

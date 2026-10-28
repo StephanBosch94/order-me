@@ -17,5 +17,11 @@ export default async function SupplierPage({ params }: { params: Promise<{ slug:
   if (!catalog) notFound();
   if (catalog.supplier.channel === "b2c") redirect(`/shop/${catalog.supplier.slug}`);
   const session = await getSession();
-  return <Storefront catalog={catalog} buyer={session?.kind === "buyer" ? session : null} />;
+  return (
+    <Storefront
+      catalog={catalog}
+      buyer={session?.kind === "buyer" ? session : null}
+      showAccount={session?.kind !== "supplier"}
+    />
+  );
 }

@@ -36,15 +36,18 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
   );
 }
 
-export function SignupForm({ mode }: { mode: "b2c" | "b2b" | "buyer" }) {
+export function SignupForm({ mode, nextPath }: { mode: "b2c" | "b2b" | "buyer" | "buyer-shop"; nextPath?: string }) {
   const [state, action, pending] = useActionState(signupAction, initial);
-  const supplier = mode !== "buyer";
+  const supplier = mode === "b2c" || mode === "b2b";
+  const person = mode === "buyer-shop";
 
   return (
     <form action={action} className="space-y-4">
       {state.error ? <Alert message={state.error} /> : null}
       <input type="hidden" name="kind" value={supplier ? "supplier" : "buyer"} />
       {supplier ? <input type="hidden" name="channel" value={mode} /> : null}
+      {person ? <input type="hidden" name="profile" value="osoba" /> : null}
+      {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
       <Field name="name" label="Ime i prezime" autoComplete="name" error={state.fieldErrors?.name} />
       <Field name="email" label="Email" type="email" autoComplete="email" error={state.fieldErrors?.email} />
       <Field name="password" label="Lozinka" type="password" autoComplete="new-password" error={state.fieldErrors?.password} />
@@ -58,6 +61,12 @@ export function SignupForm({ mode }: { mode: "b2c" | "b2b" | "buyer" }) {
           <p className="text-sm text-muted-foreground">Adresa stranice pravi se od naziva. Možete je promeniti u podešavanjima.</p>
           <Field name="phone" label="Telefon" autoComplete="tel" required={false} error={state.fieldErrors?.phone} />
         </>
+      ) : person ? (
+        <>
+          <Field name="phone" label="Telefon" autoComplete="tel" error={state.fieldErrors?.phone} />
+          <Field name="address" label="Adresa" autoComplete="street-address" required={false} error={state.fieldErrors?.address} />
+          <Field name="city" label="Grad" autoComplete="address-level2" required={false} error={state.fieldErrors?.city} />
+        </>
       ) : (
         <>
           <Field name="businessName" label="Naziv firme" error={state.fieldErrors?.businessName} />
@@ -68,7 +77,7 @@ export function SignupForm({ mode }: { mode: "b2c" | "b2b" | "buyer" }) {
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Kreiranje…" : mode === "b2c" ? "Otvorite prodavnicu" : mode === "buyer" ? "Otvorite nalog kupca" : "Otvorite nalog za firme"}
+        {pending ? "Kreiranje…" : mode === "b2c" ? "Otvorite prodavnicu" : mode === "b2b" ? "Otvorite nalog za firme" : "Otvorite nalog"}
       </Button>
     </form>
   );

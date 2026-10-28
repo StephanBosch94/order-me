@@ -19,7 +19,15 @@ import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
 
 type Step = "browse" | "details";
 
-export function Storefront({ catalog, buyer }: { catalog: PublicCatalog; buyer?: BuyerAccount | null }) {
+export function Storefront({
+  catalog,
+  buyer,
+  showAccount = true,
+}: {
+  catalog: PublicCatalog;
+  buyer?: BuyerAccount | null;
+  showAccount?: boolean;
+}) {
   const router = useRouter();
   const storageKey = `poruci-cart:${catalog.supplier.slug}`;
   const idempotencyStorage = `poruci-idem:${catalog.supplier.slug}`;
@@ -100,6 +108,10 @@ export function Storefront({ catalog, buyer }: { catalog: PublicCatalog; buyer?:
             {buyer ? (
               <Link href="/kupac" className="text-sm font-medium underline-offset-2 hover:underline">
                 Moj nalog
+              </Link>
+            ) : showAccount ? (
+              <Link href={`/s/${catalog.supplier.slug}/nalog`} className="text-sm font-medium underline-offset-2 hover:underline">
+                Otvorite nalog
               </Link>
             ) : null}
             <p className="hidden max-w-xs text-right text-sm text-muted-foreground sm:block">

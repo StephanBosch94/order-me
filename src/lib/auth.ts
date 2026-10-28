@@ -17,11 +17,13 @@ const cookieOptions = {
   maxAge: 60 * 60 * 24 * 14,
 };
 
+export function buyerDestination(nextPath: string) {
+  if (nextPath.startsWith("/s/") || nextPath.startsWith("/shop/")) return nextPath;
+  return "/kupac";
+}
+
 export function landingPath(account: SessionAccount, nextPath: string) {
-  if (account.kind === "buyer") {
-    if (nextPath.startsWith("/s/")) return nextPath;
-    return "/kupac";
-  }
+  if (account.kind === "buyer") return buyerDestination(nextPath);
   if (nextPath === "/kupac" || nextPath.startsWith("/kupac?")) return "/dashboard";
   return nextPath;
 }

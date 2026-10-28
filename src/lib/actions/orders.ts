@@ -91,6 +91,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
   const headerStore = await headers();
   const forwarded = headerStore.get("x-forwarded-for");
   const ip = forwarded?.split(",")[0]?.trim() || headerStore.get("x-real-ip") || "local";
+  const session = await getSession();
   const result = await getCommerce().createPublicOrder(
     {
       slug: parsed.data.slug,
@@ -104,7 +105,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
       city: parsed.data.city,
       notes: parsed.data.notes,
       items: parsed.data.items,
-      buyerUserId: null,
+      buyerUserId: session?.kind === "buyer" ? session.userId : null,
     },
     ip,
   );
@@ -122,6 +123,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
     revalidatePath("/orders");
     revalidatePath("/dashboard");
     revalidatePath("/customers");
+    revalidatePath("/kupac");
   }
 
   return { ok: true, token: result.order.confirmationToken, slug: result.supplier.slug };
