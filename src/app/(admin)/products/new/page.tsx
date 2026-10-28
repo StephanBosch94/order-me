@@ -13,7 +13,7 @@ export default async function NewProductPage() {
   return (
     <div>
       <PageHeader title="Novi proizvod" description="Slika i šifra nisu obavezni. Proizvod odmah može da bude vidljiv kupcima." />
-      <ProductForm categories={categories} />
+      <ProductForm categories={categories} shop={session.organization.channel === "b2c"} />
     </div>
   );
 }

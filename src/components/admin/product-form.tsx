@@ -13,7 +13,15 @@ import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fields";
 
-export function ProductForm({ product, categories }: { product?: Product; categories: Category[] }) {
+export function ProductForm({
+  product,
+  categories,
+  shop = false,
+}: {
+  product?: Product;
+  categories: Category[];
+  shop?: boolean;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,6 +38,7 @@ export function ProductForm({ product, categories }: { product?: Product; catego
       newCategory: String(formData.get("newCategory") ?? ""),
       unit: String(formData.get("unit") ?? ""),
       price: String(formData.get("price") ?? ""),
+      salePrice: String(formData.get("salePrice") ?? ""),
       minQuantity: String(formData.get("minQuantity") ?? ""),
       active: formData.get("active") === "on",
     };
@@ -86,6 +95,23 @@ export function ProductForm({ product, categories }: { product?: Product; catego
           <Label htmlFor="price">Cena po jedinici (RSD)</Label>
           <Input id="price" name="price" defaultValue={product ? formatPriceInput(product.pricePara) : ""} className="mt-1.5" inputMode="decimal" required />
           <FieldError message={errors.price} />
+        </div>
+        <div>
+          <Label htmlFor="salePrice">Akcijska cena (RSD)</Label>
+          <Input
+            id="salePrice"
+            name="salePrice"
+            defaultValue={product?.salePricePara ? formatPriceInput(product.salePricePara) : ""}
+            className="mt-1.5"
+            inputMode="decimal"
+            placeholder="Opciono"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {shop
+              ? "Ako je niža od redovne, proizvod ide u sekciju Akcije."
+              : "Ako je niža od redovne, kupac plaća ovu cenu."}
+          </p>
+          <FieldError message={errors.salePrice} />
         </div>
         <div>
           <Label htmlFor="minQuantity">Minimalna količina</Label>

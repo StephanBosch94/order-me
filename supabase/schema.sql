@@ -75,11 +75,13 @@ create table if not exists public.products (
   description text not null default '',
   unit text not null check (unit in ('komad', 'paket', 'kutija', 'kilogram', 'litar')),
   price_para integer not null check (price_para > 0),
+  sale_price_para integer,
   image_url text,
   active boolean not null default true,
   min_quantity numeric(12, 3) not null default 1 check (min_quantity > 0),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint products_sale_price_check check (sale_price_para is null or (sale_price_para > 0 and sale_price_para < price_para))
 );
 
 create table if not exists public.customers (
@@ -260,6 +262,11 @@ alter table public.profiles add column if not exists city text not null default 
 alter table public.profiles add column if not exists pib text not null default '';
 alter table public.profiles drop constraint if exists profiles_kind_check;
 alter table public.profiles add constraint profiles_kind_check check (kind in ('supplier', 'buyer'));
+
+alter table public.products add column if not exists sale_price_para integer;
+alter table public.products drop constraint if exists products_sale_price_check;
+alter table public.products add constraint products_sale_price_check
+  check (sale_price_para is null or (sale_price_para > 0 and sale_price_para < price_para));
 
 alter table public.orders add column if not exists buyer_user_id uuid references auth.users (id) on delete set null;
 create index if not exists orders_buyer_idx on public.orders (buyer_user_id);

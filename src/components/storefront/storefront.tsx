@@ -9,7 +9,7 @@ import { placeOrderAction } from "@/lib/actions/orders";
 import { DEMO_SLUGS, quantityStep, unitLabel } from "@/lib/constants";
 import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
-import { lineTotalPara } from "@/lib/data/pricing";
+import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
 import { fold } from "@/lib/text";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { ProductImage } from "@/components/catalog/product-image";
@@ -51,7 +51,7 @@ export function Storefront({
   const lines = catalog.products
     .map((product) => ({ product, quantity: quantities[product.id] ?? 0 }))
     .filter((line) => line.quantity > 0);
-  const total = lines.reduce((sum, line) => sum + lineTotalPara(line.product.pricePara, line.quantity), 0);
+  const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
   const count = lines.length;
 
   function setQuantity(product: Product, quantity: number) {
@@ -182,7 +182,12 @@ export function Storefront({
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-3 sm:justify-end">
-                      <p className="text-sm font-medium tabular-nums">{formatRsd(product.pricePara)}</p>
+                      <div className="text-right">
+                        {salePricePara(product) ? (
+                          <p className="text-xs text-muted-foreground line-through tabular-nums">{formatRsd(product.pricePara)}</p>
+                        ) : null}
+                        <p className="text-sm font-medium tabular-nums">{formatRsd(effectivePricePara(product))}</p>
+                      </div>
                       <QuantityControl
                         product={product}
                         quantity={quantities[product.id] ?? 0}
@@ -378,11 +383,11 @@ function CartSummary({
             <li key={line.product.id} className="text-sm">
               <div className="flex items-start justify-between gap-3">
                 <p className="font-medium">{line.product.name}</p>
-                <p className="tabular-nums">{formatRsd(lineTotalPara(line.product.pricePara, line.quantity))}</p>
+                <p className="tabular-nums">{formatRsd(lineTotalPara(effectivePricePara(line.product), line.quantity))}</p>
               </div>
               <div className="mt-1 flex items-center justify-between text-muted-foreground">
                 <span>
-                  {formatQuantity(line.quantity)} {unitLabel(line.product.unit).toLowerCase()} · {formatRsd(line.product.pricePara)}
+                  {formatQuantity(line.quantity)} {unitLabel(line.product.unit).toLowerCase()} · {formatRsd(effectivePricePara(line.product))}
                 </span>
                 <button type="button" className="cursor-pointer text-foreground underline-offset-2 hover:underline" onClick={() => onChange(line.product, 0)}>
                   Ukloni

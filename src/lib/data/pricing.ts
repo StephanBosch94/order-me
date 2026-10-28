@@ -16,6 +16,16 @@ export function lineTotalPara(unitPricePara: number, quantity: number) {
   return Math.round(unitPricePara * quantity);
 }
 
+export function salePricePara(product: Pick<Product, "pricePara" | "salePricePara">) {
+  const sale = product.salePricePara;
+  if (sale == null || sale <= 0 || sale >= product.pricePara) return null;
+  return sale;
+}
+
+export function effectivePricePara(product: Pick<Product, "pricePara" | "salePricePara">) {
+  return salePricePara(product) ?? product.pricePara;
+}
+
 export function isFractionalUnit(unit: Unit) {
   return unit === "kilogram" || unit === "litar";
 }
@@ -73,14 +83,15 @@ export function priceOrderLines(
       };
     }
 
-    const lineTotal = lineTotalPara(product.pricePara, quantity);
+    const unitPricePara = effectivePricePara(product);
+    const lineTotal = lineTotalPara(unitPricePara, quantity);
     items.push({
       productId: product.id,
       name: product.name,
       sku: product.sku,
       unit: product.unit,
       quantity,
-      unitPricePara: product.pricePara,
+      unitPricePara,
       lineTotalPara: lineTotal,
     });
   }

@@ -9,6 +9,7 @@ import { Input, Select } from "@/components/ui/fields";
 import { requireSession } from "@/lib/auth";
 import { unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
+import { salePricePara } from "@/lib/data/pricing";
 import { formatRsd } from "@/lib/format";
 import { fold } from "@/lib/text";
 
@@ -97,7 +98,9 @@ export default async function ProductsPage({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((product) => (
+              {filtered.map((product) => {
+                const sale = salePricePara(product);
+                return (
                 <tr key={product.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -111,7 +114,16 @@ export default async function ProductsPage({
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">{unitLabel(product.unit)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{formatRsd(product.pricePara)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {sale ? (
+                      <div>
+                        <div>{formatRsd(sale)}</div>
+                        <div className="text-xs text-muted-foreground line-through">{formatRsd(product.pricePara)}</div>
+                      </div>
+                    ) : (
+                      formatRsd(product.pricePara)
+                    )}
+                  </td>
                   <td className="px-4 py-3">{product.active ? "Aktivan" : "Neaktivan"}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
@@ -122,7 +134,8 @@ export default async function ProductsPage({
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

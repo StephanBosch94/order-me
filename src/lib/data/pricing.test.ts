@@ -13,6 +13,7 @@ const product: Product = {
   description: "",
   unit: "komad",
   pricePara: 450,
+  salePricePara: null,
   imageUrl: null,
   active: true,
   minQuantity: 100,
@@ -30,6 +31,19 @@ test("uses the catalog price and enforces the minimum quantity", () => {
     assert.equal(priced.items[0]?.unitPricePara, 450);
     assert.equal(priced.subtotalPara, 45000);
   }
+});
+
+test("charges the sale price when it is lower than the regular price", () => {
+  const priced = priceOrderLines([{ ...product, salePricePara: 300 }], [{ productId: "p1", quantity: 100 }]);
+  assert.equal(priced.ok, true);
+  if (priced.ok) {
+    assert.equal(priced.items[0]?.unitPricePara, 300);
+    assert.equal(priced.subtotalPara, 30000);
+  }
+
+  const ignored = priceOrderLines([{ ...product, salePricePara: 450 }], [{ productId: "p1", quantity: 100 }]);
+  assert.equal(ignored.ok, true);
+  if (ignored.ok) assert.equal(ignored.items[0]?.unitPricePara, 450);
 });
 
 test("rejects an inactive or unknown product", () => {

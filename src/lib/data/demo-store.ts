@@ -363,6 +363,7 @@ export class DemoStore implements CommerceRepository {
         description: input.description,
         unit: input.unit,
         pricePara: input.pricePara,
+        salePricePara: input.salePricePara,
         imageUrl: input.imageUrl ?? null,
         active: input.active,
         minQuantity: input.minQuantity,
@@ -387,6 +388,7 @@ export class DemoStore implements CommerceRepository {
       product.description = input.description;
       product.unit = input.unit;
       product.pricePara = input.pricePara;
+      product.salePricePara = input.salePricePara;
       product.active = input.active;
       product.minQuantity = input.minQuantity;
       if (input.imageUrl !== undefined) product.imageUrl = input.imageUrl;
@@ -413,6 +415,7 @@ export class DemoStore implements CommerceRepository {
             description: row.description,
             unit: row.unit,
             pricePara: row.pricePara,
+            salePricePara: null,
             imageUrl: null,
             active: row.active,
             minQuantity: row.minQuantity,
@@ -761,10 +764,9 @@ export class DemoStore implements CommerceRepository {
       if (parsed.version !== 1) {
         throw new DataError("Demo baza ima nepoznatu verziju.", "validation");
       }
+      const changed = this.options.seed !== false && ensureRetailDemo(parsed);
       const db = normalizeDatabase(parsed);
-      if (this.options.seed !== false && ensureRetailDemo(db)) {
-        await this.persist(db);
-      }
+      if (changed) await this.persist(db);
       return db;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -810,6 +812,10 @@ function normalizeDatabase(db: DemoDatabase) {
   }
   for (const organization of db.organizations) {
     if (organization.channel !== "b2c" && organization.channel !== "b2b") organization.channel = "b2b";
+  }
+  for (const product of db.products) {
+    const sale = product.salePricePara;
+    if (typeof sale !== "number" || sale <= 0 || sale >= product.pricePara) product.salePricePara = null;
   }
   return db;
 }

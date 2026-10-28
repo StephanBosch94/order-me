@@ -270,6 +270,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     description: product.description,
     unit: product.unit,
     pricePara: product.pricePara,
+    salePricePara: null,
     imageUrl: `/products/${product.sku}.svg`,
     active: true,
     minQuantity: product.minQuantity,
@@ -535,8 +536,32 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
   return database;
 }
 
+const DEMO_SALE_PRICES: Record<string, number> = {
+  "KK-KAFA": 69000,
+  "KK-CASA": 49000,
+};
+
+function backfillKafaSales(db: DemoDatabase, organizationId: string) {
+  let changed = false;
+  for (const product of db.products) {
+    if (product.organizationId !== organizationId) continue;
+    const demoSale = DEMO_SALE_PRICES[product.sku];
+    if (demoSale !== undefined && product.salePricePara == null && demoSale < product.pricePara) {
+      product.salePricePara = demoSale;
+      changed = true;
+      continue;
+    }
+    if (product.salePricePara === undefined) {
+      product.salePricePara = null;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 export function ensureRetailDemo(db: DemoDatabase) {
-  if (db.organizations.some((organization) => organization.slug === "kafa-kutak")) return false;
+  const existing = db.organizations.find((organization) => organization.slug === "kafa-kutak");
+  if (existing) return backfillKafaSales(db, existing.id);
   const now = new Date().toISOString();
   const orgId = randomUUID();
   const organization: Organization = {
@@ -583,6 +608,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
       description: "Sveže mlevena kafa za džezvu i filter.",
       unit: "komad",
       pricePara: 89000,
+      salePricePara: 69000,
       imageUrl: "/products/KF-1KG.svg",
       active: true,
       minQuantity: 1,
@@ -598,6 +624,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
       description: "Beli šećer u kesici.",
       unit: "komad",
       pricePara: 22000,
+      salePricePara: null,
       imageUrl: "/products/SC-1KG.svg",
       active: true,
       minQuantity: 1,
@@ -613,6 +640,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
       description: "Keramička čaša, jedna komad.",
       unit: "komad",
       pricePara: 69000,
+      salePricePara: 49000,
       imageUrl: "/products/PC-025.svg",
       active: true,
       minQuantity: 1,
@@ -628,6 +656,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
       description: "Malo pakovanje salveta za sto.",
       unit: "komad",
       pricePara: 32000,
+      salePricePara: null,
       imageUrl: "/products/SV-3333.svg",
       active: true,
       minQuantity: 1,

@@ -8,7 +8,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { placeShopOrderAction } from "@/lib/actions/orders";
 import { supplierTheme } from "@/lib/color";
 import { DEMO_SLUGS, quantityStep } from "@/lib/constants";
-import { lineTotalPara } from "@/lib/data/pricing";
+import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
 import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
 import { formatRsd } from "@/lib/format";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
@@ -38,10 +38,11 @@ export function Shop({
   const products = catalog.products.filter(
     (product) => categoryId === "all" || product.categoryId === categoryId,
   );
+  const offers = products.filter((product) => salePricePara(product));
   const lines = catalog.products
     .map((product) => ({ product, quantity: quantities[product.id] ?? 0 }))
     .filter((line) => line.quantity > 0);
-  const total = lines.reduce((sum, line) => sum + lineTotalPara(line.product.pricePara, line.quantity), 0);
+  const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
   const count = lines.reduce((sum, line) => sum + line.quantity, 0);
 
   function setQuantity(product: Product, quantity: number) {
@@ -117,29 +118,31 @@ export function Shop({
                 </CategoryButton>
               ))}
             </div>
+            {offers.length > 0 ? (
+              <section className="mt-6" aria-labelledby="akcije-naslov">
+                <h2 id="akcije-naslov" className="text-lg font-semibold">
+                  Akcije
+                </h2>
+                <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {offers.map((product) => (
+                    <ProductCard key={product.id} product={product} onAdd={() => add(product)} />
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             {products.length === 0 ? (
               <p className="mt-6 rounded-lg border border-dashed border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
                 Trenutno nema proizvoda.
               </p>
             ) : (
-              <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {products.map((product) => (
-                  <li key={product.id} className="flex flex-col rounded-lg border border-border bg-card p-4">
-                    <ProductImage src={product.imageUrl} className="aspect-square h-auto w-full" />
-                    <h2 className="mt-3 text-sm font-semibold">{product.name}</h2>
-                    {product.description ? (
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
-                    ) : null}
-                    <div className="mt-auto flex items-center justify-between gap-3 pt-4">
-                      <p className="text-sm font-semibold tabular-nums">{formatRsd(product.pricePara)}</p>
-                      <Button size="sm" onClick={() => add(product)}>
-                        <Plus className="size-4" aria-hidden="true" />
-                        Dodaj
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <section className={offers.length > 0 ? "mt-8" : "mt-4"}>
+                {offers.length > 0 ? <h2 className="mb-3 text-lg font-semibold">Svi proizvodi</h2> : null}
+                <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product} onAdd={() => add(product)} />
+                  ))}
+                </ul>
+              </section>
             )}
           </>
         ) : null}
@@ -202,7 +205,7 @@ function Cart({
             <li key={line.product.id} className="flex items-center justify-between gap-3 px-4 py-3">
               <div>
                 <p className="text-sm font-medium">{line.product.name}</p>
-                <p className="text-sm text-muted-foreground tabular-nums">{formatRsd(line.product.pricePara)}</p>
+                <p className="text-sm text-muted-foreground tabular-nums">{formatRsd(effectivePricePara(line.product))}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -357,6 +360,34 @@ function Field({
       <Input id={name} name={name} type={type} autoComplete={autoComplete} defaultValue={defaultValue} required className="mt-1.5 h-11" aria-invalid={Boolean(error)} />
       <FieldError message={error} />
     </div>
+  );
+}
+
+function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
+  const sale = salePricePara(product);
+  return (
+    <li className="flex flex-col rounded-lg border border-border bg-card p-4">
+      <div className="relative">
+        <ProductImage src={product.imageUrl} className="aspect-square h-auto w-full" />
+        {sale ? (
+          <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+            Akcija
+          </span>
+        ) : null}
+      </div>
+      <h3 className="mt-3 text-sm font-semibold">{product.name}</h3>
+      {product.description ? <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p> : null}
+      <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+        <div>
+          {sale ? <p className="text-xs text-muted-foreground line-through tabular-nums">{formatRsd(product.pricePara)}</p> : null}
+          <p className="text-sm font-semibold tabular-nums">{formatRsd(sale ?? product.pricePara)}</p>
+        </div>
+        <Button size="sm" onClick={onAdd}>
+          <Plus className="size-4" aria-hidden="true" />
+          Dodaj
+        </Button>
+      </div>
+    </li>
   );
 }
 

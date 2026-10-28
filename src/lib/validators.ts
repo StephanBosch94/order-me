@@ -94,6 +94,7 @@ export const productFormSchema = z
     newCategory: z.string().trim().max(80),
     unit: z.enum(UNIT_VALUES, "Izaberite jedinicu mere."),
     price: z.string().trim().min(1, "Unesite cenu."),
+    salePrice: z.string().trim(),
     minQuantity: z.string().trim().min(1, "Unesite minimalnu količinu."),
     active: z.boolean(),
   })
@@ -105,6 +106,22 @@ export const productFormSchema = z
         path: ["price"],
         message: "Unesite ispravnu cenu u dinarima.",
       });
+    }
+    if (value.salePrice) {
+      const sale = parseRsdToPara(value.salePrice);
+      if (sale === null || sale <= 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["salePrice"],
+          message: "Unesite ispravnu akcijsku cenu.",
+        });
+      } else if (price !== null && sale >= price) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["salePrice"],
+          message: "Akcijska cena mora biti niža od redovne.",
+        });
+      }
     }
 
     const quantity = Number(value.minQuantity.replace(",", "."));
@@ -214,8 +231,9 @@ export function toProductInput(
   imageUrl?: string | null,
 ): ProductInput {
   const pricePara = parseRsdToPara(value.price);
+  const salePricePara = value.salePrice ? parseRsdToPara(value.salePrice) : null;
   const minQuantity = normalizeQuantity(Number(value.minQuantity.replace(",", ".")), value.unit);
-  if (pricePara === null || pricePara <= 0 || minQuantity === null) {
+  if (pricePara === null || pricePara <= 0 || minQuantity === null || (value.salePrice && (salePricePara === null || salePricePara >= pricePara))) {
     throw new Error("Proizvod nije ispravan.");
   }
 
@@ -227,6 +245,7 @@ export function toProductInput(
     newCategory: value.newCategory,
     unit: value.unit,
     pricePara,
+    salePricePara,
     minQuantity,
     active: value.active,
     imageUrl,

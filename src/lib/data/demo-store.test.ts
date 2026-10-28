@@ -52,6 +52,7 @@ test("isolates suppliers and keeps order snapshots", async () => {
       newCategory: "Ugostiteljstvo",
       unit: "paket",
       pricePara: 18900,
+      salePricePara: null,
       minQuantity: 1,
       active: true,
     });
@@ -85,6 +86,7 @@ test("isolates suppliers and keeps order snapshots", async () => {
       newCategory: "",
       unit: "komad",
       pricePara: 1,
+      salePricePara: null,
       minQuantity: 1,
       active: true,
     }), null);
@@ -97,6 +99,7 @@ test("isolates suppliers and keeps order snapshots", async () => {
       newCategory: "",
       unit: "paket",
       pricePara: 20000,
+      salePricePara: null,
       minQuantity: 1,
       active: true,
     });
@@ -159,6 +162,7 @@ test("buyer account sees only orders placed with that account", async () => {
         newCategory: "",
         unit: "paket",
         pricePara: 10000,
+        salePricePara: null,
         minQuantity: 1,
         active: true,
       },

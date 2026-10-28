@@ -33,6 +33,7 @@ export async function saveProductAction(formData: FormData): Promise<FormState &
     newCategory: text(formData, "newCategory"),
     unit: text(formData, "unit"),
     price: text(formData, "price"),
+    salePrice: text(formData, "salePrice"),
     minQuantity: text(formData, "minQuantity"),
     active: text(formData, "active") === "true",
   });
@@ -58,7 +59,7 @@ export async function saveProductAction(formData: FormData): Promise<FormState &
     if (!product) return { error: "Proizvod nije pronađen." };
     revalidatePath("/products");
     revalidatePath(`/products/${product.id}`);
-    revalidatePath(`/s/${session.organization.slug}`);
+    revalidatePath(storePath(session.organization.channel, session.organization.slug));
     return { ok: true, id: product.id, message: "Proizvod je sačuvan." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Čuvanje nije uspelo." };
@@ -77,11 +78,12 @@ export async function setProductActiveAction(productId: string, active: boolean)
     newCategory: "",
     unit: product.unit,
     pricePara: product.pricePara,
+    salePricePara: product.salePricePara,
     minQuantity: product.minQuantity,
     active,
   });
   revalidatePath("/products");
-  revalidatePath(`/s/${session.organization.slug}`);
+  revalidatePath(storePath(session.organization.channel, session.organization.slug));
   return { ok: true };
 }
 
@@ -95,7 +97,7 @@ export async function importProductsAction(csvText: string): Promise<FormState &
   }
   const result = await getCommerce().importProducts(session.organization.id, parsed.rows);
   revalidatePath("/products");
-  revalidatePath(`/s/${session.organization.slug}`);
+  revalidatePath(storePath(session.organization.channel, session.organization.slug));
   const skipped = [...parsed.errors, ...result.errors];
   return {
     ok: true,

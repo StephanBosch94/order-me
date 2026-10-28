@@ -103,6 +103,7 @@ export type Product = {
   description: string;
   unit: Unit;
   pricePara: number;
+  salePricePara: number | null;
   imageUrl: string | null;
   active: boolean;
   minQuantity: number;
@@ -263,6 +264,7 @@ export type ProductInput = {
   newCategory: string;
   unit: Unit;
   pricePara: number;
+  salePricePara: number | null;
   minQuantity: number;
   active: boolean;
   imageUrl?: string | null;

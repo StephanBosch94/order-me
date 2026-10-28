@@ -19,7 +19,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   return (
     <div>
       <PageHeader title="Izmena proizvoda" description={product.name} />
-      <ProductForm product={product} categories={categories} />
+      <ProductForm product={product} categories={categories} shop={session.organization.channel === "b2c"} />
     </div>
   );
 }
