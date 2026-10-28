@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { getDataMode } from "@/lib/config";
+import { getDataMode, getLocalDataDir } from "@/lib/config";
 import { getServiceClient } from "@/lib/supabase/admin";
 
 const TYPES: Record<string, string> = {
@@ -39,7 +39,7 @@ export async function storeImage(organizationId: string, file: File) {
     return data.publicUrl;
   }
 
-  const dir = path.join(process.cwd(), ".data", "uploads");
+  const dir = path.join(getLocalDataDir(), "uploads");
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, `${id}.${extension}`), bytes);
   return `/api/media/${id}.${extension}`;

@@ -70,6 +70,20 @@ Copy `.env.example` to `.env.local`.
 
 If any Supabase variable is set without the other two, the app refuses to start instead of silently writing to the demo file.
 
+## Deploy on Netlify
+
+The site 404s with Netlify's own "Page not found" page when the publish directory is `public` or the repository root. Those folders have no `index.html`. `netlify.toml` sets the build to `npm run build` and the publish directory to `.next`, and installs the Next.js runtime.
+
+In the Netlify UI, under Project configuration → Build settings, confirm:
+
+- Build command: `npm run build`
+- Publish directory: `.next`
+- Node version: 22
+
+Then trigger a new deploy. Do not add a `/* /index.html 200` redirect.
+
+Without the three Supabase variables, the deployed app runs in demo mode. On Netlify that data lives in temporary function storage, so it is not a shared production database. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` together, then redeploy, for persistent accounts and orders. `NEXT_PUBLIC_APP_URL` should be the Netlify site URL.
+
 ## Initialize the database
 
 1. Create a Supabase project.

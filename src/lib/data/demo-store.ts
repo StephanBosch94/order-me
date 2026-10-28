@@ -42,6 +42,7 @@ import type {
 import { DataError } from "@/lib/errors";
 import { belgradeDateKey, belgradeMonthKey, belgradeYear } from "@/lib/format";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { getLocalDataDir } from "@/lib/config";
 import { fold, orderPrefixFromName } from "@/lib/text";
 
 const RATE_LIMIT = 20;
@@ -783,7 +784,7 @@ let singleton: DemoStore | null = null;
 
 export function getDemoStore() {
   if (!singleton) {
-    singleton = new DemoStore(path.join(process.cwd(), ".data", "demo-db.json"), { seed: true });
+    singleton = new DemoStore(path.join(getLocalDataDir(), "demo-db.json"), { seed: true });
   }
   return singleton;
 }

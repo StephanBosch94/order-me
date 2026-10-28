@@ -23,7 +23,16 @@ export function isDemoMode() {
 export function getAppUrl() {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configured) return configured.replace(/\/$/, "");
+  const deployed = process.env.URL?.trim();
+  if (deployed) return deployed.replace(/\/$/, "");
   return "http://localhost:3000";
+}
+
+export function getLocalDataDir() {
+  if (process.env.NETLIFY === "true" || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return "/tmp/poruci";
+  }
+  return `${process.cwd()}/.data`;
 }
 
 export function getEmailFrom() {

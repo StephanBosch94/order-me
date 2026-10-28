@@ -1,0 +1,12 @@
+# Netlify must publish the Next.js build, not the public/ folder.
+# public/ has no index.html, which is why the site shows Netlify's own 404.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Official adapter. Leave it unpinned so Netlify uses the current Next.js 16 runtime.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
