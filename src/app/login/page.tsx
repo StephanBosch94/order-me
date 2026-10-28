@@ -1,0 +1,51 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { LoginForm } from "@/components/auth/auth-forms";
+import { Logo } from "@/components/brand/logo";
+import { getSession } from "@/lib/auth";
+import { isDemoMode } from "@/lib/config";
+import { safeNextPath } from "@/lib/text";
+
+export const metadata: Metadata = { title: "Prijava" };
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const session = await getSession();
+  if (session) redirect("/dashboard");
+  const params = await searchParams;
+  return (
+    <AuthShell title="Prijava" subtitle="Prijavite se na nalog dobavljača.">
+      <LoginForm nextPath={safeNextPath(params.next)} demo={isDemoMode()} />
+      <p className="mt-6 text-sm text-muted-foreground">
+        Nemate nalog?{" "}
+        <Link href="/signup" className="font-medium text-foreground underline-offset-2 hover:underline">
+          Otvorite nalog
+        </Link>
+      </p>
+    </AuthShell>
+  );
+}
+
+export function AuthShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-12">
+      <Logo />
+      <h1 className="mt-8 text-2xl font-semibold tracking-tight">{title}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+      <div className="mt-6">{children}</div>
+    </main>
+  );
+}
