@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { placeOrderAction } from "@/lib/actions/orders";
-import { quantityStep, unitLabel } from "@/lib/constants";
+import { DEMO_SLUGS, quantityStep, unitLabel } from "@/lib/constants";
 import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
 import { lineTotalPara } from "@/lib/data/pricing";
@@ -92,6 +92,15 @@ export function Storefront({
 
   return (
     <div className="min-h-dvh bg-background pb-24 lg:pb-10" style={supplierTheme(catalog.supplier.brandColor)}>
+      {DEMO_SLUGS.has(catalog.supplier.slug) ? (
+        <div className="border-b border-border bg-zinc-50">
+          <div className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
+            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Nazad na sajt
+            </Link>
+          </div>
+        </div>
+      ) : null}
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-end justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">

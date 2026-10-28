@@ -56,26 +56,11 @@ export function SettingsForm({ organization }: { organization: Organization }) {
             </label>
           ) : null}
         </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="brandColor">Boja brenda</Label>
-          <div className="mt-2 flex items-center gap-3">
-            <input
-              id="brandColor"
-              name="brandColor"
-              type="color"
-              defaultValue={organization.brandColor ?? "#18181b"}
-              className="size-10 cursor-pointer rounded-md border border-border bg-card p-1"
-            />
-            <p className="text-sm text-muted-foreground">Dugmad i oznake na stranici za poručivanje koriste ovu boju.</p>
-          </div>
-          {organization.brandColor ? (
-            <label className="mt-2 flex items-center gap-2 text-sm">
-              <input type="checkbox" name="clearBrandColor" className="size-4 accent-zinc-950" />
-              Bez posebne boje
-            </label>
-          ) : null}
-          <FieldError message={state.fieldErrors?.brandColor} />
-        </div>
+        <BrandColorSetting
+          key={organization.brandColor ?? "none"}
+          initial={organization.brandColor}
+          error={state.fieldErrors?.brandColor}
+        />
       </div>
       <Button type="submit" disabled={pending}>
         {pending ? "Čuvanje…" : "Sačuvaj izmene"}
@@ -107,6 +92,51 @@ function SlugSetting({ prefix, initial, error }: { prefix: string; initial: stri
         />
       </div>
       <p className="mt-1 text-xs text-muted-foreground">Pri otvaranju naloga adresa je naziv firme. Ovde je možete promeniti.</p>
+      <FieldError message={error} />
+    </div>
+  );
+}
+
+function normalizeHex(value: string) {
+  const trimmed = value.trim();
+  if (/^[0-9a-fA-F]{6}$/.test(trimmed)) return `#${trimmed.toLowerCase()}`;
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toLowerCase();
+  return value;
+}
+
+function BrandColorSetting({ initial, error }: { initial: string | null; error?: string }) {
+  const [value, setValue] = useState(initial ?? "");
+  const picker = /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#18181b";
+
+  return (
+    <div className="sm:col-span-2">
+      <Label htmlFor="brandColor">Boja brenda</Label>
+      <div className="mt-2 flex items-center gap-3">
+        <input
+          type="color"
+          aria-label="Izaberite boju brenda"
+          value={picker}
+          onChange={(event) => setValue(event.target.value.toLowerCase())}
+          className="size-10 shrink-0 cursor-pointer rounded-md border border-border bg-card p-1"
+        />
+        <Input
+          id="brandColor"
+          name="brandColor"
+          value={value}
+          onChange={(event) => setValue(normalizeHex(event.target.value))}
+          placeholder="#14532d"
+          spellCheck={false}
+          autoComplete="off"
+          className="max-w-40 font-mono"
+        />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">Upišite hex, na primer #14532d, ili izaberite boju. Dugmad na stranici je koriste.</p>
+      {initial ? (
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input type="checkbox" name="clearBrandColor" className="size-4 accent-zinc-950" />
+          Bez posebne boje
+        </label>
+      ) : null}
       <FieldError message={error} />
     </div>
   );

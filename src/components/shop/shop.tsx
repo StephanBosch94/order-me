@@ -7,7 +7,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { placeShopOrderAction } from "@/lib/actions/orders";
 import { supplierTheme } from "@/lib/color";
-import { quantityStep } from "@/lib/constants";
+import { DEMO_SLUGS, quantityStep } from "@/lib/constants";
 import { lineTotalPara } from "@/lib/data/pricing";
 import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
 import { formatRsd } from "@/lib/format";
@@ -63,6 +63,15 @@ export function Shop({
 
   return (
     <div className="min-h-dvh bg-background pb-24" style={supplierTheme(catalog.supplier.brandColor)}>
+      {DEMO_SLUGS.has(catalog.supplier.slug) ? (
+        <div className="border-b border-border bg-zinc-50">
+          <div className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
+            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              Nazad na sajt
+            </Link>
+          </div>
+        </div>
+      ) : null}
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
