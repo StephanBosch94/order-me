@@ -93,7 +93,7 @@ export function SignupForm({ mode }: { mode: "b2c" | "b2b" | "buyer" }) {
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Kreiranje…" : mode === "b2c" ? "Otvorite prodavnicu" : mode === "buyer" ? "Otvorite nalog kupca" : "Otvorite B2B nalog"}
+        {pending ? "Kreiranje…" : mode === "b2c" ? "Otvorite prodavnicu" : mode === "buyer" ? "Otvorite nalog kupca" : "Otvorite nalog za firme"}
       </Button>
     </form>
   );

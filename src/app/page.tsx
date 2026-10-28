@@ -103,7 +103,7 @@ export default function HomePage() {
               Otvorite prodavnicu
             </Link>
             <Link href="/signup/firme" className={buttonVariants({ size: "lg", variant: "secondary" })}>
-              Otvorite B2B nalog
+              Otvorite nalog za firme
             </Link>
           </div>
         </section>
@@ -111,7 +111,7 @@ export default function HomePage() {
         <section id="prodavnica" className="scroll-mt-20 border-t border-border bg-card">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
             <div>
-              <p className="text-xs font-medium text-indigo-700">B2C · Internet prodavnica</p>
+              <p className="text-xs font-medium text-indigo-700">Internet prodavnica</p>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight">Klasičan shop na vašoj adresi</h2>
               <p className="mt-4 text-base leading-7 text-muted-foreground">
                 Za robu koju kupac uzima kao u prodavnici: kafa, čaša, pakovanje za kuću. Stranica ima
@@ -133,7 +133,7 @@ export default function HomePage() {
         <section id="firme" className="scroll-mt-20 border-t border-border">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
             <div>
-              <p className="text-xs font-medium text-indigo-700">B2B · Poručivanje za firme</p>
+              <p className="text-xs font-medium text-indigo-700">Poručivanje za firme</p>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight">Cenovnik koji firme same popune</h2>
               <p className="mt-4 text-base leading-7 text-muted-foreground">
                 Za dobavljače koji snabdevaju restorane, kafiće i prodavnice. Kupac vidi jedinicu, minimalnu
@@ -141,7 +141,7 @@ export default function HomePage() {
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link href="/signup/firme" className={buttonVariants()}>
-                  Otvorite B2B nalog
+                  Otvorite nalog za firme
                 </Link>
                 <Link href="/s/gastro-supply" className={buttonVariants({ variant: "secondary" })}>
                   Pogledajte Gastro Supply

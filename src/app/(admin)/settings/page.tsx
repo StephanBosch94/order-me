@@ -17,7 +17,7 @@ export default async function SettingsPage() {
     <div>
       <PageHeader
         title="Podešavanja"
-        description={retail ? "Internet prodavnica. Podaci se prikazuju na kasi i potvrdi." : "B2B poručivanje. Podaci firme se prikazuju kupcima i na potvrdi."}
+        description={retail ? "Internet prodavnica. Podaci se prikazuju na kasi i potvrdi." : "Poručivanje za firme. Podaci firme se prikazuju kupcima i na potvrdi."}
       />
       <section className="mb-6 rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-semibold">{retail ? "Adresa prodavnice" : "Stranica za poručivanje"}</h2>

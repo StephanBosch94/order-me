@@ -13,12 +13,12 @@ export default async function RetailSignupPage() {
   if (session?.kind === "buyer") redirect("/kupac");
   if (session) redirect("/dashboard");
   return (
-    <AuthShell title="Internet prodavnica" subtitle="Kupci će videti proizvode, korpu i kasu. Ovo nije B2B poručivanje.">
+    <AuthShell title="Internet prodavnica" subtitle="Kupci će videti proizvode, korpu i kasu.">
       <SignupForm mode="b2c" />
       <p className="mt-6 text-sm text-muted-foreground">
         Treba vam poručivanje za firme?{" "}
         <Link href="/signup/firme" className="font-medium text-foreground underline-offset-2 hover:underline">
-          Otvorite B2B nalog
+          Otvorite nalog za firme
         </Link>
       </p>
     </AuthShell>

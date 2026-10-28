@@ -18,7 +18,7 @@ export default async function BuyerSignupPage() {
       <p className="mt-6 text-sm text-muted-foreground">
         Prodajete?{" "}
         <Link href="/signup" className="font-medium text-foreground underline-offset-2 hover:underline">
-          Izaberite prodavnicu ili B2B
+          Izaberite prodavnicu ili poručivanje za firme
         </Link>
       </p>
     </AuthShell>
