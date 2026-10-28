@@ -11,6 +11,7 @@ export const UNIT_VALUES = ["komad", "paket", "kutija", "kilogram", "litar"] as 
 export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
 export type Unit = (typeof UNIT_VALUES)[number];
 export type MemberRole = "owner" | "staff";
+export type StoreChannel = "b2c" | "b2b";
 
 export type AccountContext = {
   userId: string;
@@ -43,6 +44,7 @@ export type BuyerOrder = {
   createdAt: string;
   supplierName: string;
   supplierSlug: string;
+  supplierChannel: StoreChannel;
   confirmationToken: string;
   itemCount: number;
 };
@@ -61,6 +63,7 @@ export type Organization = {
   mb: string;
   logoUrl: string | null;
   brandColor: string | null;
+  channel: StoreChannel;
   orderPrefix: string;
   nextOrderNumber: number;
   active: boolean;
@@ -80,6 +83,7 @@ export type PublicSupplier = {
   mb: string;
   logoUrl: string | null;
   brandColor: string | null;
+  channel: StoreChannel;
 };
 
 export type Category = {

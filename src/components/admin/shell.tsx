@@ -93,7 +93,9 @@ export function AdminShell({
                   ) : null}
                   <span className="truncate">{session.organization.name}</span>
                 </p>
-                <p className="truncate text-xs text-muted-foreground">/{session.organization.slug}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {session.organization.channel === "b2c" ? "Internet prodavnica" : "B2B poručivanje"}
+                </p>
               </div>
             </div>
           </div>

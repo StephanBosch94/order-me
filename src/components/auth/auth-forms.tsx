@@ -37,52 +37,25 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
   );
 }
 
-export function SignupForm() {
+export function SignupForm({ mode }: { mode: "b2c" | "b2b" | "buyer" }) {
   const [state, action, pending] = useActionState(signupAction, initial);
-  const [kind, setKind] = useState<"supplier" | "buyer">("supplier");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
+  const supplier = mode !== "buyer";
 
   return (
     <form action={action} className="space-y-4">
       {state.error ? <Alert message={state.error} /> : null}
-      <fieldset>
-        <legend className="text-sm font-medium">Otvarate nalog kao</legend>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {(
-            [
-              ["supplier", "Prodavac", "Imate katalog i primate porudžbine."],
-              ["buyer", "Kupac", "Poručujete od dobavljača."],
-            ] as const
-          ).map(([value, title, body]) => (
-            <label
-              key={value}
-              className={`cursor-pointer rounded-md border px-3 py-3 ${
-                kind === value ? "border-foreground bg-zinc-50" : "border-border bg-card"
-              }`}
-            >
-              <input
-                type="radio"
-                name="kind"
-                value={value}
-                checked={kind === value}
-                onChange={() => setKind(value)}
-                className="sr-only"
-              />
-              <span className="block text-sm font-medium">{title}</span>
-              <span className="mt-1 block text-xs leading-5 text-muted-foreground">{body}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <input type="hidden" name="kind" value={supplier ? "supplier" : "buyer"} />
+      {supplier ? <input type="hidden" name="channel" value={mode} /> : null}
       <Field name="name" label="Ime i prezime" autoComplete="name" error={state.fieldErrors?.name} />
       <Field name="email" label="Email" type="email" autoComplete="email" error={state.fieldErrors?.email} />
       <Field name="password" label="Lozinka" type="password" autoComplete="new-password" error={state.fieldErrors?.password} />
-      {kind === "supplier" ? (
+      {supplier ? (
         <>
           <Field
             name="organizationName"
-            label="Naziv firme"
+            label={mode === "b2c" ? "Naziv prodavnice" : "Naziv firme"}
             error={state.fieldErrors?.organizationName}
             onChange={(value) => {
               if (!slugEdited) setSlug(slugify(value));
@@ -91,7 +64,9 @@ export function SignupForm() {
           <div>
             <Label htmlFor="slug">Adresa stranice</Label>
             <div className="mt-1.5 flex h-10 overflow-hidden rounded-md border border-input bg-card focus-within:ring-2 focus-within:ring-ring/25">
-              <span className="flex items-center bg-zinc-50 px-3 text-sm text-muted-foreground">/s/</span>
+              <span className="flex items-center bg-zinc-50 px-3 text-sm text-muted-foreground">
+                {mode === "b2c" ? "/shop/" : "/s/"}
+              </span>
               <input
                 id="slug"
                 name="slug"
@@ -118,7 +93,7 @@ export function SignupForm() {
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Kreiranje…" : kind === "buyer" ? "Otvorite nalog kupca" : "Otvorite nalog prodavca"}
+        {pending ? "Kreiranje…" : mode === "b2c" ? "Otvorite prodavnicu" : mode === "buyer" ? "Otvorite nalog kupca" : "Otvorite B2B nalog"}
       </Button>
     </form>
   );

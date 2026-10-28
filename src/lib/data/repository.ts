@@ -44,6 +44,7 @@ export type CreateOrganizationInput = {
   name: string;
   slug: string;
   phone: string;
+  channel?: "b2c" | "b2b";
 };
 
 export type { AccountContext };

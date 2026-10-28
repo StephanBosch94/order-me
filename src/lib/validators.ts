@@ -29,6 +29,7 @@ export const signupSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("supplier"),
     ...signupIdentity,
+    channel: z.enum(["b2c", "b2b"]),
     organizationName: z.string().trim().min(2, "Unesite naziv firme.").max(120),
     slug: slugSchema,
     phone: z.string().trim().max(30),
@@ -166,6 +167,37 @@ export const publicOrderSchema = z
         path: ["honeypot"],
         message: "Porudžbina nije prihvaćena.",
       });
+    }
+  });
+
+export const retailOrderSchema = z
+  .object({
+    slug: z.string().trim().min(1),
+    idempotencyKey: z.uuid("Neispravan identifikator kupovine."),
+    customerName: z.string().trim().min(2, "Unesite ime i prezime.").max(120),
+    email: z.email("Unesite ispravnu email adresu."),
+    phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
+    address: z.string().trim().min(3, "Unesite adresu isporuke.").max(200),
+    city: z.string().trim().min(2, "Unesite grad.").max(80),
+    notes: z.string().trim().max(1000),
+    honeypot: z.string().optional(),
+    items: z
+      .array(
+        z.object({
+          productId: z.string().min(1),
+          quantity: z.number().positive("Količina mora biti veća od nule."),
+        }),
+      )
+      .min(1, "Korpa je prazna.")
+      .max(100, "Korpa može imati najviše 100 stavki."),
+  })
+  .superRefine((value, ctx) => {
+    const digits = value.phone.replace(/\D/g, "");
+    if (digits.length < 6 || digits.length > 15) {
+      ctx.addIssue({ code: "custom", path: ["phone"], message: "Unesite ispravan broj telefona." });
+    }
+    if (value.honeypot) {
+      ctx.addIssue({ code: "custom", path: ["honeypot"], message: "Kupovina nije prihvaćena." });
     }
   });
 

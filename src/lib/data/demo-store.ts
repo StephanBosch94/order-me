@@ -9,6 +9,7 @@ import { priceOrderLines } from "@/lib/data/pricing";
 import {
   createSeedDatabase,
   emptyDatabase,
+  ensureRetailDemo,
   type DemoDatabase,
   type DemoMembership,
   type DemoUser,
@@ -64,6 +65,7 @@ function toPublicSupplier(organization: Organization): PublicSupplier {
     mb: organization.mb,
     logoUrl: organization.logoUrl,
     brandColor: organization.brandColor,
+    channel: organization.channel,
   };
 }
 
@@ -203,6 +205,7 @@ export class DemoStore implements CommerceRepository {
         mb: "",
         logoUrl: null,
         brandColor: null,
+        channel: input.channel === "b2c" ? "b2c" : "b2b",
         orderPrefix: orderPrefixFromName(input.name),
         nextOrderNumber: 1001,
         active: true,
@@ -298,6 +301,7 @@ export class DemoStore implements CommerceRepository {
           createdAt: order.createdAt,
           supplierName: organization?.name ?? "Dobavljač",
           supplierSlug: organization?.slug ?? "",
+          supplierChannel: organization?.channel === "b2c" ? "b2c" : "b2b",
           confirmationToken: order.confirmationToken,
           itemCount: db.orderItems.filter((item) => item.orderId === order.id).length,
         };
@@ -757,7 +761,11 @@ export class DemoStore implements CommerceRepository {
       if (parsed.version !== 1) {
         throw new DataError("Demo baza ima nepoznatu verziju.", "validation");
       }
-      return normalizeDatabase(parsed);
+      const db = normalizeDatabase(parsed);
+      if (this.options.seed !== false && ensureRetailDemo(db)) {
+        await this.persist(db);
+      }
+      return db;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       const db = this.options.seed === false ? emptyDatabase() : await createSeedDatabase();
@@ -799,6 +807,9 @@ function normalizeDatabase(db: DemoDatabase) {
   }
   for (const order of db.orders) {
     if (!order.buyerUserId) order.buyerUserId = null;
+  }
+  for (const organization of db.organizations) {
+    if (organization.channel !== "b2c" && organization.channel !== "b2b") organization.channel = "b2b";
   }
   return db;
 }

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { requireBuyerSession } from "@/lib/auth";
+import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { slugify } from "@/lib/text";
 
@@ -12,5 +13,5 @@ export async function openSupplierAction(formData: FormData) {
   if (!slug) redirect("/kupac?nedostaje=1");
   const catalog = await getCommerce().getPublicCatalog(slug);
   if (!catalog) redirect("/kupac?nedostaje=1");
-  redirect(`/s/${catalog.supplier.slug}`);
+  redirect(storePath(catalog.supplier.channel, catalog.supplier.slug));
 }

@@ -102,6 +102,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     mb: "21456789",
     logoUrl: "/suppliers/gastro-supply.svg",
     brandColor: "#14532d",
+    channel: "b2b",
     orderPrefix: "GS",
     nextOrderNumber: 1001,
     active: true,
@@ -494,7 +495,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     notes: "Kupac je otkazao jer je stigla druga isporuka.",
   });
 
-  return {
+  const database: DemoDatabase = {
     version: 1,
     users: [
       {
@@ -530,4 +531,112 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     statusHistory,
     rateLimits: [],
   };
+  ensureRetailDemo(database);
+  return database;
+}
+
+export function ensureRetailDemo(db: DemoDatabase) {
+  if (db.organizations.some((organization) => organization.slug === "kafa-kutak")) return false;
+  const now = new Date().toISOString();
+  const orgId = randomUUID();
+  const organization: Organization = {
+    id: orgId,
+    name: "Kafa Kutak",
+    slug: "kafa-kutak",
+    email: "prodavnica@kafakutak.rs",
+    notificationEmail: "prodavnica@kafakutak.rs",
+    phone: "+381 11 555 0190",
+    address: "Knez Mihailova 12",
+    city: "Beograd",
+    pib: "",
+    mb: "",
+    logoUrl: null,
+    brandColor: "#78350f",
+    channel: "b2c",
+    orderPrefix: "KK",
+    nextOrderNumber: 1001,
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const drinks: Category = {
+    id: randomUUID(),
+    organizationId: orgId,
+    name: "Kafa",
+    sortOrder: 1,
+    createdAt: now,
+  };
+  const home: Category = {
+    id: randomUUID(),
+    organizationId: orgId,
+    name: "Za kuću",
+    sortOrder: 2,
+    createdAt: now,
+  };
+  const items: Product[] = [
+    {
+      id: randomUUID(),
+      organizationId: orgId,
+      categoryId: drinks.id,
+      name: "Kafa mlevena 250 g",
+      sku: "KK-KAFA",
+      description: "Sveže mlevena kafa za džezvu i filter.",
+      unit: "komad",
+      pricePara: 89000,
+      imageUrl: "/products/KF-1KG.svg",
+      active: true,
+      minQuantity: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: randomUUID(),
+      organizationId: orgId,
+      categoryId: drinks.id,
+      name: "Šećer 500 g",
+      sku: "KK-SECER",
+      description: "Beli šećer u kesici.",
+      unit: "komad",
+      pricePara: 22000,
+      imageUrl: "/products/SC-1KG.svg",
+      active: true,
+      minQuantity: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: randomUUID(),
+      organizationId: orgId,
+      categoryId: home.id,
+      name: "Čaša za kafu",
+      sku: "KK-CASA",
+      description: "Keramička čaša, jedna komad.",
+      unit: "komad",
+      pricePara: 69000,
+      imageUrl: "/products/PC-025.svg",
+      active: true,
+      minQuantity: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: randomUUID(),
+      organizationId: orgId,
+      categoryId: home.id,
+      name: "Salvete 50 komada",
+      sku: "KK-SALV",
+      description: "Malo pakovanje salveta za sto.",
+      unit: "komad",
+      pricePara: 32000,
+      imageUrl: "/products/SV-3333.svg",
+      active: true,
+      minQuantity: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+  db.organizations.push(organization);
+  db.categories.push(drinks, home);
+  db.products.push(...items);
+  return true;
 }

@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
+import { storePath } from "@/lib/constants";
 import { formatDateTime, formatLongDate, formatRsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Pregled" };
@@ -14,7 +15,8 @@ export const metadata: Metadata = { title: "Pregled" };
 export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getCommerce().getDashboard(session.organization.id);
-  const publicPath = `/s/${session.organization.slug}`;
+  const retail = session.organization.channel === "b2c";
+  const publicPath = storePath(session.organization.channel, session.organization.slug);
 
   return (
     <div>
@@ -27,7 +29,7 @@ export default async function DashboardPage() {
               <Button>Dodaj proizvod</Button>
             </Link>
             <Link href={publicPath} target="_blank">
-              <Button variant="secondary">Pogledaj stranicu za poručivanje</Button>
+              <Button variant="secondary">{retail ? "Pogledaj prodavnicu" : "Pogledaj stranicu za poručivanje"}</Button>
             </Link>
           </>
         }
@@ -37,7 +39,11 @@ export default async function DashboardPage() {
         <div className="mb-6">
           <EmptyState
             title="Dodajte prve proizvode"
-            body="Stranica za poručivanje je spremna čim katalog ima bar jedan aktivan proizvod. Kupci ne moraju da otvaraju nalog."
+            body={
+              retail
+                ? "Prodavnica je spremna čim katalog ima bar jedan aktivan proizvod."
+                : "Stranica za poručivanje je spremna čim katalog ima bar jedan aktivan proizvod. Kupci ne moraju da otvaraju nalog."
+            }
             action={
               <Link href="/products/new">
                 <Button>Dodaj proizvod</Button>

@@ -74,6 +74,7 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     mb: String(row.mb ?? ""),
     logoUrl: row.logo_url ? String(row.logo_url) : null,
     brandColor: row.brand_color ? String(row.brand_color) : null,
+    channel: row.channel === "b2c" ? "b2c" : "b2b",
     orderPrefix: String(row.order_prefix),
     nextOrderNumber: Number(row.next_order_number),
     active: Boolean(row.active),
@@ -95,6 +96,7 @@ function toPublic(organization: Organization): PublicSupplier {
     mb: organization.mb,
     logoUrl: organization.logoUrl,
     brandColor: organization.brandColor,
+    channel: organization.channel,
   };
 }
 
@@ -265,6 +267,7 @@ export const supabaseRepository: CommerceRepository = {
         email: input.userEmail,
         notification_email: input.userEmail,
         phone: input.phone,
+        channel: input.channel === "b2c" ? "b2c" : "b2b",
         order_prefix: orderPrefixFromName(input.name),
       })
       .select("*")
@@ -358,7 +361,7 @@ export const supabaseRepository: CommerceRepository = {
   async listBuyerOrders(userId): Promise<BuyerOrder[]> {
     const { data, error } = await db()
       .from("orders")
-      .select("id, number, status, total_para, created_at, confirmation_token, organizations(name, slug), order_items(id)")
+      .select("id, number, status, total_para, created_at, confirmation_token, organizations(name, slug, channel), order_items(id)")
       .eq("buyer_user_id", userId)
       .order("created_at", { ascending: false });
     fail(error);
@@ -373,6 +376,7 @@ export const supabaseRepository: CommerceRepository = {
         createdAt: String(row.created_at),
         supplierName: String(organization?.name ?? "Dobavljač"),
         supplierSlug: String(organization?.slug ?? ""),
+        supplierChannel: organization?.channel === "b2c" ? "b2c" : "b2b",
         confirmationToken: String(row.confirmation_token),
         itemCount: items.length,
       };

@@ -28,6 +28,7 @@ create table if not exists public.organizations (
   mb text not null default '',
   logo_url text,
   brand_color text,
+  channel text not null default 'b2b' check (channel in ('b2c', 'b2b')),
   order_prefix text not null default 'POR',
   next_order_number integer not null default 1001,
   active boolean not null default true,
@@ -247,6 +248,9 @@ create policy product_images_public_read on storage.objects
 for select using (bucket_id = 'product-images');
 
 alter table public.organizations add column if not exists brand_color text;
+alter table public.organizations add column if not exists channel text not null default 'b2b';
+alter table public.organizations drop constraint if exists organizations_channel_check;
+alter table public.organizations add constraint organizations_channel_check check (channel in ('b2c', 'b2b'));
 
 alter table public.profiles add column if not exists kind text not null default 'supplier';
 alter table public.profiles add column if not exists business_name text not null default '';

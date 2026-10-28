@@ -1,4 +1,4 @@
-import type { OrderStatus, Unit } from "@/lib/data/types";
+import type { OrderStatus, StoreChannel, Unit } from "@/lib/data/types";
 
 export const UNITS: { value: Unit; label: string }[] = [
   { value: "komad", label: "Komad" },
@@ -40,6 +40,7 @@ export const RESERVED_SLUGS = new Set([
   "settings",
   "api",
   "s",
+  "shop",
   "admin",
   "poruci",
   "app",
@@ -55,6 +56,10 @@ export function unitLabel(unit: Unit) {
 
 export function statusLabel(status: OrderStatus) {
   return ORDER_STATUSES.find((item) => item.value === status)?.label ?? status;
+}
+
+export function storePath(channel: StoreChannel, slug: string) {
+  return `${channel === "b2c" ? "/shop" : "/s"}/${slug}`;
 }
 
 export function quantityStep(unit: Unit) {

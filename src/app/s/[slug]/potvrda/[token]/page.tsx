@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { supplierTheme } from "@/lib/color";
-import { unitLabel } from "@/lib/constants";
+import { storePath, unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
 
@@ -34,7 +34,9 @@ export default async function ConfirmationPage({
         <SupplierLogo name={supplier.name} logoUrl={supplier.logoUrl} />
         <p className="text-sm font-medium">{supplier.name}</p>
       </div>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">Porudžbina {order.number} je primljena</h1>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+        {supplier.channel === "b2c" ? "Kupovina" : "Porudžbina"} {order.number} je primljena
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
       <p className="mt-4 text-sm">{emailNote}</p>
       <section className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
@@ -63,8 +65,8 @@ export default async function ConfirmationPage({
         <a href={`/api/confirmations/${order.confirmationToken}/pdf`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
           Preuzmi potvrdu
         </a>
-        <Link href={`/s/${supplier.slug}`} className="inline-flex h-11 items-center rounded-md border border-border bg-card px-4 text-sm font-medium">
-          Nova porudžbina
+        <Link href={storePath(supplier.channel, supplier.slug)} className="inline-flex h-11 items-center rounded-md border border-border bg-card px-4 text-sm font-medium">
+          {supplier.channel === "b2c" ? "Nazad u prodavnicu" : "Nova porudžbina"}
         </Link>
       </div>
     </main>

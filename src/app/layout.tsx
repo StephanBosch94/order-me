@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     default: "Poruci",
     template: "%s · Poruci",
   },
-  description: "Vaši kupci poručuju online. Vi prestajete da primate porudžbine telefonom.",
+  description:
+    "Internet prodavnica za kupce i odvojeno poručivanje za firme. Korpa, cenovnik, statusi i potvrda porudžbine u dinarima.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

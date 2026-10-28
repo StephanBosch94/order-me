@@ -23,6 +23,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     mb: session.organization.mb,
     logoUrl: session.organization.logoUrl,
     brandColor: session.organization.brandColor,
+    channel: session.organization.channel,
   };
   const pdf = await buildOrderConfirmationPdf(order, supplier);
   return new NextResponse(Buffer.from(pdf), {

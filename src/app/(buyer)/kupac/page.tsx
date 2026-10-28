@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/fields";
 import { requireBuyerSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
+import { storePath } from "@/lib/constants";
 import { formatDateTime, formatRsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Kupac" };
@@ -71,7 +72,11 @@ export default async function BuyerHomePage({
             {orders.map((order) => (
               <li key={order.id}>
                 <Link
-                  href={order.supplierSlug ? `/s/${order.supplierSlug}/potvrda/${order.confirmationToken}` : "/kupac"}
+                  href={
+                    order.supplierSlug
+                      ? `${storePath(order.supplierChannel, order.supplierSlug)}/potvrda/${order.confirmationToken}`
+                      : "/kupac"
+                  }
                   className="flex flex-col gap-2 px-4 py-4 hover:bg-zinc-50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
