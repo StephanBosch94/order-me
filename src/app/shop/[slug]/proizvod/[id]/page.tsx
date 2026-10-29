@@ -9,6 +9,14 @@ import { getSession } from "@/lib/auth";
 import { supplierTheme } from "@/lib/color";
 import { businessPath, DEMO_SLUGS, shopMode, storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
+import type { Product } from "@/lib/data/types";
+
+function otherProducts(products: Product[], current: Product) {
+  const rest = products.filter((item) => item.id !== current.id);
+  const same = rest.filter((item) => item.categoryId && item.categoryId === current.categoryId);
+  const different = rest.filter((item) => item.categoryId !== current.categoryId);
+  return [...same, ...different].slice(0, 5);
+}
 
 export async function generateMetadata({
   params,
@@ -67,11 +75,13 @@ export default async function ProductPage({
         </div>
       </header>
       <ProductDetail
+        key={product.id}
         slug={catalog.supplier.slug}
         product={product}
         categoryName={category?.name ?? null}
         business={business}
         backHref={backHref}
+        others={otherProducts(catalog.products, product)}
       />
     </div>
   );

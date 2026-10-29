@@ -6,7 +6,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
-import { quantityStep, unitLabel } from "@/lib/constants";
+import { productPath, quantityStep, unitLabel } from "@/lib/constants";
 import { salePricePara } from "@/lib/data/pricing";
 import type { Product } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
@@ -17,12 +17,14 @@ export function ProductDetail({
   categoryName,
   business,
   backHref,
+  others,
 }: {
   slug: string;
   product: Product;
   categoryName: string | null;
   business: boolean;
   backHref: string;
+  others: Product[];
 }) {
   const storageKey = business ? `poruci-cart:${slug}` : `poruci-shop:${slug}`;
   const storedCart = useSyncExternalStore(subscribeCart, () => readCartRaw(storageKey), () => "{}");
@@ -53,6 +55,7 @@ export function ProductDetail({
   }
 
   return (
+    <div>
     <div className="mx-auto grid max-w-6xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
       <Gallery photos={photos} name={product.name} />
       <div>
@@ -120,6 +123,36 @@ export function ProductDetail({
           {quantity > 0 ? <p className="text-sm text-muted-foreground">U korpi: {formatQuantity(quantity)}</p> : null}
         </div>
       </div>
+    </div>
+    {others.length > 0 ? (
+      <section className="mx-auto max-w-6xl px-4 pb-12 sm:px-6" aria-labelledby="drugi-proizvodi">
+        <h2 id="drugi-proizvodi" className="text-lg font-semibold">
+          Drugi proizvodi
+        </h2>
+        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {others.map((item) => {
+            const itemSale = salePricePara(item);
+            return (
+              <li key={item.id}>
+                <Link
+                  href={productPath(slug, item.id, business)}
+                  className="block overflow-hidden rounded-2xl bg-card ring-1 ring-black/5"
+                >
+                  <ProductImage src={item.imageUrl} alt="" className="aspect-[3/2] h-auto w-full rounded-none border-0" />
+                  <span className="block p-3">
+                    <span className="line-clamp-2 text-sm font-semibold">{item.name}</span>
+                    {itemSale ? (
+                      <span className="mt-1 block text-xs text-muted-foreground line-through tabular-nums">{formatRsd(item.pricePara)}</span>
+                    ) : null}
+                    <span className="mt-1 block text-sm font-semibold tabular-nums">{formatRsd(itemSale ?? item.pricePara)}</span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ) : null}
     </div>
   );
 }
