@@ -1,6 +1,6 @@
-# Poruci
+# Prodora
 
-Poruci is a multi-tenant B2B ordering app for suppliers in Serbia. Each supplier gets a private admin and a public ordering page, such as `/s/gastro-supply`. Business customers browse the catalog, enter quantities, and submit an order without creating an account.
+Prodora is a multi-tenant B2B ordering app for suppliers in Serbia. Each supplier gets a private admin and a public ordering page, such as `/s/gastro-supply`. Business customers browse the catalog, enter quantities, and submit an order without creating an account.
 
 The interface is in Serbian Latin. Money is shown in RSD and dates use the Europe/Belgrade time zone.
 

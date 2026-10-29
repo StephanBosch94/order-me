@@ -14,7 +14,7 @@ const gallery = [
 ];
 
 export const metadata: Metadata = {
-  title: { absolute: "Poruci" },
+  title: { absolute: "Prodora" },
   description:
     "Internet prodavnica za kupce i odvojeno poručivanje za firme. Korpa, cenovnik, statusi i potvrda porudžbine u dinarima.",
 };
@@ -108,7 +108,7 @@ export default function HomePage() {
                 Prodavnica za kupce. Poručivanje za firme.
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-[#425466]">
-                Poruci drži ta dva posla odvojeno. Kupac u prodavnici bira robu i ide na kasu. Firma na drugoj
+                Prodora drži ta dva posla odvojeno. Kupac u prodavnici bira robu i ide na kasu. Firma na drugoj
                 stranici poručuje količine sa cenovnika. Svaka ima svoju adresu, a porudžbine stižu u njen pregled.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -290,11 +290,10 @@ export default function HomePage() {
 }
 
 const primaryButton =
-  "inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[#635bff] px-3.5 text-sm font-medium text-white shadow-[0_4px_12px_rgba(99,91,255,0.28)] transition-colors hover:bg-[#0a2540]";
+  "inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[#635bff] px-3.5 text-sm font-medium text-white shadow-[0_4px_12px_rgba(99,91,255,0.28)] transition-colors hover:bg-[#4f46e5]";
 const primaryButtonLg = cn(primaryButton, "h-12 px-5 text-[15px]");
-const secondaryButton =
-  "inline-flex h-10 items-center justify-center rounded-md border border-[#e6ebf1] bg-white px-3.5 text-sm font-medium text-[#635bff] transition-colors hover:border-[#635bff]";
-const secondaryButtonLg = cn(secondaryButton, "h-12 px-5 text-[15px]");
+const secondaryButton = primaryButton;
+const secondaryButtonLg = primaryButtonLg;
 
 function Arrow() {
   return (

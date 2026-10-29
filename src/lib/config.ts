@@ -36,5 +36,5 @@ export function getLocalDataDir() {
 }
 
 export function getEmailFrom() {
-  return process.env.EMAIL_FROM?.trim() || "Poruci <porudzbine@localhost>";
+  return process.env.EMAIL_FROM?.trim() || "Prodora <porudzbine@localhost>";
 }

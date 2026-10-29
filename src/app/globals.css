@@ -5,8 +5,8 @@
   --foreground: #18181b;
   --card: #ffffff;
   --card-foreground: #18181b;
-  --primary: #18181b;
-  --primary-foreground: #fafafa;
+  --primary: #635bff;
+  --primary-foreground: #ffffff;
   --secondary: #f4f4f5;
   --secondary-foreground: #18181b;
   --muted: #f4f4f5;
@@ -16,7 +16,7 @@
   --destructive: #b91c1c;
   --border: #e4e4e7;
   --input: #e4e4e7;
-  --ring: #4338ca;
+  --ring: #635bff;
   --sidebar: #ffffff;
 }
 

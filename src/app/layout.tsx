@@ -11,8 +11,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Poruci",
-    template: "%s · Poruci",
+    default: "Prodora",
+    template: "%s · Prodora",
   },
   description:
     "Internet prodavnica za kupce i odvojeno poručivanje za firme. Korpa, cenovnik, statusi i potvrda porudžbine u dinarima.",

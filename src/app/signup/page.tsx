@@ -17,7 +17,7 @@ export default async function SignupPage() {
       <Link href="/" className="w-fit text-sm text-muted-foreground hover:text-foreground">
         Početna
       </Link>
-      <Link href="/" aria-label="Poruci, početna" className="mt-6 w-fit">
+      <Link href="/" aria-label="Prodora, početna" className="mt-6 w-fit">
         <Logo />
       </Link>
       <h1 className="mt-8 text-2xl font-semibold tracking-tight">Šta otvarate?</h1>

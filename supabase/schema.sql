@@ -1,4 +1,4 @@
--- Poruci schema for Supabase.
+-- Prodora schema for Supabase.
 -- Run this in the SQL editor after creating a project.
 -- The Next.js server uses the service role and still filters every query by organization.
 -- Row Level Security stops the anon key from reading another supplier's private data.

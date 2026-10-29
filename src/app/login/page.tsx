@@ -51,7 +51,7 @@ export function AuthShell({
       <Link href="/" className="w-fit rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
         Početna
       </Link>
-      <Link href="/" aria-label="Poruci, početna" className="mt-6 w-fit rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Link href="/" aria-label="Prodora, početna" className="mt-6 w-fit rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <Logo />
       </Link>
       <h1 className="mt-8 text-2xl font-semibold tracking-tight">{title}</h1>
