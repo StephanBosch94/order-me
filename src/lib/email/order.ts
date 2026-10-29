@@ -4,7 +4,7 @@ import { getAppUrl } from "@/lib/config";
 import type { EmailDelivery, OrderDetail, Organization, PublicSupplier } from "@/lib/data/types";
 import { sendEmail } from "@/lib/email/send";
 import { formatQuantity, formatRsd } from "@/lib/format";
-import { unitLabel } from "@/lib/constants";
+import { paymentLabel, unitLabel } from "@/lib/constants";
 import { escapeHtml } from "@/lib/text";
 
 export async function deliverOrderEmails(
@@ -31,6 +31,7 @@ export async function deliverOrderEmails(
       lines,
       "",
       `Ukupno: ${formatRsd(order.totalPara)}`,
+      order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
       "",
       "Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.",
       `PDF: ${pdfUrl}`,
@@ -49,6 +50,7 @@ export async function deliverOrderEmails(
           lines,
           "",
           `Ukupno: ${formatRsd(order.totalPara)}`,
+          order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
           order.notes ? `Napomena: ${order.notes}` : "",
           "",
           adminUrl,
@@ -69,5 +71,8 @@ function customerHtml(order: OrderDetail, supplier: PublicSupplier, pdfUrl: stri
         `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(formatQuantity(item.quantity))} ${escapeHtml(unitLabel(item.unit).toLowerCase())}</td><td>${escapeHtml(formatRsd(item.lineTotalPara))}</td></tr>`,
     )
     .join("");
-  return `<div style="font-family:Arial,sans-serif;color:#18181b"><h1 style="font-size:20px">Potvrda porudžbine ${escapeHtml(order.number)}</h1><p>${escapeHtml(supplier.name)} je primio vašu porudžbinu.</p><table cellpadding="6">${rows}</table><p><strong>Ukupno: ${escapeHtml(formatRsd(order.totalPara))}</strong></p><p>Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.</p><p><a href="${pdfUrl}">Preuzmite PDF</a></p></div>`;
+  const payment = order.paymentMethod
+    ? `<p>Način plaćanja: ${escapeHtml(paymentLabel(order.paymentMethod))}</p>`
+    : "";
+  return `<div style="font-family:Arial,sans-serif;color:#18181b"><h1 style="font-size:20px">Potvrda porudžbine ${escapeHtml(order.number)}</h1><p>${escapeHtml(supplier.name)} je primio vašu porudžbinu.</p><table cellpadding="6">${rows}</table><p><strong>Ukupno: ${escapeHtml(formatRsd(order.totalPara))}</strong></p>${payment}<p>Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.</p><p><a href="${pdfUrl}">Preuzmite PDF</a></p></div>`;
 }

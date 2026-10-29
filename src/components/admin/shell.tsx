@@ -14,6 +14,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { audienceLabel } from "@/lib/constants";
 import { logoutAction } from "@/lib/actions/auth";
 import type { AccountContext } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
@@ -94,7 +95,7 @@ export function AdminShell({
                   <span className="truncate">{session.organization.name}</span>
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {session.organization.channel === "b2c" ? "Internet prodavnica" : "Poručivanje za firme"}
+                  Prodavnica · {audienceLabel(session.organization.audience).toLowerCase()}
                 </p>
               </div>
             </div>

@@ -15,6 +15,7 @@ const product: Product = {
   pricePara: 450,
   salePricePara: null,
   imageUrl: null,
+  imageUrls: [],
   active: true,
   minQuantity: 100,
   createdAt: new Date().toISOString(),

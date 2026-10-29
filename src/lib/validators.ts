@@ -29,7 +29,7 @@ export const signupSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("supplier"),
     ...signupIdentity,
-    channel: z.enum(["b2c", "b2b"]),
+    audience: z.enum(["fizicka", "pravna", "oba"], "Izaberite kome prodajete."),
     organizationName: z.string().trim().min(2, "Unesite naziv firme.").max(120),
     phone: z.string().trim().max(30),
   }),
@@ -69,6 +69,7 @@ export const organizationSchema = z.object({
     .string()
     .trim()
     .refine((value) => value === "" || /^#[0-9a-fA-F]{6}$/.test(value), "Unesite boju u formatu #RRGGBB."),
+  audience: z.enum(["fizicka", "pravna", "oba"], "Izaberite kome prodajete."),
 });
 
 export const customerSchema = z.object({
@@ -196,6 +197,7 @@ export const retailOrderSchema = z
     address: z.string().trim().min(3, "Unesite adresu isporuke.").max(200),
     city: z.string().trim().min(2, "Unesite grad.").max(80),
     notes: z.string().trim().max(1000),
+    paymentMethod: z.enum(["pouzecem", "kartica"], "Izaberite način plaćanja."),
     honeypot: z.string().optional(),
     items: z
       .array(

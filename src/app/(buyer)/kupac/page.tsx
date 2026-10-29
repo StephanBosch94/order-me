@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/fields";
 import { requireBuyerSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
-import { storePath } from "@/lib/constants";
+import { businessPath, sellsToBusinesses } from "@/lib/constants";
 import { formatDateTime, formatRsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Kupac" };
@@ -28,6 +28,8 @@ export default async function BuyerHomePage({
   const session = await requireBuyerSession();
   const orders = await getCommerce().listBuyerOrders(session.userId);
   const params = await searchParams;
+  const active = orders.filter((order) => order.status !== "otkazana");
+  const spent = active.reduce((sum, order) => sum + order.totalPara, 0);
 
   return (
     <div>
@@ -37,6 +39,21 @@ export default async function BuyerHomePage({
           ? `${session.name}, ${session.businessName}.`
           : session.name}
       </p>
+
+      <dl className="mt-8 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <dt className="text-xs text-muted-foreground">Porudžbine</dt>
+          <dd className="mt-1 text-lg font-semibold tabular-nums">{active.length}</dd>
+        </div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <dt className="text-xs text-muted-foreground">Ukupno</dt>
+          <dd className="mt-1 text-lg font-semibold tabular-nums">{formatRsd(spent)}</dd>
+        </div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <dt className="text-xs text-muted-foreground">Poslednja</dt>
+          <dd className="mt-1 text-lg font-semibold">{orders[0] ? formatDateTime(orders[0].createdAt) : "Nema"}</dd>
+        </div>
+      </dl>
 
       <section className="mt-8 rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-semibold">Otvorite stranicu firme</h2>
@@ -70,27 +87,28 @@ export default async function BuyerHomePage({
           <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
             {orders.map((order) => (
               <li key={order.id}>
-                <Link
-                  href={
-                    order.supplierSlug
-                      ? `${storePath(order.supplierChannel, order.supplierSlug)}/potvrda/${order.confirmationToken}`
-                      : "/kupac"
-                  }
-                  className="flex flex-col gap-2 px-4 py-4 hover:bg-zinc-50 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
+                <div className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <Link
+                    href={order.supplierSlug ? `/s/${order.supplierSlug}/potvrda/${order.confirmationToken}` : "/kupac"}
+                    className="min-w-0 flex-1"
+                  >
                     <p className="text-sm font-medium">
                       {order.number} · {order.supplierName}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {formatDateTime(order.createdAt)} · {order.itemCount} {itemWord(order.itemCount)}
                     </p>
-                  </div>
+                  </Link>
                   <div className="flex items-center gap-3">
                     <StatusBadge status={order.status} />
                     <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
+                    {sellsToBusinesses(order.supplierAudience) ? (
+                      <Link href={`${businessPath(order.supplierSlug)}&ponovi=${order.id}`} className="text-sm font-medium text-primary hover:underline">
+                        Naruči isto
+                      </Link>
+                    ) : null}
                   </div>
-                </Link>
+                </div>
               </li>
             ))}
           </ul>

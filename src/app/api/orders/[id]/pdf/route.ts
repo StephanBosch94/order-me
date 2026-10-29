@@ -24,6 +24,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     logoUrl: session.organization.logoUrl,
     brandColor: session.organization.brandColor,
     channel: session.organization.channel,
+    audience: session.organization.audience,
   };
   const pdf = await buildOrderConfirmationPdf(order, supplier);
   return new NextResponse(Buffer.from(pdf), {

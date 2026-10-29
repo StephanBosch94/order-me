@@ -1,10 +1,11 @@
 "use client";
 
-import { Minus, Plus, ShoppingBag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
+import { AudienceSwitch } from "@/components/shop/audience-switch";
 import { placeShopOrderAction } from "@/lib/actions/orders";
 import { supplierTheme } from "@/lib/color";
 import { DEMO_SLUGS, quantityStep } from "@/lib/constants";
@@ -22,10 +23,12 @@ export function Shop({
   catalog,
   buyer,
   showAccount = true,
+  showSwitch = false,
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
   showAccount?: boolean;
+  showSwitch?: boolean;
 }) {
   const router = useRouter();
   const storageKey = `poruci-shop:${catalog.supplier.slug}`;
@@ -100,6 +103,7 @@ export function Shop({
           </div>
         </div>
       </header>
+      {showSwitch ? <AudienceSwitch slug={catalog.supplier.slug} mode="fizicka" /> : null}
       {catalog.supplier.slug === "butik-vera" ? (
         <div className="relative h-56 overflow-hidden sm:h-72">
           <img src="/marketing/butik.jpg" alt="" className="size-full object-cover" />
@@ -299,6 +303,7 @@ function Checkout({
       address: form.get("address"),
       city: form.get("city"),
       notes: form.get("notes") ?? "",
+      paymentMethod: form.get("paymentMethod"),
       honeypot,
       items: lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
     });
@@ -331,6 +336,20 @@ function Checkout({
       <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={buyer?.phone} />
       <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} />
       <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} />
+      <fieldset>
+        <legend className="text-sm font-medium">Način plaćanja</legend>
+        <div className="mt-2 space-y-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="radio" name="paymentMethod" value="pouzecem" required className="size-4 accent-primary" />
+            Plaćanje pouzećem
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="radio" name="paymentMethod" value="kartica" required className="size-4 accent-primary" />
+            Karticom
+          </label>
+        </div>
+        <FieldError message={errors.paymentMethod} />
+      </fieldset>
       <div>
         <Label htmlFor="notes">Napomena</Label>
         <Textarea id="notes" name="notes" className="mt-1.5" />
@@ -374,10 +393,11 @@ function Field({
 
 function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
   const sale = salePricePara(product);
+  const photos = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : [];
   return (
     <li className="flex flex-col overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-black/5">
       <div className="relative">
-        <ProductImage src={product.imageUrl} className="aspect-[4/5] h-auto w-full rounded-none border-0" />
+        <ProductPhotos photos={photos} name={product.name} />
         {sale ? (
           <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
             Akcija
@@ -399,6 +419,51 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
       </div>
       </div>
     </li>
+  );
+}
+
+function ProductPhotos({ photos, name }: { photos: string[]; name: string }) {
+  const [index, setIndex] = useState(0);
+  const current = photos[index] ?? null;
+  const many = photos.length > 1;
+  function move(step: number) {
+    setIndex((value) => (value + step + photos.length) % photos.length);
+  }
+  return (
+    <div className="relative">
+      <ProductImage src={current} alt={name} className="aspect-[3/2] h-auto w-full rounded-none border-0" />
+      {many ? (
+        <>
+          <button
+            type="button"
+            className="absolute left-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-foreground shadow-sm"
+            aria-label="Prethodna slika"
+            onClick={() => move(-1)}
+          >
+            <ChevronLeft className="size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-foreground shadow-sm"
+            aria-label="Sledeća slika"
+            onClick={() => move(1)}
+          >
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </button>
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
+            {photos.map((photo, photoIndex) => (
+              <button
+                key={photo}
+                type="button"
+                aria-label={`Slika ${photoIndex + 1}`}
+                className={photoIndex === index ? "size-1.5 rounded-full bg-white" : "size-1.5 rounded-full bg-white/50"}
+                onClick={() => setIndex(photoIndex)}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }
 

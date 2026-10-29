@@ -12,6 +12,8 @@ export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
 export type Unit = (typeof UNIT_VALUES)[number];
 export type MemberRole = "owner" | "staff";
 export type StoreChannel = "b2c" | "b2b";
+export type Audience = "fizicka" | "pravna" | "oba";
+export type PaymentMethod = "pouzecem" | "kartica";
 
 export type AccountContext = {
   userId: string;
@@ -45,8 +47,10 @@ export type BuyerOrder = {
   supplierName: string;
   supplierSlug: string;
   supplierChannel: StoreChannel;
+  supplierAudience: Audience;
   confirmationToken: string;
   itemCount: number;
+  items: { productId: string | null; name: string; quantity: number; unit: Unit }[];
 };
 export type EmailDelivery = "pending" | "sent" | "outbox" | "failed" | "skipped";
 
@@ -64,6 +68,7 @@ export type Organization = {
   logoUrl: string | null;
   brandColor: string | null;
   channel: StoreChannel;
+  audience: Audience;
   orderPrefix: string;
   nextOrderNumber: number;
   active: boolean;
@@ -84,6 +89,7 @@ export type PublicSupplier = {
   logoUrl: string | null;
   brandColor: string | null;
   channel: StoreChannel;
+  audience: Audience;
 };
 
 export type Category = {
@@ -105,6 +111,7 @@ export type Product = {
   pricePara: number;
   salePricePara: number | null;
   imageUrl: string | null;
+  imageUrls: string[];
   active: boolean;
   minQuantity: number;
   createdAt: string;
@@ -151,6 +158,7 @@ export type Order = {
   customerSnapshot: CustomerSnapshot;
   customerEmailStatus: EmailDelivery;
   supplierEmailStatus: EmailDelivery;
+  paymentMethod: PaymentMethod | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -268,6 +276,7 @@ export type ProductInput = {
   minQuantity: number;
   active: boolean;
   imageUrl?: string | null;
+  imageUrls?: string[];
 };
 
 export type OrganizationInput = {
@@ -282,6 +291,7 @@ export type OrganizationInput = {
   mb: string;
   logoUrl: string | null;
   brandColor: string | null;
+  audience: Audience;
 };
 
 export type CustomerInput = {
@@ -308,6 +318,7 @@ export type PublicOrderInput = {
   notes: string;
   items: { productId: string; quantity: number }[];
   buyerUserId?: string | null;
+  paymentMethod?: PaymentMethod | null;
 };
 
 export type CreateOrderResult =

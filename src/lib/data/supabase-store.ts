@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import type { CsvProductRow } from "@/lib/csv";
-import { RESERVED_SLUGS } from "@/lib/constants";
+import { RESERVED_SLUGS, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput } from "@/lib/data/repository";
+import { syncProductImages } from "@/lib/data/images";
 import { priceOrderLines } from "@/lib/data/pricing";
 import type {
   BuyerOrder,
@@ -74,6 +75,12 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     mb: String(row.mb ?? ""),
     logoUrl: row.logo_url ? String(row.logo_url) : null,
     brandColor: row.brand_color ? String(row.brand_color) : null,
+    audience:
+      row.audience === "fizicka" || row.audience === "pravna" || row.audience === "oba"
+        ? row.audience
+        : row.channel === "b2c"
+          ? "fizicka"
+          : "pravna",
     channel: row.channel === "b2c" ? "b2c" : "b2b",
     orderPrefix: String(row.order_prefix),
     nextOrderNumber: Number(row.next_order_number),
@@ -97,6 +104,7 @@ function toPublic(organization: Organization): PublicSupplier {
     logoUrl: organization.logoUrl,
     brandColor: organization.brandColor,
     channel: organization.channel,
+    audience: organization.audience,
   };
 }
 
@@ -121,7 +129,10 @@ function mapProduct(row: Record<string, unknown>): Product {
     unit: String(row.unit) as Unit,
     pricePara: Number(row.price_para),
     salePricePara: row.sale_price_para == null ? null : Number(row.sale_price_para),
-    imageUrl: row.image_url ? String(row.image_url) : null,
+    ...syncProductImages(
+      row.image_url ? String(row.image_url) : null,
+      Array.isArray(row.image_urls) ? row.image_urls.map(String) : [],
+    ),
     active: Boolean(row.active),
     minQuantity: Number(row.min_quantity),
     createdAt: String(row.created_at),
@@ -162,6 +173,7 @@ function mapOrder(row: Record<string, unknown>): Order {
     customerSnapshot: row.customer_snapshot as CustomerSnapshot,
     customerEmailStatus: String(row.customer_email_status) as EmailDelivery,
     supplierEmailStatus: String(row.supplier_email_status) as EmailDelivery,
+    paymentMethod: row.payment_method === "pouzecem" || row.payment_method === "kartica" ? row.payment_method : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -268,7 +280,8 @@ export const supabaseRepository: CommerceRepository = {
         email: input.userEmail,
         notification_email: input.userEmail,
         phone: input.phone,
-        channel: input.channel === "b2c" ? "b2c" : "b2b",
+        audience: input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna"),
+        channel: channelForAudience(input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna")),
         order_prefix: orderPrefixFromName(input.name),
       })
       .select("*")
@@ -362,7 +375,7 @@ export const supabaseRepository: CommerceRepository = {
   async listBuyerOrders(userId): Promise<BuyerOrder[]> {
     const { data, error } = await db()
       .from("orders")
-      .select("id, number, status, total_para, created_at, confirmation_token, organizations(name, slug, channel), order_items(id)")
+      .select("id, number, status, total_para, created_at, confirmation_token, organizations(name, slug, channel, audience), order_items(product_id, name, quantity, unit)")
       .eq("buyer_user_id", userId)
       .order("created_at", { ascending: false });
     fail(error);
@@ -378,8 +391,23 @@ export const supabaseRepository: CommerceRepository = {
         supplierName: String(organization?.name ?? "Dobavljač"),
         supplierSlug: String(organization?.slug ?? ""),
         supplierChannel: organization?.channel === "b2c" ? "b2c" : "b2b",
+        supplierAudience:
+          organization?.audience === "fizicka" || organization?.audience === "pravna" || organization?.audience === "oba"
+            ? organization.audience
+            : organization?.channel === "b2c"
+              ? "fizicka"
+              : "pravna",
         confirmationToken: String(row.confirmation_token),
         itemCount: items.length,
+        items: items.map((item) => {
+          const line = item as Record<string, unknown>;
+          return {
+            productId: line.product_id ? String(line.product_id) : null,
+            name: String(line.name ?? ""),
+            quantity: Number(line.quantity),
+            unit: String(line.unit ?? "komad") as BuyerOrder["items"][number]["unit"],
+          };
+        }),
       };
     });
   },
@@ -400,6 +428,8 @@ export const supabaseRepository: CommerceRepository = {
         mb: input.mb,
         logo_url: input.logoUrl,
         brand_color: input.brandColor,
+        audience: input.audience,
+        channel: channelForAudience(input.audience),
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -461,7 +491,10 @@ export const supabaseRepository: CommerceRepository = {
         unit: input.unit,
         price_para: input.pricePara,
         sale_price_para: input.salePricePara,
-        image_url: input.imageUrl ?? null,
+        ...(() => {
+          const images = syncProductImages(input.imageUrl, input.imageUrls);
+          return { image_url: images.imageUrl, image_urls: images.imageUrls };
+        })(),
         active: input.active,
         min_quantity: input.minQuantity,
       })
@@ -487,7 +520,11 @@ export const supabaseRepository: CommerceRepository = {
       min_quantity: input.minQuantity,
       updated_at: new Date().toISOString(),
     };
-    if (input.imageUrl !== undefined) patch.image_url = input.imageUrl;
+    if (input.imageUrls !== undefined || input.imageUrl !== undefined) {
+      const images = syncProductImages(input.imageUrl, input.imageUrls ?? (input.imageUrl ? [input.imageUrl] : []));
+      patch.image_url = images.imageUrl;
+      patch.image_urls = images.imageUrls;
+    }
     const { data, error } = await db()
       .from("products")
       .update(patch)
@@ -761,6 +798,7 @@ export const supabaseRepository: CommerceRepository = {
         confirmation_token: randomUUID(),
         customer_snapshot: snapshot,
         buyer_user_id: input.buyerUserId || null,
+        payment_method: input.paymentMethod ?? null,
       })
       .select("*")
       .single();

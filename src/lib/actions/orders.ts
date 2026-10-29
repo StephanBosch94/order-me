@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { getSession, requireSession } from "@/lib/auth";
+import { sellsToBusinesses, sellsToConsumers } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import type { OrderStatus } from "@/lib/data/types";
 import { deliverOrderEmails } from "@/lib/email/order";
@@ -28,8 +29,8 @@ export async function placeOrderAction(input: unknown): Promise<OrderActionState
   }
 
   const catalog = await getCommerce().getPublicCatalog(parsed.data.slug);
-  if (catalog?.supplier.channel === "b2c") {
-    return { ok: false, message: "Ovo je internet prodavnica. Kupovina ide preko korpe." };
+  if (catalog && !sellsToBusinesses(catalog.supplier.audience)) {
+    return { ok: false, message: "Ova prodavnica prima kupovine fizičkih lica preko korpe." };
   }
 
   const headerStore = await headers();
@@ -84,8 +85,8 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
   }
 
   const catalog = await getCommerce().getPublicCatalog(parsed.data.slug);
-  if (!catalog || catalog.supplier.channel !== "b2c") {
-    return { ok: false, message: "Ova prodavnica nije pronađena." };
+  if (!catalog || !sellsToConsumers(catalog.supplier.audience)) {
+    return { ok: false, message: "Ova prodavnica prima porudžbine pravnih lica." };
   }
 
   const headerStore = await headers();
@@ -106,6 +107,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
       notes: parsed.data.notes,
       items: parsed.data.items,
       buyerUserId: session?.kind === "buyer" ? session.userId : null,
+      paymentMethod: parsed.data.paymentMethod,
     },
     ip,
   );

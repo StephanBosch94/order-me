@@ -3,8 +3,9 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { CsvProductRow } from "@/lib/csv";
-import { RESERVED_SLUGS } from "@/lib/constants";
+import { RESERVED_SLUGS, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput } from "@/lib/data/repository";
+import { syncProductImages } from "@/lib/data/images";
 import { priceOrderLines } from "@/lib/data/pricing";
 import {
   createSeedDatabase,
@@ -67,6 +68,7 @@ function toPublicSupplier(organization: Organization): PublicSupplier {
     logoUrl: organization.logoUrl,
     brandColor: organization.brandColor,
     channel: organization.channel,
+    audience: organization.audience,
   };
 }
 
@@ -206,7 +208,8 @@ export class DemoStore implements CommerceRepository {
         mb: "",
         logoUrl: null,
         brandColor: null,
-        channel: input.channel === "b2c" ? "b2c" : "b2b",
+        audience: input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna"),
+        channel: channelForAudience(input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna")),
         orderPrefix: orderPrefixFromName(input.name),
         nextOrderNumber: 1001,
         active: true,
@@ -303,8 +306,17 @@ export class DemoStore implements CommerceRepository {
           supplierName: organization?.name ?? "Dobavljač",
           supplierSlug: organization?.slug ?? "",
           supplierChannel: organization?.channel === "b2c" ? "b2c" : "b2b",
+          supplierAudience: organization?.audience === "fizicka" || organization?.audience === "oba" ? organization.audience : "pravna",
           confirmationToken: order.confirmationToken,
           itemCount: db.orderItems.filter((item) => item.orderId === order.id).length,
+          items: db.orderItems
+            .filter((item) => item.orderId === order.id)
+            .map((item) => ({
+              productId: item.productId,
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+            })),
         };
       });
   }
@@ -317,6 +329,7 @@ export class DemoStore implements CommerceRepository {
       Object.assign(organization, {
         ...input,
         logoUrl: input.logoUrl,
+        channel: channelForAudience(input.audience),
         updatedAt: new Date().toISOString(),
       });
       return organization;
@@ -365,7 +378,7 @@ export class DemoStore implements CommerceRepository {
         unit: input.unit,
         pricePara: input.pricePara,
         salePricePara: input.salePricePara,
-        imageUrl: input.imageUrl ?? null,
+        ...syncProductImages(input.imageUrl, input.imageUrls),
         active: input.active,
         minQuantity: input.minQuantity,
         createdAt: now,
@@ -392,7 +405,14 @@ export class DemoStore implements CommerceRepository {
       product.salePricePara = input.salePricePara;
       product.active = input.active;
       product.minQuantity = input.minQuantity;
-      if (input.imageUrl !== undefined) product.imageUrl = input.imageUrl;
+      if (input.imageUrls !== undefined || input.imageUrl !== undefined) {
+        const images = syncProductImages(
+          input.imageUrl,
+          input.imageUrls ?? (input.imageUrl ? [input.imageUrl] : []),
+        );
+        product.imageUrl = images.imageUrl;
+        product.imageUrls = images.imageUrls;
+      }
       product.updatedAt = new Date().toISOString();
       return product;
     });
@@ -418,6 +438,7 @@ export class DemoStore implements CommerceRepository {
             pricePara: row.pricePara,
             salePricePara: null,
             imageUrl: null,
+            imageUrls: [],
             active: row.active,
             minQuantity: row.minQuantity,
             createdAt: now,
@@ -633,6 +654,7 @@ export class DemoStore implements CommerceRepository {
         customerSnapshot: snapshot(customer),
         customerEmailStatus: "pending",
         supplierEmailStatus: "pending",
+        paymentMethod: input.paymentMethod ?? null,
         createdAt: now,
         updatedAt: now,
       };
@@ -815,13 +837,20 @@ function normalizeDatabase(db: DemoDatabase) {
   }
   for (const order of db.orders) {
     if (!order.buyerUserId) order.buyerUserId = null;
+    if (order.paymentMethod !== "pouzecem" && order.paymentMethod !== "kartica") order.paymentMethod = null;
   }
   for (const organization of db.organizations) {
-    if (organization.channel !== "b2c" && organization.channel !== "b2b") organization.channel = "b2b";
+    if (organization.audience !== "fizicka" && organization.audience !== "pravna" && organization.audience !== "oba") {
+      organization.audience = organization.channel === "b2c" ? "fizicka" : "pravna";
+    }
+    organization.channel = channelForAudience(organization.audience);
   }
   for (const product of db.products) {
     const sale = product.salePricePara;
     if (typeof sale !== "number" || sale <= 0 || sale >= product.pricePara) product.salePricePara = null;
+    const images = syncProductImages(product.imageUrl, product.imageUrls);
+    product.imageUrl = images.imageUrl;
+    product.imageUrls = images.imageUrls;
   }
   return db;
 }

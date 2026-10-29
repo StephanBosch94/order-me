@@ -74,7 +74,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           name: formData.get("name"),
           email: formData.get("email"),
           password: formData.get("password"),
-          channel: formData.get("channel") === "b2c" ? "b2c" : "b2b",
+          audience: formData.get("audience") === "pravna" || formData.get("audience") === "oba" ? formData.get("audience") : "fizicka",
           organizationName: formData.get("organizationName"),
           phone: formData.get("phone") ?? "",
         },
@@ -111,7 +111,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           name: parsed.data.organizationName,
           slug,
           phone: parsed.data.phone,
-          channel: parsed.data.channel,
+          audience: parsed.data.audience,
         });
       }
       const token = await getDemoIdentity().createSession(user.id);
@@ -148,7 +148,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
         name: parsed.data.organizationName,
         slug,
         phone: parsed.data.phone,
-        channel: parsed.data.channel,
+        audience: parsed.data.audience,
       });
     }
     if (!created.data.session) {

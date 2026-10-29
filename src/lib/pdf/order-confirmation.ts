@@ -6,7 +6,7 @@ import path from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
-import { unitLabel } from "@/lib/constants";
+import { paymentLabel, unitLabel } from "@/lib/constants";
 import type { OrderDetail, PublicSupplier } from "@/lib/data/types";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
 
@@ -124,6 +124,7 @@ export async function buildOrderConfirmationPdf(order: OrderDetail, supplier: Pu
     customer.phone,
     [customer.address, customer.city].filter(Boolean).join(", "),
     customer.pib ? `PIB: ${customer.pib}` : "",
+    order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
   ].filter(Boolean);
   for (const line of customerLines) {
     ensure(14);

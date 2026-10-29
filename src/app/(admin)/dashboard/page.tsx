@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
-import { storePath } from "@/lib/constants";
+import { audienceLabel, businessPath, sellsToBusinesses, sellsToConsumers, storePath } from "@/lib/constants";
 import { formatDateTime, formatLongDate, formatRsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Pregled" };
@@ -15,8 +15,10 @@ export const metadata: Metadata = { title: "Pregled" };
 export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getCommerce().getDashboard(session.organization.id);
-  const retail = session.organization.channel === "b2c";
-  const publicPath = storePath(session.organization.channel, session.organization.slug);
+  const audience = session.organization.audience;
+  const publicPath = sellsToBusinesses(audience) && !sellsToConsumers(audience)
+    ? businessPath(session.organization.slug)
+    : storePath(session.organization.slug);
 
   return (
     <div>
@@ -29,7 +31,7 @@ export default async function DashboardPage() {
               <Button>Dodaj proizvod</Button>
             </Link>
             <Link href={publicPath} target="_blank">
-              <Button variant="secondary">{retail ? "Pogledaj prodavnicu" : "Pogledaj stranicu za poručivanje"}</Button>
+              <Button variant="secondary">Pogledajte prodavnicu</Button>
             </Link>
           </>
         }
@@ -39,11 +41,7 @@ export default async function DashboardPage() {
         <div className="mb-6">
           <EmptyState
             title="Dodajte prve proizvode"
-            body={
-              retail
-                ? "Prodavnica je spremna čim katalog ima bar jedan aktivan proizvod."
-                : "Stranica za poručivanje je spremna čim katalog ima bar jedan aktivan proizvod. Kupci ne moraju da otvaraju nalog."
-            }
+            body={`Prodavnica je spremna čim katalog ima bar jedan aktivan proizvod. Kome prodajete: ${audienceLabel(audience).toLowerCase()}.`}
             action={
               <Link href="/products/new">
                 <Button>Dodaj proizvod</Button>
@@ -55,7 +53,7 @@ export default async function DashboardPage() {
         <div className="mb-6 rounded-lg border border-border bg-card px-4 py-4">
           <h2 className="text-sm font-semibold">Podelite stranicu kupcima</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Pošaljite link restoranima, prodavnicama i kafićima. Porudžbine stižu ovde.
+            Pošaljite link kupcima. Porudžbine stižu ovde.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <code className="rounded-md bg-zinc-50 px-2 py-1 text-sm">{publicPath}</code>

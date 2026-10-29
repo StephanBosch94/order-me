@@ -29,6 +29,7 @@ create table if not exists public.organizations (
   logo_url text,
   brand_color text,
   channel text not null default 'b2b' check (channel in ('b2c', 'b2b')),
+  audience text not null default 'fizicka' check (audience in ('fizicka', 'pravna', 'oba')),
   order_prefix text not null default 'POR',
   next_order_number integer not null default 1001,
   active boolean not null default true,
@@ -77,6 +78,7 @@ create table if not exists public.products (
   price_para integer not null check (price_para > 0),
   sale_price_para integer,
   image_url text,
+  image_urls text[] not null default '{}',
   active boolean not null default true,
   min_quantity numeric(12, 3) not null default 1 check (min_quantity > 0),
   created_at timestamptz not null default now(),
@@ -114,6 +116,7 @@ create table if not exists public.orders (
   customer_snapshot jsonb not null,
   customer_email_status text not null default 'pending',
   supplier_email_status text not null default 'pending',
+  payment_method text check (payment_method is null or payment_method in ('pouzecem', 'kartica')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (organization_id, number),
@@ -251,6 +254,10 @@ for select using (bucket_id = 'product-images');
 
 alter table public.organizations add column if not exists brand_color text;
 alter table public.organizations add column if not exists channel text not null default 'b2b';
+alter table public.organizations add column if not exists audience text not null default 'fizicka';
+update public.organizations set audience = 'pravna' where channel = 'b2b' and audience = 'fizicka';
+alter table public.organizations drop constraint if exists organizations_audience_check;
+alter table public.organizations add constraint organizations_audience_check check (audience in ('fizicka', 'pravna', 'oba'));
 alter table public.organizations drop constraint if exists organizations_channel_check;
 alter table public.organizations add constraint organizations_channel_check check (channel in ('b2c', 'b2b'));
 
@@ -267,6 +274,13 @@ alter table public.products add column if not exists sale_price_para integer;
 alter table public.products drop constraint if exists products_sale_price_check;
 alter table public.products add constraint products_sale_price_check
   check (sale_price_para is null or (sale_price_para > 0 and sale_price_para < price_para));
+
+alter table public.products add column if not exists image_urls text[] not null default '{}';
+
+alter table public.orders add column if not exists payment_method text;
+alter table public.orders drop constraint if exists orders_payment_method_check;
+alter table public.orders add constraint orders_payment_method_check
+  check (payment_method is null or payment_method in ('pouzecem', 'kartica'));
 
 alter table public.orders add column if not exists buyer_user_id uuid references auth.users (id) on delete set null;
 create index if not exists orders_buyer_idx on public.orders (buyer_user_id);

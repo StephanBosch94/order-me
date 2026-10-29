@@ -3,11 +3,13 @@
 import { Minus, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
+import { BusinessAccount } from "@/components/shop/business-account";
+import { AudienceSwitch } from "@/components/shop/audience-switch";
 import { placeOrderAction } from "@/lib/actions/orders";
 import { DEMO_SLUGS, quantityStep, unitLabel } from "@/lib/constants";
-import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
+import type { BuyerAccount, BuyerOrder, Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
 import { fold } from "@/lib/text";
@@ -23,10 +25,16 @@ export function Storefront({
   catalog,
   buyer,
   showAccount = true,
+  showSwitch = false,
+  orders = [],
+  repeatOrderId,
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
   showAccount?: boolean;
+  showSwitch?: boolean;
+  orders?: BuyerOrder[];
+  repeatOrderId?: string;
 }) {
   const router = useRouter();
   const storageKey = `poruci-cart:${catalog.supplier.slug}`;
@@ -61,6 +69,32 @@ export function Storefront({
     localStorage.setItem(storageKey, JSON.stringify(next));
     window.dispatchEvent(new Event("poruci-cart"));
   }
+
+  function repeatOrder(items: BuyerOrder["items"]) {
+    const next: Record<string, number> = {};
+    for (const item of items) {
+      if (!item.productId) continue;
+      const product = catalog.products.find((entry) => entry.id === item.productId);
+      if (!product) continue;
+      next[product.id] = Math.max(product.minQuantity, item.quantity);
+    }
+    localStorage.setItem(storageKey, JSON.stringify(next));
+    window.dispatchEvent(new Event("poruci-cart"));
+    setStep("browse");
+    setCartOpen(true);
+  }
+
+  useEffect(() => {
+    if (!repeatOrderId) return;
+    const order = orders.find((entry) => entry.id === repeatOrderId);
+    if (!order) return;
+    const key = `poruci-repeat:${repeatOrderId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    repeatOrder(order.items);
+    // The repeat link should fill the cart once when the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repeatOrderId]);
 
   function increment(product: Product) {
     const current = quantities[product.id] ?? 0;
@@ -106,7 +140,7 @@ export function Storefront({
           <div className="flex min-w-0 items-center gap-3">
             <SupplierLogo name={catalog.supplier.name} logoUrl={catalog.supplier.logoUrl} className="size-12" />
             <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">Poručivanje</p>
+            <p className="text-xs font-medium text-muted-foreground">Prodavnica · pravna lica</p>
             <h1 className="truncate text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
             <p className="text-sm text-muted-foreground">
               {[catalog.supplier.city, catalog.supplier.phone].filter(Boolean).join(" · ")}
@@ -119,7 +153,7 @@ export function Storefront({
                 Moj nalog
               </Link>
             ) : showAccount ? (
-              <Link href={`/s/${catalog.supplier.slug}/nalog`} className="text-sm font-medium underline-offset-2 hover:underline">
+              <Link href={`/shop/${catalog.supplier.slug}/nalog?za=firme`} className="text-sm font-medium underline-offset-2 hover:underline">
                 Otvorite nalog
               </Link>
             ) : null}
@@ -129,6 +163,7 @@ export function Storefront({
           </div>
         </div>
       </header>
+      {showSwitch ? <AudienceSwitch slug={catalog.supplier.slug} mode="pravna" /> : null}
       {catalog.supplier.slug === "gastro-supply" ? (
         <div className="relative h-52 overflow-hidden sm:h-64">
           <img src="/marketing/kuhinja.jpg" alt="" className="size-full object-cover" />
@@ -140,6 +175,15 @@ export function Storefront({
       ) : null}
 
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="lg:col-span-2">
+          <BusinessAccount
+            slug={catalog.supplier.slug}
+            buyer={buyer ?? null}
+            orders={orders}
+            onRepeat={repeatOrder}
+            showAccount={showAccount}
+          />
+        </div>
         {step === "browse" ? (
           <section>
             <div className="relative">

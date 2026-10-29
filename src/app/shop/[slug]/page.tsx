@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { Shop } from "@/components/shop/shop";
+import { Storefront } from "@/components/storefront/storefront";
 import { getSession } from "@/lib/auth";
+import { shopMode } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -11,11 +13,44 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: catalog ? catalog.supplier.name : "Prodavnica" };
 }
 
-export default async function ShopPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ShopPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ za?: string; ponovi?: string }>;
+}) {
   const { slug } = await params;
+  const query = await searchParams;
   const catalog = await getCommerce().getPublicCatalog(slug);
   if (!catalog) notFound();
-  if (catalog.supplier.channel !== "b2c") redirect(`/s/${catalog.supplier.slug}`);
   const session = await getSession();
-  return <Shop catalog={catalog} buyer={session?.kind === "buyer" ? session : null} showAccount={session?.kind !== "supplier"} />;
+  const buyer = session?.kind === "buyer" ? session : null;
+  const mode = shopMode(catalog.supplier.audience, query.za);
+  const showSwitch = catalog.supplier.audience === "oba";
+
+  if (mode === "pravna") {
+    const history = buyer
+      ? (await getCommerce().listBuyerOrders(buyer.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
+      : [];
+    return (
+      <Storefront
+        catalog={catalog}
+        buyer={buyer}
+        showAccount={session?.kind !== "supplier"}
+        showSwitch={showSwitch}
+        orders={history}
+        repeatOrderId={query.ponovi}
+      />
+    );
+  }
+
+  return (
+    <Shop
+      catalog={catalog}
+      buyer={buyer}
+      showAccount={session?.kind !== "supplier"}
+      showSwitch={showSwitch}
+    />
+  );
 }

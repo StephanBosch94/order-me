@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { ProductForm } from "@/components/admin/product-form";
 import { PageHeader } from "@/components/admin/page-header";
+import { sellsToConsumers } from "@/lib/constants";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
 
@@ -13,7 +14,7 @@ export default async function NewProductPage() {
   return (
     <div>
       <PageHeader title="Novi proizvod" description="Slika i šifra nisu obavezni. Proizvod odmah može da bude vidljiv kupcima." />
-      <ProductForm categories={categories} shop={session.organization.channel === "b2c"} />
+      <ProductForm categories={categories} shop={sellsToConsumers(session.organization.audience)} />
     </div>
   );
 }

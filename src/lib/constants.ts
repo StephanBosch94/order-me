@@ -1,4 +1,4 @@
-import type { OrderStatus, StoreChannel, Unit } from "@/lib/data/types";
+import type { Audience, OrderStatus, PaymentMethod, StoreChannel, Unit } from "@/lib/data/types";
 
 export const UNITS: { value: Unit; label: string }[] = [
   { value: "komad", label: "Komad" },
@@ -61,8 +61,46 @@ export function statusLabel(status: OrderStatus) {
   return ORDER_STATUSES.find((item) => item.value === status)?.label ?? status;
 }
 
-export function storePath(channel: StoreChannel, slug: string) {
-  return `${channel === "b2c" ? "/shop" : "/s"}/${slug}`;
+export function paymentLabel(method: PaymentMethod | null | undefined) {
+  if (method === "pouzecem") return "Plaćanje pouzećem";
+  if (method === "kartica") return "Karticom";
+  return "";
+}
+
+export const AUDIENCES: { value: Audience; label: string; hint: string }[] = [
+  { value: "fizicka", label: "Fizičkim licima", hint: "Korpa, kasa i adresa isporuke." },
+  { value: "pravna", label: "Pravnim licima", hint: "Količine, podaci firme, statistika i ponovna porudžbina." },
+  { value: "oba", label: "I jednim i drugima", hint: "Ista prodavnica, kupac bira kako kupuje." },
+];
+
+export function audienceLabel(audience: Audience) {
+  return AUDIENCES.find((item) => item.value === audience)?.label ?? "Fizičkim licima";
+}
+
+export function sellsToConsumers(audience: Audience) {
+  return audience === "fizicka" || audience === "oba";
+}
+
+export function sellsToBusinesses(audience: Audience) {
+  return audience === "pravna" || audience === "oba";
+}
+
+export function channelForAudience(audience: Audience): StoreChannel {
+  return audience === "pravna" ? "b2b" : "b2c";
+}
+
+export function shopMode(audience: Audience, za?: string): "fizicka" | "pravna" {
+  if (!sellsToConsumers(audience)) return "pravna";
+  if (!sellsToBusinesses(audience)) return "fizicka";
+  return za === "firme" ? "pravna" : "fizicka";
+}
+
+export function storePath(slug: string) {
+  return `/shop/${slug}`;
+}
+
+export function businessPath(slug: string) {
+  return `/shop/${slug}?za=firme`;
 }
 
 export function quantityStep(unit: Unit) {

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 
+import { AUDIENCES } from "@/lib/constants";
 import { loginAction, signupAction, type AuthState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
@@ -36,16 +37,15 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
   );
 }
 
-export function SignupForm({ mode, nextPath }: { mode: "b2c" | "b2b" | "buyer" | "buyer-shop"; nextPath?: string }) {
+export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "buyer-shop"; nextPath?: string }) {
   const [state, action, pending] = useActionState(signupAction, initial);
-  const supplier = mode === "b2c" || mode === "b2b";
+  const supplier = mode === "supplier";
   const person = mode === "buyer-shop";
 
   return (
     <form action={action} className="space-y-4">
       {state.error ? <Alert message={state.error} /> : null}
       <input type="hidden" name="kind" value={supplier ? "supplier" : "buyer"} />
-      {supplier ? <input type="hidden" name="channel" value={mode} /> : null}
       {person ? <input type="hidden" name="profile" value="osoba" /> : null}
       {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
       <Field name="name" label="Ime i prezime" autoComplete="name" error={state.fieldErrors?.name} />
@@ -53,12 +53,30 @@ export function SignupForm({ mode, nextPath }: { mode: "b2c" | "b2b" | "buyer" |
       <Field name="password" label="Lozinka" type="password" autoComplete="new-password" error={state.fieldErrors?.password} />
       {supplier ? (
         <>
-          <Field
-            name="organizationName"
-            label={mode === "b2c" ? "Naziv prodavnice" : "Naziv firme"}
-            error={state.fieldErrors?.organizationName}
-          />
+          <Field name="organizationName" label="Naziv prodavnice" error={state.fieldErrors?.organizationName} />
           <p className="text-sm text-muted-foreground">Adresa stranice pravi se od naziva. Možete je promeniti u podešavanjima.</p>
+          <fieldset>
+            <legend className="text-sm font-medium">Kome prodajete</legend>
+            <div className="mt-2 space-y-2">
+              {AUDIENCES.map((item) => (
+                <label key={item.value} className="flex items-start gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="audience"
+                    value={item.value}
+                    defaultChecked={item.value === "oba"}
+                    required
+                    className="mt-0.5 size-4 accent-primary"
+                  />
+                  <span>
+                    <span className="font-medium">{item.label}</span>
+                    <span className="mt-0.5 block text-muted-foreground">{item.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <FieldError message={state.fieldErrors?.audience} />
+          </fieldset>
           <Field name="phone" label="Telefon" autoComplete="tel" required={false} error={state.fieldErrors?.phone} />
         </>
       ) : person ? (
@@ -77,7 +95,7 @@ export function SignupForm({ mode, nextPath }: { mode: "b2c" | "b2b" | "buyer" |
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Kreiranje…" : mode === "b2c" ? "Otvorite prodavnicu" : mode === "b2b" ? "Otvorite nalog za firme" : "Otvorite nalog"}
+        {pending ? "Kreiranje…" : supplier ? "Otvorite prodavnicu" : "Otvorite nalog"}
       </Button>
     </form>
   );

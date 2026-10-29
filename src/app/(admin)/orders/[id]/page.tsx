@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { OrderStatusForm } from "@/components/admin/order-actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireSession } from "@/lib/auth";
-import { unitLabel } from "@/lib/constants";
+import { paymentLabel, unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
 
@@ -93,6 +93,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <div>
                   <dt className="text-muted-foreground">PIB</dt>
                   <dd>{customer.pib}</dd>
+                </div>
+              ) : null}
+              {order.paymentMethod ? (
+                <div>
+                  <dt className="text-muted-foreground">Način plaćanja</dt>
+                  <dd>{paymentLabel(order.paymentMethod)}</dd>
                 </div>
               ) : null}
               {customer.address || customer.city ? (

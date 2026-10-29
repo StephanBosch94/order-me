@@ -138,20 +138,44 @@ export function ProductForm({
           <Textarea id="description" name="description" defaultValue={product?.description} className="mt-1.5" />
         </div>
         <div className="sm:col-span-2">
-          <Label htmlFor="image">Slika</Label>
-          <div className="mt-2 flex items-center gap-3">
-            <ProductImage src={product?.imageUrl ?? null} />
-            <div className="min-w-0 flex-1">
-              <Input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" />
-              <p className="mt-1 text-xs text-muted-foreground">Opciono. JPG, PNG ili WebP, do 2 MB. Kupci je vide u katalogu.</p>
-            </div>
-          </div>
-          {product?.imageUrl ? (
-            <label className="mt-2 flex items-center gap-2 text-sm">
-              <input type="checkbox" name="removeImage" className="size-4 accent-zinc-950" />
-              Uklonite sliku
-            </label>
-          ) : null}
+          {shop ? (
+            <>
+              <Label htmlFor="images">Slike</Label>
+              {product?.imageUrls?.length ? (
+                <ul className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {product.imageUrls.map((url, index) => (
+                    <li key={url} className="space-y-1">
+                      <ProductImage src={url} className="aspect-[3/2] h-auto w-full" />
+                      <input type="hidden" name="keepImage" value={url} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <input type="checkbox" name="dropImage" value={url} className="size-3.5 accent-zinc-950" />
+                        {index === 0 ? "Ukloni naslovnu" : "Ukloni"}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <Input id="images" name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple className="mt-2" />
+              <p className="mt-1 text-xs text-muted-foreground">Do 6 slika. Prva je naslovna. JPG, PNG ili WebP, do 2 MB.</p>
+            </>
+          ) : (
+            <>
+              <Label htmlFor="image">Slika</Label>
+              <div className="mt-2 flex items-center gap-3">
+                <ProductImage src={product?.imageUrl ?? null} />
+                <div className="min-w-0 flex-1">
+                  <Input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" />
+                  <p className="mt-1 text-xs text-muted-foreground">Opciono. JPG, PNG ili WebP, do 2 MB. Kupci je vide u katalogu.</p>
+                </div>
+              </div>
+              {product?.imageUrl ? (
+                <label className="mt-2 flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="removeImage" className="size-4 accent-zinc-950" />
+                  Uklonite sliku
+                </label>
+              ) : null}
+            </>
+          )}
         </div>
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
           <input type="checkbox" name="active" defaultChecked={product?.active ?? true} className="size-4 accent-zinc-950" />

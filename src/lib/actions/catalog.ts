@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSession } from "@/lib/auth";
-import { storePath } from "@/lib/constants";
+import { sellsToConsumers, storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import { parseProductCsv } from "@/lib/csv";
+import { MAX_PRODUCT_IMAGES } from "@/lib/data/images";
 import { storeImage } from "@/lib/media";
 import { slugify } from "@/lib/text";
 import { fieldErrors, organizationSchema, productFormSchema, toProductInput } from "@/lib/validators";
@@ -45,21 +46,45 @@ export async function saveProductAction(formData: FormData): Promise<FormState &
   }
 
   try {
-    const image = formData.get("image");
+    const productId = text(formData, "id");
+    const existing = productId ? await getCommerce().getProduct(session.organization.id, productId) : null;
+    const shop = sellsToConsumers(session.organization.audience);
     let imageUrl: string | null | undefined;
-    if (formData.get("removeImage") === "on") imageUrl = null;
-    if (image instanceof File && image.size > 0) {
-      imageUrl = await storeImage(session.organization.id, image);
+    let imageUrls: string[] | undefined;
+    if (shop) {
+      const owned = new Set(existing?.imageUrls ?? []);
+      const dropped = new Set(formData.getAll("dropImage").filter((value): value is string => typeof value === "string"));
+      const kept = formData.getAll("keepImage").filter(
+        (value): value is string => typeof value === "string" && owned.has(value) && !dropped.has(value),
+      );
+      const files = formData.getAll("images").filter((value): value is File => value instanceof File && value.size > 0);
+      if (kept.length + files.length > MAX_PRODUCT_IMAGES) {
+        return { error: "Proizvod može imati najviše 6 slika." };
+      }
+      const uploaded: string[] = [];
+      for (const file of files) {
+        const stored = await storeImage(session.organization.id, file);
+        if (stored) uploaded.push(stored);
+      }
+      imageUrls = [...kept, ...uploaded];
+      imageUrl = imageUrls[0] ?? null;
+    } else {
+      const image = formData.get("image");
+      if (formData.get("removeImage") === "on") imageUrl = null;
+      if (image instanceof File && image.size > 0) {
+        imageUrl = await storeImage(session.organization.id, image);
+      }
+      if (imageUrl !== undefined) imageUrls = imageUrl ? [imageUrl] : [];
     }
     const input = toProductInput(parsed.data, imageUrl);
-    const productId = text(formData, "id");
+    if (imageUrls !== undefined) input.imageUrls = imageUrls;
     const product = productId
       ? await getCommerce().updateProduct(session.organization.id, productId, input)
       : await getCommerce().createProduct(session.organization.id, input);
     if (!product) return { error: "Proizvod nije pronađen." };
     revalidatePath("/products");
     revalidatePath(`/products/${product.id}`);
-    revalidatePath(storePath(session.organization.channel, session.organization.slug));
+    revalidatePath(storePath(session.organization.slug));
     return { ok: true, id: product.id, message: "Proizvod je sačuvan." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Čuvanje nije uspelo." };
@@ -83,7 +108,7 @@ export async function setProductActiveAction(productId: string, active: boolean)
     active,
   });
   revalidatePath("/products");
-  revalidatePath(storePath(session.organization.channel, session.organization.slug));
+  revalidatePath(storePath(session.organization.slug));
   return { ok: true };
 }
 
@@ -97,7 +122,7 @@ export async function importProductsAction(csvText: string): Promise<FormState &
   }
   const result = await getCommerce().importProducts(session.organization.id, parsed.rows);
   revalidatePath("/products");
-  revalidatePath(storePath(session.organization.channel, session.organization.slug));
+  revalidatePath(storePath(session.organization.slug));
   const skipped = [...parsed.errors, ...result.errors];
   return {
     ok: true,
@@ -122,6 +147,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
     pib: text(formData, "pib"),
     mb: text(formData, "mb"),
     brandColor: text(formData, "brandColor"),
+    audience: text(formData, "audience"),
   });
   if (!parsed.success) {
     return {
@@ -154,7 +180,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
   revalidatePath("/settings");
   revalidatePath("/dashboard");
   revalidatePath("/orders");
-  revalidatePath(storePath(session.organization.channel, session.organization.slug));
-  revalidatePath(storePath(session.organization.channel, parsed.data.slug));
+  revalidatePath(storePath(session.organization.slug));
+  revalidatePath(storePath(parsed.data.slug));
   return { ok: true, message: "Podešavanja su sačuvana." };
 }

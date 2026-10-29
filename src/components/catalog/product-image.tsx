@@ -4,9 +4,11 @@ import { cn } from "@/lib/utils";
 
 export function ProductImage({
   src,
+  alt = "",
   className,
 }: {
   src: string | null;
+  alt?: string;
   className?: string;
 }) {
   if (src) {
@@ -14,7 +16,7 @@ export function ProductImage({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
-        alt=""
+        alt={alt}
         className={cn("size-16 shrink-0 rounded-md border border-border bg-white object-cover", className)}
       />
     );

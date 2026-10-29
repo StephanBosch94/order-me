@@ -103,6 +103,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     logoUrl: "/suppliers/gastro-supply.svg",
     brandColor: "#14532d",
     channel: "b2b",
+    audience: "pravna",
     orderPrefix: "GS",
     nextOrderNumber: 1001,
     active: true,
@@ -272,6 +273,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     pricePara: product.pricePara,
     salePricePara: null,
     imageUrl: `/products/${product.sku}.jpg`,
+    imageUrls: [`/products/${product.sku}.jpg`],
     active: true,
     minQuantity: product.minQuantity,
     createdAt: ago(80),
@@ -374,6 +376,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       totalPara,
       idempotencyKey: randomUUID(),
       confirmationToken: randomUUID(),
+      paymentMethod: null,
       customerSnapshot: {
         businessName: customer.businessName,
         contactName: customer.contactName,
@@ -591,6 +594,16 @@ function backfillBoutiqueSales(db: DemoDatabase, organizationId: string) {
       product.salePricePara = null;
       changed = true;
     }
+    if (product.sku === "BV-JAK") {
+      const cover = "/products/bv-jakna.jpg";
+      const extra = "/marketing/butik.jpg";
+      const urls = product.imageUrls?.length ? [...product.imageUrls] : product.imageUrl ? [product.imageUrl] : [];
+      if (urls[0] === cover && !urls.includes(extra)) {
+        product.imageUrl = cover;
+        product.imageUrls = [...urls, extra];
+        changed = true;
+      }
+    }
   }
   return changed;
 }
@@ -604,6 +617,8 @@ function fillBoutique(organization: Organization, now: string) {
   organization.address = "Gospodar Jevremova 28";
   organization.city = "Beograd";
   organization.brandColor = "#6b2d3c";
+  organization.audience = "fizicka";
+  organization.channel = "b2c";
   organization.orderPrefix = "BV";
   organization.updatedAt = now;
 }
@@ -642,6 +657,7 @@ function boutiqueCatalog(organizationId: string, now: string) {
     pricePara,
     salePricePara,
     imageUrl,
+    imageUrls: imageUrl === "/products/bv-jakna.jpg" ? ["/products/bv-jakna.jpg", "/marketing/butik.jpg"] : [imageUrl],
     active: true,
     minQuantity: 1,
     createdAt: now,
@@ -687,6 +703,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
     logoUrl: null,
     brandColor: null,
     channel: "b2c",
+    audience: "fizicka",
     orderPrefix: "BV",
     nextOrderNumber: 1001,
     active: true,

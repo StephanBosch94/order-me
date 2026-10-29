@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 
+import { AUDIENCES } from "@/lib/constants";
 import { updateSettingsAction, type FormState } from "@/lib/actions/catalog";
 import type { Organization } from "@/lib/data/types";
 import { slugify } from "@/lib/text";
@@ -17,11 +18,32 @@ export function SettingsForm({ organization }: { organization: Organization }) {
     <form action={action} className="max-w-2xl space-y-4">
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700">{state.message}</p> : null}
+      <fieldset>
+        <legend className="text-sm font-medium">Kome prodajete</legend>
+        <div className="mt-2 space-y-2">
+          {AUDIENCES.map((item) => (
+            <label key={item.value} className="flex items-start gap-2 text-sm">
+              <input
+                type="radio"
+                name="audience"
+                value={item.value}
+                defaultChecked={organization.audience === item.value}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span>
+                <span className="font-medium">{item.label}</span>
+                <span className="mt-0.5 block text-muted-foreground">{item.hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <FieldError message={state.fieldErrors?.audience} />
+      </fieldset>
       <div className="grid gap-4 sm:grid-cols-2">
         <Setting name="name" label="Naziv firme" defaultValue={organization.name} error={state.fieldErrors?.name} />
         <SlugSetting
           key={organization.slug}
-          prefix={organization.channel === "b2c" ? "/shop/" : "/s/"}
+          prefix="/shop/"
           initial={organization.slug}
           error={state.fieldErrors?.slug}
         />
