@@ -17,7 +17,7 @@ import { useState } from "react";
 import { SetupGuide } from "@/components/admin/setup-guide";
 import { logoutAction } from "@/lib/actions/auth";
 import type { AccountContext } from "@/lib/data/types";
-import type { SetupStep } from "@/lib/setup";
+import { setupReady, type SetupStep } from "@/lib/setup";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
@@ -59,6 +59,7 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const showGuide = !setupReady(setup);
 
   const nav = (
     <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Glavna navigacija">
@@ -159,11 +160,24 @@ export function AdminShell({
               </div>
             </div>
           ) : null}
-          <div className={cn("min-h-0 flex-1 overflow-y-auto", open && "hidden lg:block")}>
-            <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-              <SetupGuide steps={setup} />
-              {children}
-            </main>
+          <div className={cn("flex min-h-0 flex-1", open && "hidden lg:flex")}>
+            <div className="min-w-0 flex-1 overflow-y-auto">
+              <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+                {children}
+                {showGuide ? (
+                  <div className="mt-6 lg:hidden">
+                    <SetupGuide steps={setup} />
+                  </div>
+                ) : null}
+              </main>
+            </div>
+            {showGuide ? (
+              <aside className="hidden w-80 shrink-0 overflow-y-auto border-l border-border p-4 lg:block xl:w-96">
+                <div className="sticky top-0">
+                  <SetupGuide steps={setup} />
+                </div>
+              </aside>
+            ) : null}
           </div>
         </div>
       </div>

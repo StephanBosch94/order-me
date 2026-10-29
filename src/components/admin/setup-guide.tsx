@@ -10,7 +10,7 @@ export function SetupGuide({ steps }: { steps: SetupStep[] }) {
   const done = steps.filter((step) => step.done).length;
 
   return (
-    <section className="mb-6 rounded-lg border border-border bg-card p-4" aria-labelledby="setup-guide">
+    <section className="rounded-lg border border-border bg-card p-4" aria-labelledby="setup-guide">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id="setup-guide" className="text-sm font-semibold">
