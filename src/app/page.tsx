@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
+import { Fraunces } from "next/font/google";
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const display = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600"],
+});
+
+const gallery = [
+  { src: "/products/kk-kafa.jpg", name: "Kafa mlevena", href: "/shop/kafa-kutak" },
+  { src: "/products/kk-casa.jpg", name: "Čaša za kafu", href: "/shop/kafa-kutak" },
+  { src: "/products/PC-025.jpg", name: "Papirna čaša", href: "/s/gastro-supply" },
+  { src: "/products/KB-4030.jpg", name: "Kartonska kutija", href: "/s/gastro-supply" },
+  { src: "/products/AF-50.jpg", name: "Folija", href: "/s/gastro-supply" },
+  { src: "/products/TS-1L.jpg", name: "Tečnost za sudove", href: "/s/gastro-supply" },
+];
 
 export const metadata: Metadata = {
   title: { absolute: "Poruci" },
@@ -67,8 +82,8 @@ const steps = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-dvh bg-background">
-      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
+    <div className="min-h-dvh bg-[#f3eee6] text-stone-950">
+      <header className="sticky top-0 z-10 border-b border-stone-900/10 bg-[#f3eee6]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Logo />
           <nav className="hidden items-center gap-1 md:flex" aria-label="Sadržaj stranice">
@@ -89,34 +104,65 @@ export default function HomePage() {
       </header>
 
       <main>
-        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-          <p className="text-sm font-medium text-indigo-700">Za one koji prodaju u Srbiji</p>
-          <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
-            Prodavnica za kupce. Poručivanje za firme.
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Poruci drži ta dva posla odvojeno. Kupac u prodavnici bira robu i ide na kasu. Firma na drugoj
-            stranici poručuje količine sa cenovnika. Svaka ima svoju adresu, a porudžbine stižu u njen pregled.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/signup/prodavnica" className={buttonVariants({ size: "lg" })}>
-              Otvorite prodavnicu
-            </Link>
-            <Link href="/signup/firme" className={buttonVariants({ size: "lg", variant: "secondary" })}>
-              Otvorite nalog za firme
-            </Link>
+        <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div>
+            <p className="text-sm font-medium tracking-wide text-stone-500">Za one koji prodaju u Srbiji</p>
+            <h1 className={cn(display.className, "mt-3 max-w-xl text-5xl leading-[1.05] font-medium tracking-tight text-balance sm:text-6xl")}>
+              Prodavnica za kupce. Poručivanje za firme.
+            </h1>
+            <p className="mt-5 max-w-xl text-lg leading-8 text-stone-600">
+              Poruci drži ta dva posla odvojeno. Kupac u prodavnici bira robu i ide na kasu. Firma na drugoj
+              stranici poručuje količine sa cenovnika. Svaka ima svoju adresu, a porudžbine stižu u njen pregled.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/signup/prodavnica" className={buttonVariants({ size: "lg" })}>
+                Otvorite prodavnicu
+              </Link>
+              <Link href="/signup/firme" className={buttonVariants({ size: "lg", variant: "secondary" })}>
+                Otvorite nalog za firme
+              </Link>
+            </div>
+          </div>
+          <div className="relative">
+            <img src="/marketing/pult.jpg" alt="Pult u kafiću" className="aspect-[4/5] w-full rounded-[2rem] object-cover shadow-xl sm:aspect-[5/4]" />
+            <img
+              src="/marketing/kafic.jpg"
+              alt=""
+              className="absolute -bottom-6 -left-2 hidden w-36 rounded-2xl object-cover shadow-lg ring-4 ring-[#f3eee6] sm:block sm:w-44"
+            />
           </div>
         </section>
 
-        <section id="prodavnica" className="scroll-mt-20 border-t border-border bg-card">
-          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
+        <section aria-label="Iz demo kataloga" className="mx-auto max-w-6xl px-4 pt-16 pb-4 sm:px-6">
+          <div className="flex items-end justify-between gap-4">
+            <h2 className={cn(display.className, "text-3xl font-medium tracking-tight")}>Iz demo kataloga</h2>
+            <p className="hidden text-sm text-stone-500 sm:block">Prave fotografije, cene u dinarima.</p>
+          </div>
+          <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {gallery.map((item) => (
+              <li key={item.name}>
+                <Link href={item.href} className="group block">
+                  <span className="block overflow-hidden rounded-2xl">
+                    <img src={item.src} alt="" className="aspect-[3/4] w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+                  </span>
+                  <span className="mt-2 block text-sm font-medium">{item.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section id="prodavnica" className="scroll-mt-20">
+          <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 sm:px-6 lg:grid-cols-2">
+            <img src="/marketing/kafic.jpg" alt="Kafa na stolu" className="aspect-[4/3] w-full rounded-[2rem] object-cover" />
             <div>
-              <p className="text-xs font-medium text-indigo-700">Internet prodavnica</p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight">Klasičan shop na vašoj adresi</h2>
-              <p className="mt-4 text-base leading-7 text-muted-foreground">
+              <p className="text-xs font-medium tracking-wide text-stone-500">Internet prodavnica</p>
+              <h2 className={cn(display.className, "mt-2 text-4xl font-medium tracking-tight")}>Klasičan shop na vašoj adresi</h2>
+              <p className="mt-4 text-base leading-7 text-stone-600">
                 Za robu koju kupac uzima kao u prodavnici: kafa, čaša, pakovanje za kuću. Stranica ima
                 proizvode, korpu i kasu sa imenom, telefonom i adresom.
               </p>
+              <BenefitList items={shopBenefits} />
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link href="/signup/prodavnica" className={buttonVariants()}>
                   Otvorite prodavnicu
@@ -126,19 +172,19 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <BenefitList items={shopBenefits} />
           </div>
         </section>
 
-        <section id="firme" className="scroll-mt-20 border-t border-border">
-          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
-            <div>
-              <p className="text-xs font-medium text-indigo-700">Poručivanje za firme</p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight">Cenovnik koji firme same popune</h2>
-              <p className="mt-4 text-base leading-7 text-muted-foreground">
+        <section id="firme" className="scroll-mt-20">
+          <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-8 sm:px-6 lg:grid-cols-2">
+            <div className="lg:order-1">
+              <p className="text-xs font-medium tracking-wide text-stone-500">Poručivanje za firme</p>
+              <h2 className={cn(display.className, "mt-2 text-4xl font-medium tracking-tight")}>Cenovnik koji firme same popune</h2>
+              <p className="mt-4 text-base leading-7 text-stone-600">
                 Za dobavljače koji snabdevaju restorane, kafiće i prodavnice. Kupac vidi jedinicu, minimalnu
                 količinu i cenu, unosi podatke firme i šalje porudžbinu. Vi je potvrđujete.
               </p>
+              <BenefitList items={businessBenefits} />
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link href="/signup/firme" className={buttonVariants()}>
                   Otvorite nalog za firme
@@ -147,44 +193,44 @@ export default function HomePage() {
                   Pogledajte Gastro Supply
                 </Link>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">
+              <p className="mt-4 text-sm text-stone-600">
                 Firma koja kod vas redovno poručuje može da{" "}
-                <Link href="/signup/kupac" className="font-medium text-foreground underline-offset-2 hover:underline">
+                <Link href="/signup/kupac" className="font-medium text-stone-950 underline-offset-2 hover:underline">
                   otvori nalog kupca
                 </Link>{" "}
                 i da vidi svoje porudžbine.
               </p>
             </div>
-            <BenefitList items={businessBenefits} />
+            <img src="/marketing/kuhinja.jpg" alt="Kuhinja u kojoj se sprema hrana" className="aspect-[4/3] w-full rounded-[2rem] object-cover lg:order-2" />
           </div>
         </section>
 
-        <section id="koristi" className="scroll-mt-20 border-t border-border bg-card">
+        <section id="koristi" className="scroll-mt-20">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight">Šta dobijate u oba slučaja</h2>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
+            <h2 className={cn(display.className, "max-w-2xl text-4xl font-medium tracking-tight")}>Šta dobijate u oba slučaja</h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-stone-600">
               Oba načina imaju katalog, status porudžbine, cene u dinarima i potvrdu u PDF-u. Stranice ostaju odvojene.
             </p>
-            <dl className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
+            <dl className="mt-10 grid gap-4 sm:grid-cols-2">
               {sharedBenefits.map((benefit) => (
-                <div key={benefit.title} className="bg-card px-5 py-5">
+                <div key={benefit.title} className="rounded-3xl bg-white/70 px-5 py-5">
                   <dt className="text-sm font-semibold">{benefit.title}</dt>
-                  <dd className="mt-2 text-sm leading-6 text-muted-foreground">{benefit.body}</dd>
+                  <dd className="mt-2 text-sm leading-6 text-stone-600">{benefit.body}</dd>
                 </div>
               ))}
             </dl>
           </div>
         </section>
 
-        <section id="kako" className="scroll-mt-20 border-t border-border">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-            <h2 className="text-3xl font-semibold tracking-tight">Kako krene da radi</h2>
-            <ol className="mt-10 grid gap-6 sm:grid-cols-2">
+        <section id="kako" className="scroll-mt-20">
+          <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+            <h2 className={cn(display.className, "text-4xl font-medium tracking-tight")}>Kako krene da radi</h2>
+            <ol className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {steps.map((step, index) => (
-                <li key={step.title} className="rounded-lg border border-border bg-card p-5">
-                  <p className="text-sm font-medium text-indigo-700">0{index + 1}</p>
+                <li key={step.title}>
+                  <p className={cn(display.className, "text-3xl text-stone-400")}>0{index + 1}</p>
                   <h3 className="mt-2 text-base font-semibold">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.body}</p>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">{step.body}</p>
                 </li>
               ))}
             </ol>
@@ -194,7 +240,7 @@ export default function HomePage() {
         <section className="border-t border-border bg-zinc-950 text-zinc-50">
           <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-16 sm:px-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="max-w-xl text-3xl font-semibold tracking-tight">Otvorite onaj nalog koji vam treba</h2>
+              <h2 className={cn(display.className, "max-w-xl text-4xl font-medium tracking-tight")}>Otvorite onaj nalog koji vam treba</h2>
               <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">
                 Prodavnica i poručivanje za firme ostaju odvojeni. Demo možete da pogledate pre registracije.
               </p>
@@ -211,7 +257,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-border">
+      <footer className="border-t border-stone-900/10">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <Logo />
           <div className="flex flex-wrap gap-x-4 gap-y-2">
@@ -233,7 +279,7 @@ export default function HomePage() {
 
 function Anchor({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a href={href} className="rounded-md px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100">
+    <a href={href} className="rounded-md px-3 py-2 text-sm text-stone-700 hover:bg-white/70">
       {children}
     </a>
   );
@@ -241,9 +287,9 @@ function Anchor({ href, children }: { href: string; children: React.ReactNode })
 
 function BenefitList({ items }: { items: string[] }) {
   return (
-    <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-background">
+    <ul className="mt-5 space-y-2">
       {items.map((item) => (
-        <li key={item} className="px-4 py-3 text-sm leading-6">
+        <li key={item} className="text-sm leading-6 text-stone-700">
           {item}
         </li>
       ))}

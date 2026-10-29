@@ -271,7 +271,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     unit: product.unit,
     pricePara: product.pricePara,
     salePricePara: null,
-    imageUrl: `/products/${product.sku}.svg`,
+    imageUrl: `/products/${product.sku}.jpg`,
     active: true,
     minQuantity: product.minQuantity,
     createdAt: ago(80),
@@ -541,6 +541,38 @@ const DEMO_SALE_PRICES: Record<string, number> = {
   "KK-CASA": 49000,
 };
 
+const DEMO_PRODUCT_PHOTOS: Record<string, string> = {
+  "KB-4030": "/products/KB-4030.jpg",
+  "PC-025": "/products/PC-025.jpg",
+  "PC-040": "/products/PC-040.jpg",
+  "PK-CAP": "/products/PK-CAP.jpg",
+  "SV-3333": "/products/SV-3333.jpg",
+  "UB-2SL": "/products/UB-2SL.jpg",
+  "KS-RUC": "/products/KS-RUC.jpg",
+  "AF-50": "/products/AF-50.jpg",
+  "PF-300": "/products/PF-300.jpg",
+  "OD-5L": "/products/OD-5L.jpg",
+  "TS-1L": "/products/TS-1L.jpg",
+  "RK-NIT": "/products/RK-NIT.jpg",
+  "SC-1KG": "/products/SC-1KG.jpg",
+  "KF-1KG": "/products/KF-1KG.jpg",
+  "KK-KAFA": "/products/kk-kafa.jpg",
+  "KK-SECER": "/products/kk-secer.jpg",
+  "KK-CASA": "/products/kk-casa.jpg",
+  "KK-SALV": "/products/kk-salvete.jpg",
+};
+
+export function applyDemoPhotos(db: DemoDatabase) {
+  let changed = false;
+  for (const product of db.products) {
+    const photo = DEMO_PRODUCT_PHOTOS[product.sku];
+    if (!photo || !product.imageUrl?.endsWith(".svg")) continue;
+    product.imageUrl = photo;
+    changed = true;
+  }
+  return changed;
+}
+
 function backfillKafaSales(db: DemoDatabase, organizationId: string) {
   let changed = false;
   for (const product of db.products) {
@@ -609,7 +641,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
       unit: "komad",
       pricePara: 89000,
       salePricePara: 69000,
-      imageUrl: "/products/KF-1KG.svg",
+      imageUrl: "/products/kk-kafa.jpg",
       active: true,
       minQuantity: 1,
       createdAt: now,
@@ -625,7 +657,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
       unit: "komad",
       pricePara: 22000,
       salePricePara: null,
-      imageUrl: "/products/SC-1KG.svg",
+      imageUrl: "/products/kk-secer.jpg",
       active: true,
       minQuantity: 1,
       createdAt: now,
@@ -641,7 +673,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
       unit: "komad",
       pricePara: 69000,
       salePricePara: 49000,
-      imageUrl: "/products/PC-025.svg",
+      imageUrl: "/products/kk-casa.jpg",
       active: true,
       minQuantity: 1,
       createdAt: now,
@@ -657,7 +689,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
       unit: "komad",
       pricePara: 32000,
       salePricePara: null,
-      imageUrl: "/products/SV-3333.svg",
+      imageUrl: "/products/kk-salvete.jpg",
       active: true,
       minQuantity: 1,
       createdAt: now,

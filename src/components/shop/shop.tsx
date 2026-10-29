@@ -100,6 +100,15 @@ export function Shop({
           </div>
         </div>
       </header>
+      {catalog.supplier.slug === "kafa-kutak" ? (
+        <div className="relative h-56 overflow-hidden sm:h-72">
+          <img src="/marketing/kafic.jpg" alt="" className="size-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
+          <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
+            Kafa, šećer i stvari za sto.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         {step === "browse" ? (
@@ -366,16 +375,17 @@ function Field({
 function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
   const sale = salePricePara(product);
   return (
-    <li className="flex flex-col rounded-lg border border-border bg-card p-4">
+    <li className="flex flex-col overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-black/5">
       <div className="relative">
-        <ProductImage src={product.imageUrl} className="aspect-square h-auto w-full" />
+        <ProductImage src={product.imageUrl} className="aspect-[4/5] h-auto w-full rounded-none border-0" />
         {sale ? (
           <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
             Akcija
           </span>
         ) : null}
       </div>
-      <h3 className="mt-3 text-sm font-semibold">{product.name}</h3>
+      <div className="flex flex-1 flex-col p-4">
+      <h3 className="text-sm font-semibold">{product.name}</h3>
       {product.description ? <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p> : null}
       <div className="mt-auto flex items-center justify-between gap-3 pt-4">
         <div>
@@ -386,6 +396,7 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
           <Plus className="size-4" aria-hidden="true" />
           Dodaj
         </Button>
+      </div>
       </div>
     </li>
   );

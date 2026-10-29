@@ -129,6 +129,15 @@ export function Storefront({
           </div>
         </div>
       </header>
+      {catalog.supplier.slug === "gastro-supply" ? (
+        <div className="relative h-52 overflow-hidden sm:h-64">
+          <img src="/marketing/kuhinja.jpg" alt="" className="size-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
+          <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
+            Ambalaža, higijena i roba za kuhinju.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         {step === "browse" ? (
@@ -170,7 +179,7 @@ export function Storefront({
                   <li key={product.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-3">
-                        <ProductImage src={product.imageUrl} />
+                        <ProductImage src={product.imageUrl} className="size-20 rounded-xl" />
                         <div>
                           <p className="font-medium">{product.name}</p>
                           <p className="mt-0.5 text-sm text-muted-foreground">

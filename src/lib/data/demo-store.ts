@@ -9,6 +9,7 @@ import { priceOrderLines } from "@/lib/data/pricing";
 import {
   createSeedDatabase,
   emptyDatabase,
+  applyDemoPhotos,
   ensureRetailDemo,
   type DemoDatabase,
   type DemoMembership,
@@ -764,7 +765,12 @@ export class DemoStore implements CommerceRepository {
       if (parsed.version !== 1) {
         throw new DataError("Demo baza ima nepoznatu verziju.", "validation");
       }
-      const changed = this.options.seed !== false && ensureRetailDemo(parsed);
+      let changed = false;
+      if (this.options.seed !== false) {
+        const retail = ensureRetailDemo(parsed);
+        const photos = applyDemoPhotos(parsed);
+        changed = retail || photos;
+      }
       const db = normalizeDatabase(parsed);
       if (changed) await this.persist(db);
       return db;
