@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Gastro Supply">
-  <rect width="64" height="64" rx="14" fill="#1e1b4b"/>
-  <rect x="14" y="16" width="22" height="16" rx="2" fill="none" stroke="#ffffff" stroke-width="2"/>
-  <rect x="28" y="28" width="22" height="16" rx="2" fill="#312e81" stroke="#ffffff" stroke-width="2"/>
-  <text x="32" y="56" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="0.8">GS</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Pult">
+  <rect width="64" height="64" rx="14" fill="#14532d"/>
+  <path d="M18 28.5 32 20l14 8.5V46L32 54.5 18 46V28.5z" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M18 28.5 32 37l14-8.5M32 37v17.5" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/>
 </svg>

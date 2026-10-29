@@ -33,7 +33,9 @@ export default async function LoginPage({
 }
 
 function accountHref(nextPath: string) {
-  if (/^\/(?:s|shop)\/[^/]+$/.test(nextPath)) return `${nextPath}/nalog`;
+  const path = nextPath.split("?")[0] ?? "";
+  const query = nextPath.includes("?") ? nextPath.slice(nextPath.indexOf("?")) : "";
+  if (/^\/(?:s|shop)\/[^/]+$/.test(path)) return `${path}/nalog${query}`;
   return "/signup";
 }
 

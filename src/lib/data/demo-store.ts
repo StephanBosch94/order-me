@@ -11,6 +11,7 @@ import {
   createSeedDatabase,
   emptyDatabase,
   applyDemoPhotos,
+  applyDemoGalleries,
   ensureRetailDemo,
   type DemoDatabase,
   type DemoMembership,
@@ -791,7 +792,8 @@ export class DemoStore implements CommerceRepository {
       if (this.options.seed !== false) {
         const retail = ensureRetailDemo(parsed);
         const photos = applyDemoPhotos(parsed);
-        changed = retail || photos;
+        const galleries = applyDemoGalleries(parsed);
+        changed = retail || photos || galleries;
       }
       const db = normalizeDatabase(parsed);
       if (changed) await this.persist(db);

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { StoreAccountLinks } from "@/components/shop/account-links";
 import { statusLabel } from "@/lib/constants";
 import type { BuyerAccount, BuyerOrder } from "@/lib/data/types";
 import { formatDateTime, formatRsd } from "@/lib/format";
@@ -28,9 +29,9 @@ export function BusinessAccount({
         <p className="mt-1 text-sm text-muted-foreground">
           Sa nalogom vidite statistiku, svoje porudžbine i možete da naručite isto kao prošli put.
         </p>
-        <Link href={`/shop/${slug}/nalog?za=firme`} className="mt-3 inline-flex text-sm font-medium underline-offset-2 hover:underline">
-          Otvorite nalog
-        </Link>
+        <div className="mt-3">
+          <StoreAccountLinks slug={slug} showAccount={showAccount} business />
+        </div>
       </section>
     );
   }

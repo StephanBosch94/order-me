@@ -25,6 +25,7 @@ export function buyerDestination(nextPath: string) {
 export function landingPath(account: SessionAccount, nextPath: string) {
   if (account.kind === "buyer") return buyerDestination(nextPath);
   if (nextPath === "/kupac" || nextPath.startsWith("/kupac?")) return "/dashboard";
+  if (nextPath.startsWith("/shop/") || nextPath.startsWith("/s/")) return "/dashboard";
   return nextPath;
 }
 

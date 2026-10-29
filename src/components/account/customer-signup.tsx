@@ -29,7 +29,7 @@ export function CustomerSignup({ catalog, business = false }: { catalog: PublicC
       </div>
       <p className="mt-6 text-sm text-muted-foreground">
         Već imate nalog?{" "}
-        <Link href={`/login?next=${back}`} className="font-medium text-foreground underline-offset-2 hover:underline">
+        <Link href={`/login?next=${encodeURIComponent(back)}`} className="font-medium text-foreground underline-offset-2 hover:underline">
           Prijavite se
         </Link>
       </p>

@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
+import { StoreAccountLinks } from "@/components/shop/account-links";
 import { AudienceSwitch } from "@/components/shop/audience-switch";
 import { BuyerKindChoice, PaymentMethodChoice, type BuyerKind } from "@/components/shop/checkout-kind";
 import { placeOrderAction, placeShopOrderAction } from "@/lib/actions/orders";
 import { supplierTheme } from "@/lib/color";
-import { DEMO_SLUGS, quantityStep } from "@/lib/constants";
+import { DEMO_SLUGS, productPath, quantityStep } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
 import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
 import { formatRsd } from "@/lib/format";
@@ -87,15 +88,7 @@ export function Shop({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {buyer ? (
-              <Link href="/kupac" className="text-sm font-medium underline-offset-2 hover:underline">
-                Moj nalog
-              </Link>
-            ) : showAccount ? (
-              <Link href={`/shop/${catalog.supplier.slug}/nalog`} className="text-sm font-medium underline-offset-2 hover:underline">
-                Otvorite nalog
-              </Link>
-            ) : null}
+            <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} />
             <Button variant="secondary" onClick={() => setStep(step === "browse" ? "cart" : "browse")}>
               <ShoppingBag className="size-4" aria-hidden="true" />
               Korpa
@@ -139,7 +132,7 @@ export function Shop({
                 </h2>
                 <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {offers.map((product) => (
-                    <ProductCard key={product.id} product={product} onAdd={() => add(product)} />
+                    <ProductCard key={product.id} product={product} href={productPath(catalog.supplier.slug, product.id)} onAdd={() => add(product)} />
                   ))}
                 </ul>
               </section>
@@ -153,7 +146,7 @@ export function Shop({
                 {offers.length > 0 ? <h2 className="mb-3 text-lg font-semibold">Svi proizvodi</h2> : null}
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {products.map((product) => (
-                    <ProductCard key={product.id} product={product} onAdd={() => add(product)} />
+                    <ProductCard key={product.id} product={product} href={productPath(catalog.supplier.slug, product.id)} onAdd={() => add(product)} />
                   ))}
                 </ul>
               </section>
@@ -429,21 +422,23 @@ function Field({
   );
 }
 
-function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
+function ProductCard({ product, href, onAdd }: { product: Product; href: string; onAdd: () => void }) {
   const sale = salePricePara(product);
   const photos = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : [];
   return (
     <li className="flex flex-col overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-black/5">
       <div className="relative">
-        <ProductPhotos photos={photos} name={product.name} />
+        <ProductPhotos photos={photos} name={product.name} href={href} />
         {sale ? (
-          <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+          <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
             Akcija
           </span>
         ) : null}
       </div>
       <div className="flex flex-1 flex-col p-4">
-      <h3 className="text-sm font-semibold">{product.name}</h3>
+      <h3 className="text-sm font-semibold">
+        <Link href={href} className="hover:underline">{product.name}</Link>
+      </h3>
       {product.description ? <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{product.description}</p> : null}
       <div className="mt-auto flex items-center justify-between gap-3 pt-4">
         <div>
@@ -460,7 +455,7 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
   );
 }
 
-function ProductPhotos({ photos, name }: { photos: string[]; name: string }) {
+function ProductPhotos({ photos, name, href }: { photos: string[]; name: string; href: string }) {
   const [index, setIndex] = useState(0);
   const current = photos[index] ?? null;
   const many = photos.length > 1;
@@ -469,7 +464,9 @@ function ProductPhotos({ photos, name }: { photos: string[]; name: string }) {
   }
   return (
     <div className="relative">
-      <ProductImage src={current} alt={name} className="aspect-[3/2] h-auto w-full rounded-none border-0" />
+      <Link href={href} className="block">
+        <ProductImage src={current} alt={name} className="aspect-[3/2] h-auto w-full rounded-none border-0" />
+      </Link>
       {many ? (
         <>
           <button

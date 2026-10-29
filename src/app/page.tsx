@@ -130,12 +130,12 @@ export default function HomePage() {
           <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-sm text-[#425466]">Pogledajte demo pre registracije</p>
             <div className="flex flex-wrap gap-x-8 gap-y-2 text-lg font-semibold tracking-tight">
-              <Link href="/shop/butik-vera" className="hover:text-[#635bff]">
+              <DemoStoreLink href="/shop/butik-vera" className="hover:text-[#635bff]">
                 Butik Vera
-              </Link>
-              <Link href="/shop/gastro-supply" className="hover:text-[#635bff]">
-                Gastro Supply
-              </Link>
+              </DemoStoreLink>
+              <DemoStoreLink href="/shop/gastro-supply" className="hover:text-[#635bff]">
+                Pult
+              </DemoStoreLink>
             </div>
           </div>
         </section>
@@ -147,12 +147,12 @@ export default function HomePage() {
           <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {gallery.map((item) => (
               <li key={item.name}>
-                <Link href={item.href} className="group block">
+                <DemoStoreLink href={item.href} className="group block">
                   <span className="block overflow-hidden rounded-xl border border-[#e6ebf1]">
                     <img src={item.src} alt="" className="aspect-[3/4] w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
                   </span>
                   <span className="mt-2 block text-sm font-medium">{item.name}</span>
-                </Link>
+                </DemoStoreLink>
               </li>
             ))}
           </ul>
@@ -173,9 +173,9 @@ export default function HomePage() {
                 <Link href="/signup" className={primaryButton}>
                   Otvorite prodavnicu
                 </Link>
-                <Link href="/shop/butik-vera" className={secondaryButton}>
+                <DemoStoreLink href="/shop/butik-vera" className={secondaryButton}>
                   Pogledajte Butik Vera
-                </Link>
+                </DemoStoreLink>
               </div>
             </div>
           </div>
@@ -195,9 +195,9 @@ export default function HomePage() {
                 <Link href="/signup" className={primaryButton}>
                   Otvorite prodavnicu
                 </Link>
-                <Link href="/shop/gastro-supply" className={secondaryButton}>
-                  Pogledajte Gastro Supply
-                </Link>
+                <DemoStoreLink href="/shop/gastro-supply" className={secondaryButton}>
+                  Pogledajte Pult
+                </DemoStoreLink>
               </div>
               <p className="mt-4 text-sm leading-6 text-[#425466]">
                 Firma koja kod vas redovno poručuje može da{" "}
@@ -269,8 +269,8 @@ export default function HomePage() {
           <Logo />
           <FooterColumn title="Prodavnica">
             <FooterLink href="/signup">Otvorite prodavnicu</FooterLink>
-            <FooterLink href="/shop/butik-vera">Butik Vera</FooterLink>
-            <FooterLink href="/shop/gastro-supply">Gastro Supply</FooterLink>
+            <FooterLink href="/shop/butik-vera" newTab>Butik Vera</FooterLink>
+            <FooterLink href="/shop/gastro-supply" newTab>Pult</FooterLink>
           </FooterColumn>
           <FooterColumn title="Kupci">
             <FooterLink href="/signup/kupac">Nalog pravnog lica</FooterLink>
@@ -340,10 +340,20 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
   );
 }
 
-function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+function DemoStoreLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="text-sm text-[#425466] hover:text-[#635bff]">
+    <Link href={href} target="_blank" rel="noreferrer" className={className}>
       {children}
+      <span className="sr-only">, otvara se u novom tabu</span>
+    </Link>
+  );
+}
+
+function FooterLink({ href, children, newTab = false }: { href: string; children: React.ReactNode; newTab?: boolean }) {
+  return (
+    <Link href={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noreferrer" : undefined} className="text-sm text-[#425466] hover:text-[#635bff]">
+      {children}
+      {newTab ? <span className="sr-only">, otvara se u novom tabu</span> : null}
     </Link>
   );
 }

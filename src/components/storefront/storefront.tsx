@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
+import { StoreAccountLinks } from "@/components/shop/account-links";
 import { BusinessAccount } from "@/components/shop/business-account";
 import { AudienceSwitch } from "@/components/shop/audience-switch";
 import { BuyerKindChoice, PaymentMethodChoice, type BuyerKind } from "@/components/shop/checkout-kind";
 import { placeOrderAction, placeShopOrderAction } from "@/lib/actions/orders";
-import { DEMO_SLUGS, quantityStep, unitLabel } from "@/lib/constants";
+import { DEMO_SLUGS, productPath, quantityStep, unitLabel } from "@/lib/constants";
 import type { BuyerAccount, BuyerOrder, Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
@@ -149,15 +150,7 @@ export function Storefront({
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            {buyer ? (
-              <Link href="/kupac" className="text-sm font-medium underline-offset-2 hover:underline">
-                Moj nalog
-              </Link>
-            ) : showAccount ? (
-              <Link href={`/shop/${catalog.supplier.slug}/nalog?za=firme`} className="text-sm font-medium underline-offset-2 hover:underline">
-                Otvorite nalog
-              </Link>
-            ) : null}
+            <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} business />
             <p className="hidden max-w-xs text-right text-sm text-muted-foreground sm:block">
               Pronađite proizvode, unesite količine i pošaljite porudžbinu.
             </p>
@@ -170,7 +163,7 @@ export function Storefront({
           <img src="/marketing/kuhinja.jpg" alt="" className="size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
           <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
-            Ambalaža, higijena i roba za kuhinju.
+            Čaše, kutije, folija i sredstva za kuhinju.
           </p>
         </div>
       ) : null}
@@ -224,9 +217,15 @@ export function Storefront({
                   <li key={product.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-3">
-                        <ProductImage src={product.imageUrl} className="size-20 rounded-xl" />
+                        <Link href={productPath(catalog.supplier.slug, product.id, true)} className="shrink-0">
+                          <ProductImage src={product.imageUrl} alt={product.name} className="size-20 rounded-xl" />
+                        </Link>
                         <div>
-                          <p className="font-medium">{product.name}</p>
+                          <p className="font-medium">
+                            <Link href={productPath(catalog.supplier.slug, product.id, true)} className="hover:underline">
+                              {product.name}
+                            </Link>
+                          </p>
                           <p className="mt-0.5 text-sm text-muted-foreground">
                             {unitLabel(product.unit)}
                             {product.sku ? ` · ${product.sku}` : ""}

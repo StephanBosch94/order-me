@@ -91,7 +91,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
 
   const organization: Organization = {
     id: orgId,
-    name: "Gastro Supply",
+    name: "Pult",
     slug: "gastro-supply",
     email: "porudzbine@gastrosupply.rs",
     notificationEmail: "porudzbine@gastrosupply.rs",
@@ -104,7 +104,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     brandColor: "#14532d",
     channel: "b2b",
     audience: "pravna",
-    orderPrefix: "GS",
+    orderPrefix: "PU",
     nextOrderNumber: 1001,
     active: true,
     createdAt: ago(120),
@@ -262,7 +262,9 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     },
   ];
 
-  const products: Product[] = productDefs.map((product) => ({
+  const products: Product[] = productDefs.map((product) => {
+    const gallery = galleryFor(product.sku, `/products/${product.sku}.jpg`);
+    return {
     id: randomUUID(),
     organizationId: orgId,
     categoryId: categoryId(product.category),
@@ -272,13 +274,14 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     unit: product.unit,
     pricePara: product.pricePara,
     salePricePara: null,
-    imageUrl: `/products/${product.sku}.jpg`,
-    imageUrls: [`/products/${product.sku}.jpg`],
+    imageUrl: gallery[0] ?? null,
+    imageUrls: gallery,
     active: true,
     minQuantity: product.minQuantity,
     createdAt: ago(80),
     updatedAt: ago(4),
-  }));
+    };
+  });
 
   const bySku = (sku: string) => products.find((product) => product.sku === sku)!;
 
@@ -569,6 +572,51 @@ const DEMO_PRODUCT_PHOTOS: Record<string, string> = {
   "BV-MIN": "/products/bv-mindjuse.jpg",
 };
 
+const DEMO_GALLERIES: Record<string, string[]> = {
+  "BV-KAPUT": ["/products/bv-kaput.jpg", "/products/bv-kaput-2.jpg", "/products/bv-kaput-3.jpg"],
+  "BV-HALJ": ["/products/bv-haljina.jpg", "/products/bv-haljina-2.jpg", "/products/bv-haljina-3.jpg"],
+  "BV-KOS": ["/products/bv-kosulja.jpg", "/products/bv-kosulja-2.jpg", "/products/bv-kosulja-3.jpg"],
+  "BV-MAJ": ["/products/bv-majica.jpg", "/products/bv-majica-2.jpg", "/products/bv-majica-3.jpg"],
+  "BV-JAK": ["/products/bv-jakna.jpg", "/products/bv-jakna-2.jpg", "/products/bv-jakna-3.jpg"],
+  "BV-MIN": ["/products/bv-mindjuse.jpg", "/products/bv-mindjuse-2.jpg", "/products/bv-mindjuse-3.jpg"],
+  "PC-025": ["/products/PC-025.jpg", "/products/pc-025-2.jpg", "/products/pc-025-3.jpg"],
+  "PC-040": ["/products/PC-040.jpg", "/products/pc-040-2.jpg", "/products/pc-040-3.jpg"],
+  "KB-4030": ["/products/KB-4030.jpg", "/products/kb-4030-2.jpg", "/products/kb-4030-3.jpg"],
+  "AF-50": ["/products/AF-50.jpg", "/products/af-50-2.jpg", "/products/af-50-3.jpg"],
+  "KF-1KG": ["/products/KF-1KG.jpg", "/products/kf-1kg-2.jpg", "/products/kf-1kg-3.jpg"],
+  "SV-3333": ["/products/SV-3333.jpg", "/products/sv-3333-2.jpg", "/products/sv-3333-3.jpg"],
+  "PK-CAP": ["/products/PK-CAP.jpg", "/products/pk-cap-2.jpg"],
+  "KS-RUC": ["/products/KS-RUC.jpg", "/products/ks-ruc-2.jpg"],
+  "PF-300": ["/products/PF-300.jpg", "/products/pf-300-2.jpg"],
+  "UB-2SL": ["/products/UB-2SL.jpg", "/products/ub-2sl-2.jpg"],
+  "OD-5L": ["/products/OD-5L.jpg", "/products/od-5l-2.jpg"],
+  "TS-1L": ["/products/TS-1L.jpg", "/products/ts-1l-2.jpg"],
+  "RK-NIT": ["/products/RK-NIT.jpg", "/products/rk-nit-2.jpg"],
+  "SC-1KG": ["/products/SC-1KG.jpg", "/products/sc-1kg-2.jpg"],
+};
+
+function galleryFor(sku: string, fallback: string) {
+  return DEMO_GALLERIES[sku] ?? [fallback];
+}
+
+export function applyDemoGalleries(db: DemoDatabase) {
+  let changed = false;
+  for (const product of db.products) {
+    const gallery = DEMO_GALLERIES[product.sku];
+    if (!gallery) continue;
+    const current = product.imageUrls ?? [];
+    const same =
+      product.imageUrl === gallery[0] &&
+      current.length === gallery.length &&
+      gallery.every((url, index) => current[index] === url);
+    if (same) continue;
+    product.imageUrl = gallery[0];
+    product.imageUrls = [...gallery];
+    changed = true;
+  }
+  return changed;
+}
+
 export function applyDemoPhotos(db: DemoDatabase) {
   let changed = false;
   for (const product of db.products) {
@@ -593,16 +641,6 @@ function backfillBoutiqueSales(db: DemoDatabase, organizationId: string) {
     if (product.salePricePara === undefined) {
       product.salePricePara = null;
       changed = true;
-    }
-    if (product.sku === "BV-JAK") {
-      const cover = "/products/bv-jakna.jpg";
-      const extra = "/marketing/butik.jpg";
-      const urls = product.imageUrls?.length ? [...product.imageUrls] : product.imageUrl ? [product.imageUrl] : [];
-      if (urls[0] === cover && !urls.includes(extra)) {
-        product.imageUrl = cover;
-        product.imageUrls = [...urls, extra];
-        changed = true;
-      }
     }
   }
   return changed;
@@ -657,7 +695,7 @@ function boutiqueCatalog(organizationId: string, now: string) {
     pricePara,
     salePricePara,
     imageUrl,
-    imageUrls: imageUrl === "/products/bv-jakna.jpg" ? ["/products/bv-jakna.jpg", "/marketing/butik.jpg"] : [imageUrl],
+    imageUrls: galleryFor(sku, imageUrl),
     active: true,
     minQuantity: 1,
     createdAt: now,
@@ -674,7 +712,18 @@ function boutiqueCatalog(organizationId: string, now: string) {
   return { categories: [clothing, jewelry], items };
 }
 
+function renameSupplyHouse(db: DemoDatabase) {
+  const organization = db.organizations.find((item) => item.slug === "gastro-supply");
+  if (!organization || organization.name !== "Gastro Supply") return false;
+  organization.name = "Pult";
+  organization.logoUrl = "/suppliers/gastro-supply.svg";
+  organization.orderPrefix = "PU";
+  organization.updatedAt = new Date().toISOString();
+  return true;
+}
+
 export function ensureRetailDemo(db: DemoDatabase) {
+  const renamed = renameSupplyHouse(db);
   const legacy = db.organizations.find((organization) => organization.slug === "kafa-kutak");
   if (legacy) {
     const now = new Date().toISOString();
@@ -687,7 +736,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
     return true;
   }
   const existing = db.organizations.find((organization) => organization.slug === BOUTIQUE_SLUG);
-  if (existing) return backfillBoutiqueSales(db, existing.id);
+  if (existing) return backfillBoutiqueSales(db, existing.id) || renamed;
   const now = new Date().toISOString();
   const organization: Organization = {
     id: randomUUID(),

@@ -103,6 +103,11 @@ export function businessPath(slug: string) {
   return `/shop/${slug}?za=firme`;
 }
 
+export function productPath(slug: string, productId: string, business = false) {
+  const path = `/shop/${slug}/proizvod/${productId}`;
+  return business ? `${path}?za=firme` : path;
+}
+
 export function quantityStep(unit: Unit) {
   return unit === "kilogram" || unit === "litar" ? 0.5 : 1;
 }
