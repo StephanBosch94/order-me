@@ -100,12 +100,12 @@ export function Shop({
           </div>
         </div>
       </header>
-      {catalog.supplier.slug === "kafa-kutak" ? (
+      {catalog.supplier.slug === "butik-vera" ? (
         <div className="relative h-56 overflow-hidden sm:h-72">
-          <img src="/marketing/kafic.jpg" alt="" className="size-full object-cover" />
+          <img src="/marketing/butik.jpg" alt="" className="size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
           <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
-            Kafa, šećer i stvari za sto.
+            Odeća i nakit za svaki dan.
           </p>
         </div>
       ) : null}

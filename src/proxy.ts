@@ -4,6 +4,8 @@ const protectedRoots = ["/dashboard", "/orders", "/products", "/customers", "/se
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // Catalog photos live under /products/*.jpg and must stay public.
+  if (/\.[a-z0-9]+$/i.test(pathname)) return NextResponse.next();
   const isProtected = protectedRoots.some(
     (root) => pathname === root || pathname.startsWith(`${root}/`),
   );

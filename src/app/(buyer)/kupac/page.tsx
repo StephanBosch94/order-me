@@ -45,7 +45,7 @@ export default async function BuyerHomePage({
           <Input
             name="slug"
             aria-label="Adresa stranice"
-            placeholder="kafa-kutak"
+            placeholder="butik-vera"
             className="h-10 min-w-0 flex-1"
             required
           />

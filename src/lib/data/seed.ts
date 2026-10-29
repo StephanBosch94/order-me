@@ -536,9 +536,11 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
   return database;
 }
 
+const BOUTIQUE_SLUG = "butik-vera";
+
 const DEMO_SALE_PRICES: Record<string, number> = {
-  "KK-KAFA": 69000,
-  "KK-CASA": 49000,
+  "BV-KAPUT": 1_990_000,
+  "BV-HALJ": 990_000,
 };
 
 const DEMO_PRODUCT_PHOTOS: Record<string, string> = {
@@ -556,10 +558,12 @@ const DEMO_PRODUCT_PHOTOS: Record<string, string> = {
   "RK-NIT": "/products/RK-NIT.jpg",
   "SC-1KG": "/products/SC-1KG.jpg",
   "KF-1KG": "/products/KF-1KG.jpg",
-  "KK-KAFA": "/products/kk-kafa.jpg",
-  "KK-SECER": "/products/kk-secer.jpg",
-  "KK-CASA": "/products/kk-casa.jpg",
-  "KK-SALV": "/products/kk-salvete.jpg",
+  "BV-KAPUT": "/products/bv-kaput.jpg",
+  "BV-HALJ": "/products/bv-haljina.jpg",
+  "BV-KOS": "/products/bv-kosulja.jpg",
+  "BV-MAJ": "/products/bv-majica.jpg",
+  "BV-JAK": "/products/bv-jakna.jpg",
+  "BV-MIN": "/products/bv-mindjuse.jpg",
 };
 
 export function applyDemoPhotos(db: DemoDatabase) {
@@ -573,7 +577,7 @@ export function applyDemoPhotos(db: DemoDatabase) {
   return changed;
 }
 
-function backfillKafaSales(db: DemoDatabase, organizationId: string) {
+function backfillBoutiqueSales(db: DemoDatabase, organizationId: string) {
   let changed = false;
   for (const product of db.products) {
     if (product.organizationId !== organizationId) continue;
@@ -591,113 +595,108 @@ function backfillKafaSales(db: DemoDatabase, organizationId: string) {
   return changed;
 }
 
+function fillBoutique(organization: Organization, now: string) {
+  organization.name = "Butik Vera";
+  organization.slug = BOUTIQUE_SLUG;
+  organization.email = "prodavnica@butikvera.rs";
+  organization.notificationEmail = "prodavnica@butikvera.rs";
+  organization.phone = "+381 11 555 0188";
+  organization.address = "Gospodar Jevremova 28";
+  organization.city = "Beograd";
+  organization.brandColor = "#6b2d3c";
+  organization.orderPrefix = "BV";
+  organization.updatedAt = now;
+}
+
+function boutiqueCatalog(organizationId: string, now: string) {
+  const clothing: Category = {
+    id: randomUUID(),
+    organizationId,
+    name: "Odeća",
+    sortOrder: 1,
+    createdAt: now,
+  };
+  const jewelry: Category = {
+    id: randomUUID(),
+    organizationId,
+    name: "Nakit",
+    sortOrder: 2,
+    createdAt: now,
+  };
+  const piece = (
+    categoryId: string,
+    name: string,
+    sku: string,
+    description: string,
+    pricePara: number,
+    salePricePara: number | null,
+    imageUrl: string,
+  ): Product => ({
+    id: randomUUID(),
+    organizationId,
+    categoryId,
+    name,
+    sku,
+    description,
+    unit: "komad",
+    pricePara,
+    salePricePara,
+    imageUrl,
+    active: true,
+    minQuantity: 1,
+    createdAt: now,
+    updatedAt: now,
+  });
+  const items: Product[] = [
+    piece(clothing.id, "Kaput", "BV-KAPUT", "Vuneni kaput, kamel boja, sa kaišem.", 2_490_000, 1_990_000, "/products/bv-kaput.jpg"),
+    piece(clothing.id, "Crvena haljina", "BV-HALJ", "Duga haljina za izlazak.", 1_290_000, 990_000, "/products/bv-haljina.jpg"),
+    piece(clothing.id, "Bela košulja", "BV-KOS", "Pamuk, klasičan kroj.", 590_000, null, "/products/bv-kosulja.jpg"),
+    piece(clothing.id, "Bela majica", "BV-MAJ", "Pamuk, okrugli izrez.", 290_000, null, "/products/bv-majica.jpg"),
+    piece(clothing.id, "Jakna", "BV-JAK", "Lagana jakna, više boja.", 1_490_000, null, "/products/bv-jakna.jpg"),
+    piece(jewelry.id, "Minđuše", "BV-MIN", "Viseće minđuše sa plavim kamenom.", 450_000, null, "/products/bv-mindjuse.jpg"),
+  ];
+  return { categories: [clothing, jewelry], items };
+}
+
 export function ensureRetailDemo(db: DemoDatabase) {
-  const existing = db.organizations.find((organization) => organization.slug === "kafa-kutak");
-  if (existing) return backfillKafaSales(db, existing.id);
+  const legacy = db.organizations.find((organization) => organization.slug === "kafa-kutak");
+  if (legacy) {
+    const now = new Date().toISOString();
+    fillBoutique(legacy, now);
+    db.categories = db.categories.filter((category) => category.organizationId !== legacy.id);
+    db.products = db.products.filter((product) => product.organizationId !== legacy.id);
+    const catalog = boutiqueCatalog(legacy.id, now);
+    db.categories.push(...catalog.categories);
+    db.products.push(...catalog.items);
+    return true;
+  }
+  const existing = db.organizations.find((organization) => organization.slug === BOUTIQUE_SLUG);
+  if (existing) return backfillBoutiqueSales(db, existing.id);
   const now = new Date().toISOString();
-  const orgId = randomUUID();
   const organization: Organization = {
-    id: orgId,
-    name: "Kafa Kutak",
-    slug: "kafa-kutak",
-    email: "prodavnica@kafakutak.rs",
-    notificationEmail: "prodavnica@kafakutak.rs",
-    phone: "+381 11 555 0190",
-    address: "Knez Mihailova 12",
-    city: "Beograd",
+    id: randomUUID(),
+    name: "Butik Vera",
+    slug: BOUTIQUE_SLUG,
+    email: "",
+    notificationEmail: "",
+    phone: "",
+    address: "",
+    city: "",
     pib: "",
     mb: "",
     logoUrl: null,
-    brandColor: "#78350f",
+    brandColor: null,
     channel: "b2c",
-    orderPrefix: "KK",
+    orderPrefix: "BV",
     nextOrderNumber: 1001,
     active: true,
     createdAt: now,
     updatedAt: now,
   };
-  const drinks: Category = {
-    id: randomUUID(),
-    organizationId: orgId,
-    name: "Kafa",
-    sortOrder: 1,
-    createdAt: now,
-  };
-  const home: Category = {
-    id: randomUUID(),
-    organizationId: orgId,
-    name: "Za kuću",
-    sortOrder: 2,
-    createdAt: now,
-  };
-  const items: Product[] = [
-    {
-      id: randomUUID(),
-      organizationId: orgId,
-      categoryId: drinks.id,
-      name: "Kafa mlevena 250 g",
-      sku: "KK-KAFA",
-      description: "Sveže mlevena kafa za džezvu i filter.",
-      unit: "komad",
-      pricePara: 89000,
-      salePricePara: 69000,
-      imageUrl: "/products/kk-kafa.jpg",
-      active: true,
-      minQuantity: 1,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: randomUUID(),
-      organizationId: orgId,
-      categoryId: drinks.id,
-      name: "Šećer 500 g",
-      sku: "KK-SECER",
-      description: "Beli šećer u kesici.",
-      unit: "komad",
-      pricePara: 22000,
-      salePricePara: null,
-      imageUrl: "/products/kk-secer.jpg",
-      active: true,
-      minQuantity: 1,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: randomUUID(),
-      organizationId: orgId,
-      categoryId: home.id,
-      name: "Čaša za kafu",
-      sku: "KK-CASA",
-      description: "Keramička čaša, jedna komad.",
-      unit: "komad",
-      pricePara: 69000,
-      salePricePara: 49000,
-      imageUrl: "/products/kk-casa.jpg",
-      active: true,
-      minQuantity: 1,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: randomUUID(),
-      organizationId: orgId,
-      categoryId: home.id,
-      name: "Salvete 50 komada",
-      sku: "KK-SALV",
-      description: "Malo pakovanje salveta za sto.",
-      unit: "komad",
-      pricePara: 32000,
-      salePricePara: null,
-      imageUrl: "/products/kk-salvete.jpg",
-      active: true,
-      minQuantity: 1,
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
+  fillBoutique(organization, now);
+  const catalog = boutiqueCatalog(organization.id, now);
   db.organizations.push(organization);
-  db.categories.push(drinks, home);
-  db.products.push(...items);
+  db.categories.push(...catalog.categories);
+  db.products.push(...catalog.items);
   return true;
 }

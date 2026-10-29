@@ -29,7 +29,7 @@ export const UNIT_ALIASES: Record<string, Unit> = {
   l: "litar",
 };
 
-export const DEMO_SLUGS = new Set(["kafa-kutak", "gastro-supply"]);
+export const DEMO_SLUGS = new Set(["butik-vera", "gastro-supply"]);
 
 export const RESERVED_SLUGS = new Set([
   "login",
