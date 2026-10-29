@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { getSession, requireSession } from "@/lib/auth";
-import { sellsToBusinesses, sellsToConsumers } from "@/lib/constants";
+import { sellsToBusinesses } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import type { OrderStatus } from "@/lib/data/types";
 import { deliverOrderEmails } from "@/lib/email/order";
@@ -85,9 +85,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
   }
 
   const catalog = await getCommerce().getPublicCatalog(parsed.data.slug);
-  if (!catalog || !sellsToConsumers(catalog.supplier.audience)) {
-    return { ok: false, message: "Ova prodavnica prima porudžbine pravnih lica." };
-  }
+  if (!catalog) return { ok: false, message: "Prodavnica nije pronađena." };
 
   const headerStore = await headers();
   const forwarded = headerStore.get("x-forwarded-for");

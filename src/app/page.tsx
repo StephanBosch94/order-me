@@ -16,7 +16,7 @@ const gallery = [
 export const metadata: Metadata = {
   title: { absolute: "Prodora" },
   description:
-    "Manje telefonskih poziva za firme. U prodavnici, manje poruka „imate li ovu?“.",
+    "Kupac vidi katalog i poručuje. Manje poziva i poruka „imate li ovu?“.",
 };
 
 const sharedBenefits = [
@@ -46,26 +46,26 @@ const shopBenefits = [
   "Kupac može da otvori nalog i da vidi svoje kupovine.",
 ];
 
-const businessBenefits = [
+const catalogBenefits = [
   "Cenovnik ima jedinicu mere i minimalnu količinu.",
-  "Firma ostavlja naziv, kontakt, telefon i PIB.",
-  "Pravno lice vidi statistiku, svoje porudžbine i može da naruči isto kao prošli put.",
+  "Kupac ostavlja ime, telefon, email i adresu isporuke.",
+  "Sa nalogom vidi svoje porudžbine.",
   "Vi menjate status, a kupac dobija potvrdu i PDF.",
-  "Link šaljete restoranima, kafićima i prodavnicama koje već snabdevate.",
+  "Link šaljete kupcima koje već snabdevate.",
 ];
 
 const steps = [
   {
-    title: "Izaberite kome prodajete",
-    body: "Fizičkim licima, pravnim licima, ili i jednim i drugima. To kasnije menjate u podešavanjima.",
+    title: "Otvorite prodavnicu",
+    body: "Naziv, telefon i adresa. To kupci vide na stranici.",
   },
   {
     title: "Dodajte katalog",
-    body: "Naziv, cena i slika. Za pravna lica tu su i jedinica i minimalna količina. Cenu uvek računa server.",
+    body: "Naziv, cena, slika, jedinica i količina. Cenu uvek računa server.",
   },
   {
     title: "Pošaljite link",
-    body: "Prodavnica je na /shop/vaš-naziv. Ako prodajete i pravnim licima, na istoj adresi biraju kako kupuju.",
+    body: "Prodavnica je na /shop/vaš-naziv. Isti link šaljete svim kupcima.",
   },
   {
     title: "Obradite porudžbinu",
@@ -80,8 +80,8 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Logo />
           <nav className="hidden items-center gap-1 md:flex" aria-label="Sadržaj stranice">
-            <Anchor href="#fizicka">Fizička lica</Anchor>
-            <Anchor href="#pravna">Pravna lica</Anchor>
+            <Anchor href="#prodavnica">Prodavnica</Anchor>
+            <Anchor href="#katalog">Katalog</Anchor>
             <Anchor href="#koristi">Koristi</Anchor>
             <Anchor href="#kako">Kako radi</Anchor>
           </nav>
@@ -108,8 +108,8 @@ export default function HomePage() {
                 Manje telefonskih poziva. U prodavnici, manje „imate li ovu?“.
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-[#425466]">
-                Firma sama unosi količine, umesto da zove. Kupac u prodavnici vidi sliku i cenu, umesto da pita
-                u poruci. Obe porudžbine stižu u vaš pregled.
+                Kupac vidi sliku, cenu i količinu, pa sam poručuje. Porudžbina stiže u vaš pregled, umesto
+                poziva ili poruke.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButtonLg}>
@@ -158,11 +158,11 @@ export default function HomePage() {
           </ul>
         </section>
 
-        <section id="fizicka" className="scroll-mt-20 border-t border-[#e6ebf1]">
+        <section id="prodavnica" className="scroll-mt-20 border-t border-[#e6ebf1]">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2">
             <img src="/products/bv-haljina.jpg" alt="Crvena haljina" className="aspect-[4/3] w-full rounded-2xl border border-[#e6ebf1] object-cover" />
             <div>
-              <p className="text-sm font-medium text-[#635bff]">Fizička lica</p>
+              <p className="text-sm font-medium text-[#635bff]">Prodavnica</p>
               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-balance">Manje „imate li ovu?“</h2>
               <p className="mt-4 text-base leading-7 text-[#425466]">
                 Kupac vidi haljinu, kaput ili minđuše, cenu i sliku, pa sam stavlja u korpu i ostavlja adresu.
@@ -181,16 +181,15 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="pravna" className="scroll-mt-20 border-t border-[#e6ebf1] bg-[#f6f9fc]">
+        <section id="katalog" className="scroll-mt-20 border-t border-[#e6ebf1] bg-[#f6f9fc]">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2">
             <div className="lg:order-1">
-              <p className="text-sm font-medium text-[#635bff]">Pravna lica</p>
+              <p className="text-sm font-medium text-[#635bff]">Katalog</p>
               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-balance">Manje telefonskih poziva</h2>
               <p className="mt-4 text-base leading-7 text-[#425466]">
-                Umesto poziva, firma sama unosi količine. Sa nalogom vidi statistiku, svoje porudžbine i može
-                da naruči isto kao prošli put.
+                Umesto poziva, kupac sam unosi količine. Sa nalogom vidi svoje porudžbine.
               </p>
-              <BenefitList items={businessBenefits} />
+              <BenefitList items={catalogBenefits} />
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButton}>
                   Otvorite prodavnicu
@@ -200,9 +199,9 @@ export default function HomePage() {
                 </DemoStoreLink>
               </div>
               <p className="mt-4 text-sm leading-6 text-[#425466]">
-                Firma koja kod vas redovno poručuje može da{" "}
+                Kupac može da{" "}
                 <Link href="/signup/kupac" className="font-medium text-[#635bff] hover:underline">
-                  otvori nalog kupca
+                  otvori nalog
                 </Link>{" "}
                 i da vidi svoje porudžbine.
               </p>
@@ -215,7 +214,7 @@ export default function HomePage() {
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <h2 className="max-w-2xl text-4xl font-semibold tracking-[-0.03em]">Šta dobijate</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#425466]">
-              Katalog, status porudžbine, cene u dinarima i potvrda u PDF-u. Kome prodajete birate vi.
+              Katalog, status porudžbine, cene u dinarima i potvrda u PDF-u.
             </p>
             <dl className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-[#e6ebf1] bg-[#e6ebf1] sm:grid-cols-2">
               {sharedBenefits.map((benefit) => (
@@ -248,7 +247,7 @@ export default function HomePage() {
             <div>
               <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-balance">Otvorite prodavnicu</h2>
               <p className="mt-4 max-w-xl text-base leading-7 text-[#425466]">
-                Pri otvaranju birate kome prodajete. Demo možete da pogledate pre registracije.
+                Demo možete da pogledate pre registracije.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -273,7 +272,7 @@ export default function HomePage() {
             <FooterLink href="/shop/gastro-supply" newTab>Pult</FooterLink>
           </FooterColumn>
           <FooterColumn title="Kupci">
-            <FooterLink href="/signup/kupac">Nalog pravnog lica</FooterLink>
+            <FooterLink href="/signup/kupac">Nalog kupca</FooterLink>
           </FooterColumn>
           <FooterColumn title="Nalog">
             <FooterLink href="/login">Prijava</FooterLink>

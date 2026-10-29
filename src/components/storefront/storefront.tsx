@@ -142,7 +142,7 @@ export function Storefront({
           <div className="flex min-w-0 items-center gap-3">
             <SupplierLogo name={catalog.supplier.name} logoUrl={catalog.supplier.logoUrl} className="size-12" />
             <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">Prodavnica · pravna lica</p>
+            <p className="text-xs font-medium text-muted-foreground">Internet prodavnica</p>
             <h1 className="truncate text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
             <p className="text-sm text-muted-foreground">
               {[catalog.supplier.city, catalog.supplier.phone].filter(Boolean).join(" · ")}
@@ -150,7 +150,7 @@ export function Storefront({
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} business />
+            <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} />
             <p className="hidden max-w-xs text-right text-sm text-muted-foreground sm:block">
               Pronađite proizvode, unesite količine i pošaljite porudžbinu.
             </p>

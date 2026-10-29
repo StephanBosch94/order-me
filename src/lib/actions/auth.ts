@@ -74,7 +74,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           name: formData.get("name"),
           email: formData.get("email"),
           password: formData.get("password"),
-          audience: formData.get("audience") === "pravna" || formData.get("audience") === "oba" ? formData.get("audience") : "fizicka",
+          audience: "oba",
           organizationName: formData.get("organizationName"),
           phone: formData.get("phone") ?? "",
         },

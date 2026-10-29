@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Shop } from "@/components/shop/shop";
-import { Storefront } from "@/components/storefront/storefront";
 import { getSession } from "@/lib/auth";
-import { shopMode } from "@/lib/constants";
+import { isCompanyBuyer } from "@/lib/buyer";
 import { getCommerce } from "@/lib/data";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -18,7 +17,7 @@ export default async function ShopPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ za?: string; ponovi?: string }>;
+  searchParams: Promise<{ ponovi?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
@@ -26,31 +25,18 @@ export default async function ShopPage({
   if (!catalog) notFound();
   const session = await getSession();
   const buyer = session?.kind === "buyer" ? session : null;
-  const mode = shopMode(catalog.supplier.audience, query.za);
-  const showSwitch = catalog.supplier.audience === "oba";
-
-  if (mode === "pravna") {
-    const history = buyer
-      ? (await getCommerce().listBuyerOrders(buyer.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
-      : [];
-    return (
-      <Storefront
-        catalog={catalog}
-        buyer={buyer}
-        showAccount={session?.kind !== "supplier"}
-        showSwitch={showSwitch}
-        orders={history}
-        repeatOrderId={query.ponovi}
-      />
-    );
-  }
+  const company = buyer && isCompanyBuyer(buyer) ? buyer : null;
+  const orders = company
+    ? (await getCommerce().listBuyerOrders(company.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
+    : [];
 
   return (
     <Shop
       catalog={catalog}
       buyer={buyer}
       showAccount={session?.kind !== "supplier"}
-      showSwitch={showSwitch}
+      orders={orders}
+      repeatOrderId={query.ponovi}
     />
   );
 }

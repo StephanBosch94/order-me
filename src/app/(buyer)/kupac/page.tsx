@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/fields";
 import { requireBuyerSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
-import { businessPath, sellsToBusinesses } from "@/lib/constants";
+import { storePath } from "@/lib/constants";
 import { formatDateTime, formatRsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Kupac" };
@@ -102,8 +102,8 @@ export default async function BuyerHomePage({
                   <div className="flex items-center gap-3">
                     <StatusBadge status={order.status} />
                     <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
-                    {sellsToBusinesses(order.supplierAudience) ? (
-                      <Link href={`${businessPath(order.supplierSlug)}&ponovi=${order.id}`} className="text-sm font-medium text-primary hover:underline">
+                    {order.supplierSlug ? (
+                      <Link href={`${storePath(order.supplierSlug)}?ponovi=${order.id}`} className="text-sm font-medium text-primary hover:underline">
                         Naruči isto
                       </Link>
                     ) : null}

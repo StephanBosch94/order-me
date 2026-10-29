@@ -7,7 +7,7 @@ import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { getSession, landingPath } from "@/lib/auth";
 import { isDemoMode } from "@/lib/config";
-import { businessPath, shopMode, storePath } from "@/lib/constants";
+import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { safeNextPath } from "@/lib/text";
 
@@ -47,7 +47,6 @@ export type AuthStore = {
   name: string;
   logoUrl: string | null;
   href: string;
-  caption: string;
 };
 
 export async function storeFromPath(nextPath: string): Promise<AuthStore | null> {
@@ -57,13 +56,10 @@ export async function storeFromPath(nextPath: string): Promise<AuthStore | null>
   if (!slug) return null;
   const catalog = await getCommerce().getPublicCatalog(slug);
   if (!catalog) return null;
-  const za = new URLSearchParams(nextPath.split("?")[1] ?? "").get("za") ?? undefined;
-  const business = shopMode(catalog.supplier.audience, za) === "pravna";
   return {
     name: catalog.supplier.name,
     logoUrl: catalog.supplier.logoUrl,
-    href: business ? businessPath(catalog.supplier.slug) : storePath(catalog.supplier.slug),
-    caption: business ? "Pravno lice" : "Fizičko lice",
+    href: storePath(catalog.supplier.slug),
   };
 }
 
@@ -86,10 +82,7 @@ export function AuthShell({
       {store ? (
         <Link href={store.href} className="mt-6 flex w-fit items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <SupplierLogo name={store.name} logoUrl={store.logoUrl} className="size-12" />
-          <span className="min-w-0">
-            <span className="block text-xs font-medium text-muted-foreground">{store.caption}</span>
-            <span className="block truncate text-lg font-semibold tracking-tight">{store.name}</span>
-          </span>
+          <span className="truncate text-lg font-semibold tracking-tight">{store.name}</span>
         </Link>
       ) : (
         <Link href="/" aria-label="Prodora, početna" className="mt-6 w-fit rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">

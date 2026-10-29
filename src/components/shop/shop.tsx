@@ -3,16 +3,17 @@
 import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { StoreAccountLinks } from "@/components/shop/account-links";
-import { AudienceSwitch } from "@/components/shop/audience-switch";
-import { BuyerKindChoice, PaymentMethodChoice, type BuyerKind } from "@/components/shop/checkout-kind";
-import { placeOrderAction, placeShopOrderAction } from "@/lib/actions/orders";
+import { BusinessAccount } from "@/components/shop/business-account";
+import { PaymentMethodChoice } from "@/components/shop/checkout-kind";
+import { placeShopOrderAction } from "@/lib/actions/orders";
+import { isCompanyBuyer } from "@/lib/buyer";
 import { supplierTheme } from "@/lib/color";
 import { DEMO_SLUGS, productPath, quantityStep } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
-import type { BuyerAccount, Product, PublicCatalog } from "@/lib/data/types";
+import type { BuyerAccount, BuyerOrder, Product, PublicCatalog } from "@/lib/data/types";
 import { formatRsd } from "@/lib/format";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { ProductImage } from "@/components/catalog/product-image";
@@ -25,12 +26,14 @@ export function Shop({
   catalog,
   buyer,
   showAccount = true,
-  showSwitch = false,
+  orders = [],
+  repeatOrderId,
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
   showAccount?: boolean;
-  showSwitch?: boolean;
+  orders?: BuyerOrder[];
+  repeatOrderId?: string;
 }) {
   const router = useRouter();
   const storageKey = `poruci-shop:${catalog.supplier.slug}`;
@@ -67,6 +70,31 @@ export function Shop({
     setQuantity(product, next);
   }
 
+  function repeatOrder(items: BuyerOrder["items"]) {
+    const next: Record<string, number> = {};
+    for (const item of items) {
+      if (!item.productId) continue;
+      const product = catalog.products.find((entry) => entry.id === item.productId);
+      if (!product) continue;
+      next[product.id] = Math.max(product.minQuantity, item.quantity);
+    }
+    localStorage.setItem(storageKey, JSON.stringify(next));
+    window.dispatchEvent(new Event("poruci-cart"));
+    setStep("cart");
+  }
+
+  useEffect(() => {
+    if (!repeatOrderId) return;
+    const order = orders.find((entry) => entry.id === repeatOrderId);
+    if (!order) return;
+    const key = `poruci-repeat:${repeatOrderId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    repeatOrder(order.items);
+    // The repeat link should fill the cart once when the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repeatOrderId]);
+
   return (
     <div className="min-h-dvh bg-background pb-24" style={supplierTheme(catalog.supplier.brandColor)}>
       {DEMO_SLUGS.has(catalog.supplier.slug) ? (
@@ -97,7 +125,6 @@ export function Shop({
           </div>
         </div>
       </header>
-      {showSwitch ? <AudienceSwitch slug={catalog.supplier.slug} mode="fizicka" /> : null}
       {catalog.supplier.slug === "butik-vera" ? (
         <div className="relative h-56 overflow-hidden sm:h-72">
           <img src="/marketing/butik.jpg" alt="" className="size-full object-cover" />
@@ -109,6 +136,17 @@ export function Shop({
       ) : null}
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        {step === "browse" && buyer && isCompanyBuyer(buyer) ? (
+          <div className="mb-6">
+            <BusinessAccount
+              slug={catalog.supplier.slug}
+              buyer={buyer}
+              orders={orders}
+              onRepeat={repeatOrder}
+              showAccount={showAccount}
+            />
+          </div>
+        ) : null}
         {step === "browse" ? (
           <>
             <div className="flex gap-2 overflow-x-auto pb-1" role="toolbar" aria-label="Kategorije">
@@ -168,7 +206,6 @@ export function Shop({
           <Checkout
             slug={catalog.supplier.slug}
             buyer={buyer}
-            chooseKind={showSwitch}
             lines={lines}
             total={total}
             idempotencyStorage={idempotencyStorage}
@@ -264,7 +301,6 @@ function Cart({
 function Checkout({
   slug,
   buyer,
-  chooseKind,
   lines,
   total,
   idempotencyStorage,
@@ -273,7 +309,6 @@ function Checkout({
 }: {
   slug: string;
   buyer?: BuyerAccount | null;
-  chooseKind: boolean;
   lines: { product: Product; quantity: number }[];
   total: number;
   idempotencyStorage: string;
@@ -284,51 +319,26 @@ function Checkout({
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [honeypot, setHoneypot] = useState("");
-  const [kind, setKind] = useState<BuyerKind | "">(chooseKind ? "" : "fizicka");
-
-  function selectKind(next: BuyerKind) {
-    setKind(next);
-    setErrors({});
-    setMessage("");
-  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
-    if (kind !== "fizicka" && kind !== "pravna") {
-      setErrors({ kind: "Izaberite da li kupujete kao fizičko ili pravno lice." });
-      return;
-    }
     const form = new FormData(event.currentTarget);
     setPending(true);
     setMessage("");
-    const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
-    const shared = {
+    const result = await placeShopOrderAction({
       slug,
       idempotencyKey: readIdempotencyKey(idempotencyStorage),
+      customerName: form.get("customerName"),
       email: form.get("email"),
       phone: form.get("phone"),
-      address: form.get("address") ?? "",
-      city: form.get("city") ?? "",
+      address: form.get("address"),
+      city: form.get("city"),
       notes: form.get("notes") ?? "",
+      paymentMethod: form.get("paymentMethod"),
       honeypot,
-      items,
-    };
-    const result =
-      kind === "pravna"
-        ? await placeOrderAction({
-            ...shared,
-            businessName: form.get("businessName"),
-            contactName: form.get("contactName"),
-            pib: form.get("pib") ?? "",
-          })
-        : await placeShopOrderAction({
-            ...shared,
-            customerName: form.get("customerName"),
-            address: form.get("address"),
-            city: form.get("city"),
-            paymentMethod: form.get("paymentMethod"),
-          });
+      items: lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
+    });
     setPending(false);
     if (!result.ok || !result.token) {
       setMessage(result.message ?? "Kupovina nije poslata.");
@@ -353,45 +363,25 @@ function Checkout({
           {message}
         </p>
       ) : null}
-      {chooseKind ? <BuyerKindChoice value={kind} error={errors.kind} onChange={selectKind} /> : null}
-      {kind === "fizicka" ? (
-        <div key="fizicka" className="space-y-4">
-          <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} defaultValue={buyer?.name} />
-          <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={buyer?.email} />
-          <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={buyer?.phone} />
-          <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} />
-          <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} />
-          <PaymentMethodChoice error={errors.paymentMethod} />
-        </div>
-      ) : null}
-      {kind === "pravna" ? (
-        <div key="pravna" className="space-y-4">
-          <Field name="businessName" label="Naziv firme" autoComplete="organization" error={errors.businessName} defaultValue={buyer?.businessName} />
-          <Field name="contactName" label="Kontakt osoba" autoComplete="name" error={errors.contactName} defaultValue={buyer?.name} />
-          <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={buyer?.email} />
-          <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={buyer?.phone} />
-          <Field name="pib" label="PIB" error={errors.pib} defaultValue={buyer?.pib} />
-          <Field name="address" label="Adresa isporuke" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} required={false} />
-          <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} required={false} />
-        </div>
-      ) : null}
-      {kind ? (
-        <>
-          <div>
-            <Label htmlFor="notes">Napomena</Label>
-            <Textarea id="notes" name="notes" className="mt-1.5" />
-          </div>
-          <div className="absolute -left-[9999px] h-0 overflow-hidden" aria-hidden="true">
-            <label>
-              Website
-              <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
-            </label>
-          </div>
-          <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "Slanje…" : kind === "pravna" ? "Potvrdi porudžbinu" : "Potvrdi kupovinu"}
-          </Button>
-        </>
-      ) : null}
+      <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} defaultValue={buyer?.name} />
+      <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={buyer?.email} />
+      <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={buyer?.phone} />
+      <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} />
+      <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} />
+      <PaymentMethodChoice error={errors.paymentMethod} />
+      <div>
+        <Label htmlFor="notes">Napomena</Label>
+        <Textarea id="notes" name="notes" className="mt-1.5" />
+      </div>
+      <div className="absolute -left-[9999px] h-0 overflow-hidden" aria-hidden="true">
+        <label>
+          Website
+          <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
+        </label>
+      </div>
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? "Slanje…" : "Potvrdi kupovinu"}
+      </Button>
     </form>
   );
 }

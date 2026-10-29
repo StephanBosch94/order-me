@@ -35,19 +35,11 @@ test("a new shop keeps the unfinished steps open and shows saved values", () => 
 
   assert.equal(byId.name?.done, true);
   assert.equal(byId.name?.detail, "Nova radnja");
-  assert.equal(byId.audience?.done, true);
-  assert.equal(byId.audience?.detail, "I jednim i drugima");
   assert.equal(byId.phone?.done, false);
   assert.equal(byId.phone?.detail, "123");
   assert.equal(byId.address?.done, false);
-  assert.equal(byId.pib?.done, false);
   assert.equal(byId.product?.done, false);
   assert.equal(setupReady(steps), false);
-});
-
-test("a shop for people does not ask for PIB", () => {
-  const steps = storeSetup(organization({ audience: "fizicka", channel: "b2c" }), 0);
-  assert.equal(steps.some((step) => step.id === "pib"), false);
 });
 
 test("the guide is finished when the store can take orders", () => {

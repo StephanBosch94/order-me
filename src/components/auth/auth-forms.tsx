@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 
-import { AUDIENCES } from "@/lib/constants";
 import { loginAction, signupAction, type AuthState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
@@ -40,13 +39,11 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
 export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "buyer-shop"; nextPath?: string }) {
   const [state, action, pending] = useActionState(signupAction, initial);
   const supplier = mode === "supplier";
-  const person = mode === "buyer-shop";
 
   return (
     <form action={action} className="space-y-4">
       {state.error ? <Alert message={state.error} /> : null}
       <input type="hidden" name="kind" value={supplier ? "supplier" : "buyer"} />
-      {person ? <input type="hidden" name="profile" value="osoba" /> : null}
       {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
       <Field name="name" label="Ime i prezime" autoComplete="name" error={state.fieldErrors?.name} />
       <Field name="email" label="Email" type="email" autoComplete="email" error={state.fieldErrors?.email} />
@@ -55,43 +52,15 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
         <>
           <Field name="organizationName" label="Naziv prodavnice" error={state.fieldErrors?.organizationName} />
           <p className="text-sm text-muted-foreground">Adresa stranice pravi se od naziva. Možete je promeniti u podešavanjima.</p>
-          <fieldset>
-            <legend className="text-sm font-medium">Kome prodajete</legend>
-            <div className="mt-2 space-y-2">
-              {AUDIENCES.map((item) => (
-                <label key={item.value} className="flex items-start gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="audience"
-                    value={item.value}
-                    defaultChecked={item.value === "oba"}
-                    required
-                    className="mt-0.5 size-4 accent-primary"
-                  />
-                  <span>
-                    <span className="font-medium">{item.label}</span>
-                    <span className="mt-0.5 block text-muted-foreground">{item.hint}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-            <FieldError message={state.fieldErrors?.audience} />
-          </fieldset>
           <Field name="phone" label="Telefon" autoComplete="tel" required={false} error={state.fieldErrors?.phone} />
-        </>
-      ) : person ? (
-        <>
-          <Field name="phone" label="Telefon" autoComplete="tel" error={state.fieldErrors?.phone} />
-          <Field name="address" label="Adresa" autoComplete="street-address" required={false} error={state.fieldErrors?.address} />
-          <Field name="city" label="Grad" autoComplete="address-level2" required={false} error={state.fieldErrors?.city} />
         </>
       ) : (
         <>
-          <Field name="businessName" label="Naziv firme" error={state.fieldErrors?.businessName} />
+          <Field name="businessName" label="Naziv firme" autoComplete="organization" error={state.fieldErrors?.businessName} />
           <Field name="phone" label="Telefon" autoComplete="tel" error={state.fieldErrors?.phone} />
-          <Field name="city" label="Grad" autoComplete="address-level2" required={false} error={state.fieldErrors?.city} />
           <Field name="address" label="Adresa" autoComplete="street-address" required={false} error={state.fieldErrors?.address} />
-          <Field name="pib" label="PIB" required={false} error={state.fieldErrors?.pib} />
+          <Field name="city" label="Grad" autoComplete="address-level2" required={false} error={state.fieldErrors?.city} />
+          <Field name="pib" label="PIB" error={state.fieldErrors?.pib} />
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>

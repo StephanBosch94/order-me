@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSession } from "@/lib/auth";
-import { sellsToConsumers, storePath } from "@/lib/constants";
+import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import { parseProductCsv } from "@/lib/csv";
@@ -48,34 +48,24 @@ export async function saveProductAction(formData: FormData): Promise<FormState &
   try {
     const productId = text(formData, "id");
     const existing = productId ? await getCommerce().getProduct(session.organization.id, productId) : null;
-    const shop = sellsToConsumers(session.organization.audience);
     let imageUrl: string | null | undefined;
     let imageUrls: string[] | undefined;
-    if (shop) {
-      const owned = new Set(existing?.imageUrls ?? []);
-      const dropped = new Set(formData.getAll("dropImage").filter((value): value is string => typeof value === "string"));
-      const kept = formData.getAll("keepImage").filter(
-        (value): value is string => typeof value === "string" && owned.has(value) && !dropped.has(value),
-      );
-      const files = formData.getAll("images").filter((value): value is File => value instanceof File && value.size > 0);
-      if (kept.length + files.length > MAX_PRODUCT_IMAGES) {
-        return { error: "Proizvod može imati najviše 6 slika." };
-      }
-      const uploaded: string[] = [];
-      for (const file of files) {
-        const stored = await storeImage(session.organization.id, file);
-        if (stored) uploaded.push(stored);
-      }
-      imageUrls = [...kept, ...uploaded];
-      imageUrl = imageUrls[0] ?? null;
-    } else {
-      const image = formData.get("image");
-      if (formData.get("removeImage") === "on") imageUrl = null;
-      if (image instanceof File && image.size > 0) {
-        imageUrl = await storeImage(session.organization.id, image);
-      }
-      if (imageUrl !== undefined) imageUrls = imageUrl ? [imageUrl] : [];
+    const owned = new Set(existing?.imageUrls ?? []);
+    const dropped = new Set(formData.getAll("dropImage").filter((value): value is string => typeof value === "string"));
+    const kept = formData.getAll("keepImage").filter(
+      (value): value is string => typeof value === "string" && owned.has(value) && !dropped.has(value),
+    );
+    const files = formData.getAll("images").filter((value): value is File => value instanceof File && value.size > 0);
+    if (kept.length + files.length > MAX_PRODUCT_IMAGES) {
+      return { error: "Proizvod može imati najviše 6 slika." };
     }
+    const uploaded: string[] = [];
+    for (const file of files) {
+      const stored = await storeImage(session.organization.id, file);
+      if (stored) uploaded.push(stored);
+    }
+    imageUrls = [...kept, ...uploaded];
+    imageUrl = imageUrls[0] ?? null;
     const input = toProductInput(parsed.data, imageUrl);
     if (imageUrls !== undefined) input.imageUrls = imageUrls;
     const product = productId
@@ -147,7 +137,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
     pib: text(formData, "pib"),
     mb: text(formData, "mb"),
     brandColor: text(formData, "brandColor"),
-    audience: text(formData, "audience"),
+    audience: session.organization.audience,
   });
   if (!parsed.success) {
     return {

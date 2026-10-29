@@ -1,8 +1,7 @@
-import { audienceLabel, sellsToBusinesses } from "@/lib/constants";
 import type { Organization } from "@/lib/data/types";
 
 export type SetupStep = {
-  id: "name" | "audience" | "phone" | "address" | "pib" | "product";
+  id: "name" | "phone" | "address" | "product";
   title: string;
   detail: string;
   href: string;
@@ -16,7 +15,6 @@ export function storeSetup(organization: SetupOrganization, activeProducts: numb
   const address = organization.address.trim();
   const city = organization.city.trim();
   const place = [address, city].filter(Boolean).join(", ");
-  const pib = organization.pib.trim();
   const steps: SetupStep[] = [
     {
       id: "name",
@@ -24,13 +22,6 @@ export function storeSetup(organization: SetupOrganization, activeProducts: numb
       detail: organization.name.trim() || "Unesite naziv koji kupci vide.",
       href: "/settings",
       done: organization.name.trim().length >= 2,
-    },
-    {
-      id: "audience",
-      title: "Kome prodajete",
-      detail: audienceLabel(organization.audience),
-      href: "/settings",
-      done: organization.audience === "fizicka" || organization.audience === "pravna" || organization.audience === "oba",
     },
     {
       id: "phone",
@@ -47,16 +38,6 @@ export function storeSetup(organization: SetupOrganization, activeProducts: numb
       done: address.length >= 3 && city.length >= 2,
     },
   ];
-
-  if (sellsToBusinesses(organization.audience)) {
-    steps.push({
-      id: "pib",
-      title: "PIB",
-      detail: pib || "Unesite 9 cifara. Stoji na potvrdi porudžbine.",
-      href: "/settings",
-      done: /^\d{9}$/.test(pib),
-    });
-  }
 
   steps.push({
     id: "product",

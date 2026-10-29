@@ -13,12 +13,12 @@ export default async function BuyerSignupPage() {
   if (session?.kind === "buyer") redirect("/kupac");
   if (session) redirect("/dashboard");
   return (
-    <AuthShell title="Nalog kupca" subtitle="Isti nalog otvarate i na stranici firme kod koje kupujete.">
+    <AuthShell title="Nalog kupca" subtitle="Firma vidi svoje porudžbine, statistiku i može da naruči isto kao prošli put.">
       <SignupForm mode="buyer" />
       <p className="mt-6 text-sm text-muted-foreground">
         Prodajete?{" "}
         <Link href="/signup" className="font-medium text-foreground underline-offset-2 hover:underline">
-          Izaberite prodavnicu ili poručivanje za firme
+          Otvorite prodavnicu
         </Link>
       </p>
     </AuthShell>

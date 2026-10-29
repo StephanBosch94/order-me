@@ -16,7 +16,7 @@ import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fiel
 export function ProductForm({
   product,
   categories,
-  shop = false,
+  shop = true,
 }: {
   product?: Product;
   categories: Category[];

@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
-import { businessPath, sellsToBusinesses, sellsToConsumers, storePath } from "@/lib/constants";
+import { storePath } from "@/lib/constants";
 import { setupReady, storeSetup } from "@/lib/setup";
 import { formatDateTime, formatLongDate, formatRsd } from "@/lib/format";
 
@@ -16,11 +16,8 @@ export const metadata: Metadata = { title: "Pregled" };
 export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getCommerce().getDashboard(session.organization.id);
-  const audience = session.organization.audience;
   const ready = setupReady(storeSetup(session.organization, data.activeProducts));
-  const publicPath = sellsToBusinesses(audience) && !sellsToConsumers(audience)
-    ? businessPath(session.organization.slug)
-    : storePath(session.organization.slug);
+  const publicPath = storePath(session.organization.slug);
 
   return (
     <div>

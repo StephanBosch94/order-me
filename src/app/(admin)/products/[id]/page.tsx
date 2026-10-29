@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { ProductForm } from "@/components/admin/product-form";
 import { PageHeader } from "@/components/admin/page-header";
-import { sellsToConsumers } from "@/lib/constants";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
 
@@ -20,7 +19,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   return (
     <div>
       <PageHeader title="Izmena proizvoda" description={product.name} />
-      <ProductForm product={product} categories={categories} shop={sellsToConsumers(session.organization.audience)} />
+      <ProductForm product={product} categories={categories} />
     </div>
   );
 }

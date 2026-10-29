@@ -1,18 +1,16 @@
 import Link from "next/link";
 
-import { businessPath, DEMO_SLUGS, storePath } from "@/lib/constants";
+import { DEMO_SLUGS, storePath } from "@/lib/constants";
 import type { BuyerAccount } from "@/lib/data/types";
 
 export function StoreAccountLinks({
   slug,
   buyer,
   showAccount = true,
-  business = false,
 }: {
   slug: string;
   buyer?: BuyerAccount | null;
   showAccount?: boolean;
-  business?: boolean;
 }) {
   if (buyer) {
     return (
@@ -23,8 +21,8 @@ export function StoreAccountLinks({
   }
   if (!showAccount) return null;
 
-  const back = business ? businessPath(slug) : storePath(slug);
-  const register = business ? `/shop/${slug}/nalog?za=firme` : `/shop/${slug}/nalog`;
+  const back = storePath(slug);
+  const register = `/shop/${slug}/nalog`;
   if (!DEMO_SLUGS.has(slug)) {
     return (
       <Link href={register} className="text-sm font-medium underline-offset-2 hover:underline">

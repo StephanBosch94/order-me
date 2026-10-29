@@ -40,10 +40,7 @@ export const signupSchema = z.discriminatedUnion("kind", [
     phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
     address: z.string().trim().max(200),
     city: z.string().trim().max(80),
-    pib: z
-      .string()
-      .trim()
-      .refine((value) => value === "" || /^\d{9}$/.test(value), "PIB ima 9 cifara."),
+    pib: z.string().trim().regex(/^\d{9}$/, "PIB ima 9 cifara."),
   }),
 ]);
 

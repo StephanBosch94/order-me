@@ -7,7 +7,7 @@ import { StoreAccountLinks } from "@/components/shop/account-links";
 import { ProductDetail } from "@/components/shop/product-detail";
 import { getSession } from "@/lib/auth";
 import { supplierTheme } from "@/lib/color";
-import { businessPath, DEMO_SLUGS, shopMode, storePath } from "@/lib/constants";
+import { DEMO_SLUGS, storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import type { Product } from "@/lib/data/types";
 
@@ -31,13 +31,10 @@ export async function generateMetadata({
 
 export default async function ProductPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string; id: string }>;
-  searchParams: Promise<{ za?: string }>;
 }) {
   const { slug, id } = await params;
-  const query = await searchParams;
   const catalog = await getCommerce().getPublicCatalog(slug);
   if (!catalog) notFound();
   const product = catalog.products.find((item) => item.id === id);
@@ -45,8 +42,7 @@ export default async function ProductPage({
 
   const session = await getSession();
   const buyer = session?.kind === "buyer" ? session : null;
-  const business = shopMode(catalog.supplier.audience, query.za) === "pravna";
-  const backHref = business ? businessPath(catalog.supplier.slug) : storePath(catalog.supplier.slug);
+  const backHref = storePath(catalog.supplier.slug);
   const category = catalog.categories.find((item) => item.id === product.categoryId);
 
   return (
@@ -70,7 +66,6 @@ export default async function ProductPage({
             slug={catalog.supplier.slug}
             buyer={buyer}
             showAccount={session?.kind !== "supplier"}
-            business={business}
           />
         </div>
       </header>
@@ -79,7 +74,7 @@ export default async function ProductPage({
         slug={catalog.supplier.slug}
         product={product}
         categoryName={category?.name ?? null}
-        business={business}
+        business={false}
         backHref={backHref}
         others={otherProducts(catalog.products, product)}
       />

@@ -6,5 +6,5 @@ export default async function LegacyAccountPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const catalog = await getCommerce().getPublicCatalog(slug);
   if (!catalog) notFound();
-  redirect(`/shop/${catalog.supplier.slug}/nalog?za=firme`);
+  redirect(`/shop/${catalog.supplier.slug}/nalog`);
 }

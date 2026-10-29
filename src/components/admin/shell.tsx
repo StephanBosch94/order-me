@@ -15,7 +15,6 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { SetupGuide } from "@/components/admin/setup-guide";
-import { audienceLabel } from "@/lib/constants";
 import { logoutAction } from "@/lib/actions/auth";
 import type { AccountContext } from "@/lib/data/types";
 import type { SetupStep } from "@/lib/setup";
@@ -109,7 +108,7 @@ export function AdminShell({
                   <span className="truncate">{session.organization.name}</span>
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  Prodavnica · {audienceLabel(session.organization.audience).toLowerCase()}
+                  Prodavnica
                 </p>
               </div>
             </div>

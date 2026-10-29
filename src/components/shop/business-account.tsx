@@ -25,12 +25,12 @@ export function BusinessAccount({
   if (!buyer) {
     return (
       <section className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">Nalog pravnog lica</h2>
+        <h2 className="text-sm font-semibold">Nalog kupca</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sa nalogom vidite statistiku, svoje porudžbine i možete da naručite isto kao prošli put.
+          Sa nalogom vidite svoje porudžbine i možete da naručite isto kao prošli put.
         </p>
         <div className="mt-3">
-          <StoreAccountLinks slug={slug} showAccount={showAccount} business />
+          <StoreAccountLinks slug={slug} showAccount={showAccount} />
         </div>
       </section>
     );

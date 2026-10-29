@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { supplierTheme } from "@/lib/color";
-import { businessPath, paymentLabel, sellsToBusinesses, storePath, unitLabel } from "@/lib/constants";
+import { paymentLabel, storePath, unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
 
@@ -71,7 +71,7 @@ export default async function ConfirmationPage({
           Preuzmi potvrdu
         </a>
         <Link
-          href={sellsToBusinesses(supplier.audience) && !order.paymentMethod ? businessPath(supplier.slug) : storePath(supplier.slug)}
+          href={storePath(supplier.slug)}
           className="inline-flex h-11 items-center rounded-md border border-border bg-card px-4 text-sm font-medium"
         >
           Nazad u prodavnicu
