@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test src/lib/format.test.ts src/lib/csv.test.ts src/lib/data/pricing.test.ts src/lib/data/demo-store.test.ts"
+    "test": "node --import tsx --test src/lib/format.test.ts src/lib/csv.test.ts src/lib/setup.test.ts src/lib/data/pricing.test.ts src/lib/data/demo-store.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.2",

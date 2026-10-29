@@ -14,9 +14,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { SetupGuide } from "@/components/admin/setup-guide";
 import { audienceLabel } from "@/lib/constants";
 import { logoutAction } from "@/lib/actions/auth";
 import type { AccountContext } from "@/lib/data/types";
+import type { SetupStep } from "@/lib/setup";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
@@ -37,10 +39,12 @@ function isActive(pathname: string, href: string) {
 export function AdminShell({
   session,
   demo,
+  setup,
   children,
 }: {
   session: AccountContext;
   demo: boolean;
+  setup: SetupStep[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -142,7 +146,10 @@ export function AdminShell({
               </form>
             </div>
           ) : null}
-          <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+          <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+            <SetupGuide steps={setup} />
+            {children}
+          </main>
         </div>
       </div>
     </div>

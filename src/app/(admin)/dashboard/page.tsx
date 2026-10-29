@@ -7,7 +7,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
-import { audienceLabel, businessPath, sellsToBusinesses, sellsToConsumers, storePath } from "@/lib/constants";
+import { businessPath, sellsToBusinesses, sellsToConsumers, storePath } from "@/lib/constants";
+import { setupReady, storeSetup } from "@/lib/setup";
 import { formatDateTime, formatLongDate, formatRsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Pregled" };
@@ -16,6 +17,7 @@ export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getCommerce().getDashboard(session.organization.id);
   const audience = session.organization.audience;
+  const ready = setupReady(storeSetup(session.organization, data.activeProducts));
   const publicPath = sellsToBusinesses(audience) && !sellsToConsumers(audience)
     ? businessPath(session.organization.slug)
     : storePath(session.organization.slug);
@@ -37,19 +39,7 @@ export default async function DashboardPage() {
         }
       />
 
-      {!data.hasProducts ? (
-        <div className="mb-6">
-          <EmptyState
-            title="Dodajte prve proizvode"
-            body={`Prodavnica je spremna čim katalog ima bar jedan aktivan proizvod. Kome prodajete: ${audienceLabel(audience).toLowerCase()}.`}
-            action={
-              <Link href="/products/new">
-                <Button>Dodaj proizvod</Button>
-              </Link>
-            }
-          />
-        </div>
-      ) : !data.hasOrders ? (
+      {ready && !data.hasOrders ? (
         <div className="mb-6 rounded-lg border border-border bg-card px-4 py-4">
           <h2 className="text-sm font-semibold">Podelite stranicu kupcima</h2>
           <p className="mt-1 text-sm text-muted-foreground">
