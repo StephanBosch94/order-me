@@ -171,11 +171,11 @@ export const publicOrderSchema = z
         message: "Unesite ispravan broj telefona.",
       });
     }
-    if (value.pib && !/^\d{9}$/.test(value.pib)) {
+    if (!/^\d{9}$/.test(value.pib)) {
       ctx.addIssue({
         code: "custom",
         path: ["pib"],
-        message: "PIB ima 9 cifara.",
+        message: value.pib ? "PIB ima 9 cifara." : "Unesite PIB.",
       });
     }
     if (value.honeypot) {

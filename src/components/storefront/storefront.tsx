@@ -7,7 +7,8 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { BusinessAccount } from "@/components/shop/business-account";
 import { AudienceSwitch } from "@/components/shop/audience-switch";
-import { placeOrderAction } from "@/lib/actions/orders";
+import { BuyerKindChoice, PaymentMethodChoice, type BuyerKind } from "@/components/shop/checkout-kind";
+import { placeOrderAction, placeShopOrderAction } from "@/lib/actions/orders";
 import { DEMO_SLUGS, quantityStep, unitLabel } from "@/lib/constants";
 import type { BuyerAccount, BuyerOrder, Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
@@ -258,6 +259,7 @@ export function Storefront({
           <Checkout
             slug={catalog.supplier.slug}
             buyer={buyer}
+            chooseKind={showSwitch}
             lines={lines}
             total={total}
             idempotencyStorage={idempotencyStorage}
@@ -464,6 +466,7 @@ function CartSummary({
 function Checkout({
   slug,
   buyer,
+  chooseKind,
   lines,
   total,
   idempotencyStorage,
@@ -472,6 +475,7 @@ function Checkout({
 }: {
   slug: string;
   buyer?: BuyerAccount | null;
+  chooseKind: boolean;
   lines: { product: Product; quantity: number }[];
   total: number;
   idempotencyStorage: string;
@@ -482,28 +486,52 @@ function Checkout({
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [honeypot, setHoneypot] = useState("");
+  const [kind, setKind] = useState<BuyerKind | "">(chooseKind ? "" : "pravna");
+
+  function selectKind(next: BuyerKind) {
+    setKind(next);
+    setErrors({});
+    setMessage("");
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    if (kind !== "fizicka" && kind !== "pravna") {
+      setErrors({ kind: "Izaberite da li kupujete kao fizičko ili pravno lice." });
+      return;
+    }
     const idempotencyKey = readIdempotencyKey(idempotencyStorage);
     const form = new FormData(event.currentTarget);
     setPending(true);
     setMessage("");
-    const result = await placeOrderAction({
+    const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
+    const shared = {
       slug,
       idempotencyKey,
-      businessName: form.get("businessName"),
-      contactName: form.get("contactName"),
       email: form.get("email"),
       phone: form.get("phone"),
-      pib: form.get("pib") ?? "",
       address: form.get("address") ?? "",
       city: form.get("city") ?? "",
       notes: form.get("notes") ?? "",
       honeypot,
-      items: lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
-    });
+      items,
+    };
+    const result =
+      kind === "fizicka"
+        ? await placeShopOrderAction({
+            ...shared,
+            customerName: form.get("customerName"),
+            address: form.get("address"),
+            city: form.get("city"),
+            paymentMethod: form.get("paymentMethod"),
+          })
+        : await placeOrderAction({
+            ...shared,
+            businessName: form.get("businessName"),
+            contactName: form.get("contactName"),
+            pib: form.get("pib") ?? "",
+          });
     setPending(false);
     if (!result.ok || !result.token) {
       setMessage(result.message ?? "Porudžbina nije poslata.");
@@ -513,6 +541,8 @@ function Checkout({
     onSuccess(result.token);
   }
 
+  const who = kind === "fizicka" ? buyer?.name : kind === "pravna" ? buyer?.businessName : "";
+
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
       <div>
@@ -521,7 +551,7 @@ function Checkout({
         </button>
         <h2 className="mt-2 text-lg font-semibold">Podaci za porudžbinu</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {buyer ? `Prijavljeni ste kao ${buyer.businessName}. ` : null}
+          {buyer && who ? `Prijavljeni ste kao ${who}. ` : null}
           Ukupno {formatRsd(total)}. Cene važe u trenutku slanja.
         </p>
       </div>
@@ -530,30 +560,51 @@ function Checkout({
           {message}
         </p>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field name="businessName" label="Naziv firme" error={errors.businessName} required defaultValue={buyer?.businessName} />
-        <Field name="contactName" label="Kontakt osoba" error={errors.contactName} required defaultValue={buyer?.name} />
-        <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} required defaultValue={buyer?.email} />
-        <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} required defaultValue={buyer?.phone} />
-        <Field name="pib" label="PIB" error={errors.pib} defaultValue={buyer?.pib} />
-        <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} />
-        <div className="sm:col-span-2">
-          <Field name="address" label="Adresa isporuke" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} />
+      {chooseKind ? <BuyerKindChoice value={kind} error={errors.kind} onChange={selectKind} /> : null}
+      {kind === "pravna" ? (
+        <div key="pravna" className="grid gap-4 sm:grid-cols-2">
+          <Field name="businessName" label="Naziv firme" error={errors.businessName} required defaultValue={buyer?.businessName} />
+          <Field name="contactName" label="Kontakt osoba" error={errors.contactName} required defaultValue={buyer?.name} />
+          <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} required defaultValue={buyer?.email} />
+          <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} required defaultValue={buyer?.phone} />
+          <Field name="pib" label="PIB" error={errors.pib} required defaultValue={buyer?.pib} />
+          <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} />
+          <div className="sm:col-span-2">
+            <Field name="address" label="Adresa isporuke" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} />
+          </div>
         </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="notes">Napomena</Label>
-          <Textarea id="notes" name="notes" className="mt-1.5" placeholder="Vreme isporuke, ulaz, posebne napomene" />
+      ) : null}
+      {kind === "fizicka" ? (
+        <div key="fizicka" className="grid gap-4 sm:grid-cols-2">
+          <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} required defaultValue={buyer?.name} />
+          <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} required defaultValue={buyer?.email} />
+          <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} required defaultValue={buyer?.phone} />
+          <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} required defaultValue={buyer?.city} />
+          <div className="sm:col-span-2">
+            <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} required defaultValue={buyer?.address} />
+          </div>
+          <div className="sm:col-span-2">
+            <PaymentMethodChoice error={errors.paymentMethod} />
+          </div>
         </div>
-      </div>
-      <div className="absolute -left-[9999px] h-0 overflow-hidden" aria-hidden="true">
-        <label>
-          Website
-          <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
-        </label>
-      </div>
-      <Button type="submit" className="h-11 w-full sm:w-auto" disabled={pending}>
-        {pending ? "Slanje…" : "Potvrdi porudžbinu"}
-      </Button>
+      ) : null}
+      {kind ? (
+        <>
+          <div>
+            <Label htmlFor="notes">Napomena</Label>
+            <Textarea id="notes" name="notes" className="mt-1.5" placeholder="Vreme isporuke, ulaz, posebne napomene" />
+          </div>
+          <div className="absolute -left-[9999px] h-0 overflow-hidden" aria-hidden="true">
+            <label>
+              Website
+              <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
+            </label>
+          </div>
+          <Button type="submit" className="h-11 w-full sm:w-auto" disabled={pending}>
+            {pending ? "Slanje…" : kind === "pravna" ? "Potvrdi porudžbinu" : "Potvrdi kupovinu"}
+          </Button>
+        </>
+      ) : null}
     </form>
   );
 }
