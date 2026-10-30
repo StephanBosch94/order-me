@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import { belgradeYear } from "@/lib/format";
 import { hashPassword } from "@/lib/password";
@@ -43,8 +43,21 @@ export type DemoMembership = {
   createdAt: string;
 };
 
+/** Bump when demo IDs change so serverless copies of the seed are rebuilt. */
+export const SEED_GENERATION = 2;
+
+export function seedId(key: string) {
+  const hash = createHash("sha1").update(`prodora-seed:${key}`).digest();
+  const bytes = Buffer.from(hash.subarray(0, 16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x50;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export type DemoDatabase = {
   version: 1;
+  seedGeneration?: number;
   users: DemoUser[];
   sessions: DemoSession[];
   organizations: Organization[];
@@ -64,6 +77,7 @@ export const DEMO_PASSWORD = "poruci-demo";
 export function emptyDatabase(): DemoDatabase {
   return {
     version: 1,
+    seedGeneration: SEED_GENERATION,
     users: [],
     sessions: [],
     organizations: [],
@@ -85,8 +99,8 @@ function ago(days: number, hours = 0) {
 export async function createSeedDatabase(): Promise<DemoDatabase> {
   const now = new Date().toISOString();
   const year = belgradeYear(now);
-  const userId = randomUUID();
-  const orgId = randomUUID();
+  const userId = seedId("user:ana@gastrosupply.rs");
+  const orgId = seedId("org:gastro-supply");
   const passwordHash = await hashPassword(DEMO_PASSWORD);
 
   const organization: Organization = {
@@ -117,7 +131,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     ["Higijena", 3],
   ] as const;
   const categories: Category[] = categoryDefs.map(([name, sortOrder]) => ({
-    id: randomUUID(),
+    id: seedId(`category:gastro-supply:${name}`),
     organizationId: orgId,
     name,
     sortOrder,
@@ -265,7 +279,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
   const products: Product[] = productDefs.map((product) => {
     const gallery = galleryFor(product.sku, `/products/${product.sku}.jpg`);
     return {
-    id: randomUUID(),
+    id: seedId(`product:gastro-supply:${product.sku}`),
     organizationId: orgId,
     categoryId: categoryId(product.category),
     name: product.name,
@@ -325,7 +339,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
   ];
 
   const customers: Customer[] = customerDefs.map((customer) => ({
-    id: randomUUID(),
+    id: seedId(`customer:gastro-supply:${customer.email}`),
     organizationId: orgId,
     ...customer,
     notes: "",
@@ -352,7 +366,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       const product = bySku(sku);
       const lineTotalPara = Math.round(product.pricePara * quantity);
       return {
-        id: randomUUID(),
+        id: seedId(`item:${number}:${sku}`),
         orderId: "",
         organizationId: orgId,
         productId: product.id,
@@ -365,7 +379,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       } satisfies OrderItem;
     });
     const totalPara = items.reduce((sum, item) => sum + item.lineTotalPara, 0);
-    const orderId = randomUUID();
+    const orderId = seedId(`order:${number}`);
     for (const item of items) item.orderId = orderId;
     const order: Order = {
       id: orderId,
@@ -377,8 +391,8 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       notes: input.notes,
       subtotalPara: totalPara,
       totalPara,
-      idempotencyKey: randomUUID(),
-      confirmationToken: randomUUID(),
+      idempotencyKey: seedId(`idem:${number}`),
+      confirmationToken: seedId(`confirm:${number}`),
       paymentMethod: null,
       customerSnapshot: {
         businessName: customer.businessName,
@@ -397,7 +411,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     orders.push(order);
     orderItems.push(...items);
     statusHistory.push({
-      id: randomUUID(),
+      id: seedId(`status:${number}:nova`),
       orderId,
       organizationId: orgId,
       fromStatus: null,
@@ -407,7 +421,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     });
     if (input.status !== "nova") {
       statusHistory.push({
-        id: randomUUID(),
+        id: seedId(`status:${number}:${input.status}`),
         orderId,
         organizationId: orgId,
         fromStatus: "nova",
@@ -504,6 +518,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
 
   const database: DemoDatabase = {
     version: 1,
+    seedGeneration: SEED_GENERATION,
     users: [
       {
         id: userId,
@@ -523,7 +538,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     organizations: [organization],
     members: [
       {
-        id: randomUUID(),
+        id: seedId("member:gastro-supply:ana"),
         organizationId: orgId,
         userId,
         role: "owner",
@@ -663,14 +678,14 @@ function fillBoutique(organization: Organization, now: string) {
 
 function boutiqueCatalog(organizationId: string, now: string) {
   const clothing: Category = {
-    id: randomUUID(),
+    id: seedId("category:butik-vera:odeca"),
     organizationId,
     name: "Odeća",
     sortOrder: 1,
     createdAt: now,
   };
   const jewelry: Category = {
-    id: randomUUID(),
+    id: seedId("category:butik-vera:nakit"),
     organizationId,
     name: "Nakit",
     sortOrder: 2,
@@ -685,7 +700,7 @@ function boutiqueCatalog(organizationId: string, now: string) {
     salePricePara: number | null,
     imageUrl: string,
   ): Product => ({
-    id: randomUUID(),
+    id: seedId(`product:butik-vera:${sku}`),
     organizationId,
     categoryId,
     name,
@@ -739,7 +754,7 @@ export function ensureRetailDemo(db: DemoDatabase) {
   if (existing) return backfillBoutiqueSales(db, existing.id) || renamed;
   const now = new Date().toISOString();
   const organization: Organization = {
-    id: randomUUID(),
+    id: seedId("org:butik-vera"),
     name: "Butik Vera",
     slug: BOUTIQUE_SLUG,
     email: "",

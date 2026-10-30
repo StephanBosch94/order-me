@@ -10,6 +10,7 @@ import { priceOrderLines } from "@/lib/data/pricing";
 import {
   createSeedDatabase,
   emptyDatabase,
+  SEED_GENERATION,
   applyDemoPhotos,
   applyDemoGalleries,
   ensureRetailDemo,
@@ -787,6 +788,12 @@ export class DemoStore implements CommerceRepository {
       const parsed = JSON.parse(raw) as DemoDatabase;
       if (parsed.version !== 1) {
         throw new DataError("Demo baza ima nepoznatu verziju.", "validation");
+      }
+      const serverless = process.env.NETLIFY === "true" || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+      if (this.options.seed !== false && serverless && parsed.seedGeneration !== SEED_GENERATION) {
+        const db = await createSeedDatabase();
+        await this.persist(db);
+        return db;
       }
       let changed = false;
       if (this.options.seed !== false) {
