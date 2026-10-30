@@ -118,11 +118,9 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="lg:hidden">
-              <div className="h-48 overflow-hidden rounded-2xl">
-                <GradientField />
-              </div>
-            </div>
+            <DemoStoreLink href="/shop/butik-vera" className="block">
+              <ShopPreview />
+            </DemoStoreLink>
           </div>
         </section>
 
@@ -296,6 +294,24 @@ function Arrow() {
     <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true" fill="none">
       <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+function ShopPreview() {
+  return (
+    <div className="overflow-hidden rounded-2xl bg-white shadow-[0_30px_70px_rgba(50,50,93,0.16)] ring-1 ring-[#e6ebf1]">
+      <div className="flex items-center gap-2 border-b border-[#e6ebf1] bg-[#f6f9fc] px-4 py-2.5">
+        <span className="size-2.5 rounded-full bg-[#ff5f57]" aria-hidden="true" />
+        <span className="size-2.5 rounded-full bg-[#febc2e]" aria-hidden="true" />
+        <span className="size-2.5 rounded-full bg-[#28c840]" aria-hidden="true" />
+        <span className="ml-2 truncate text-xs text-[#425466]">Butik Vera</span>
+      </div>
+      <img
+        src="/marketing/butik-shop.jpg"
+        alt="Butik Vera: internet prodavnica sa haljinama, kaputom i cenama u dinarima"
+        className="aspect-[4/5] w-full object-cover object-top sm:aspect-[5/4] lg:aspect-auto lg:max-h-[560px]"
+      />
+    </div>
   );
 }
 
