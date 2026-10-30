@@ -1,13 +1,18 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Upload } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { updateSettingsAction, type FormState } from "@/lib/actions/catalog";
 import type { Organization } from "@/lib/data/types";
 import { slugify } from "@/lib/text";
+import { cn } from "@/lib/utils";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
+
+const LOGO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
 const initial: FormState = {};
 
@@ -40,22 +45,7 @@ export function SettingsForm({ organization }: { organization: Organization }) {
         </div>
         <Setting name="pib" label="PIB" defaultValue={organization.pib} error={state.fieldErrors?.pib} />
         <Setting name="mb" label="Matični broj" defaultValue={organization.mb} error={state.fieldErrors?.mb} />
-        <div className="sm:col-span-2">
-          <Label htmlFor="logo">Logotip</Label>
-          <div className="mt-2 flex items-center gap-3">
-            <SupplierLogo name={organization.name} logoUrl={organization.logoUrl} />
-            <div className="min-w-0 flex-1">
-              <Input id="logo" name="logo" type="file" accept="image/jpeg,image/png,image/webp" />
-              <p className="mt-1 text-xs text-muted-foreground">JPG, PNG ili WebP, do 2 MB. Prikazuje se kupcima na stranici za poručivanje.</p>
-            </div>
-          </div>
-          {organization.logoUrl ? (
-            <label className="mt-2 flex items-center gap-2 text-sm">
-              <input type="checkbox" name="removeLogo" className="size-4 accent-zinc-950" />
-              Uklonite logotip
-            </label>
-          ) : null}
-        </div>
+        <LogoField organization={organization} />
         <BrandColorSetting
           key={organization.brandColor ?? "none"}
           initial={organization.brandColor}
@@ -138,6 +128,112 @@ function BrandColorSetting({ initial, error }: { initial: string | null; error?:
         </label>
       ) : null}
       <FieldError message={error} />
+    </div>
+  );
+}
+
+function LogoField({ organization }: { organization: Organization }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<string | null>(null);
+  const [over, setOver] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [reject, setReject] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    };
+  }, []);
+
+  function showPreview(next: string | null) {
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = next;
+    setPreview(next);
+  }
+
+  function take(list: FileList | null) {
+    const file = list?.[0];
+    const input = inputRef.current;
+    if (!input || !file || file.size === 0) return;
+    if (!LOGO_TYPES.has(file.type) || file.size > LOGO_MAX_BYTES) {
+      input.value = "";
+      setFileName(null);
+      showPreview(null);
+      setReject(file.size > LOGO_MAX_BYTES ? "Slika može imati najviše 2 MB." : "Dozvoljeni formati slike su JPG, PNG i WebP.");
+      return;
+    }
+    if (input.files?.[0] !== file) {
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
+    }
+    setReject(null);
+    setFileName(file.name);
+    showPreview(URL.createObjectURL(file));
+  }
+
+  return (
+    <div className="sm:col-span-2">
+      <Label htmlFor="logo">Logotip</Label>
+      <label
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setOver(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={(event) => {
+          if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+          setOver(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setOver(false);
+          take(event.dataTransfer.files);
+        }}
+        className={cn(
+          "mt-2 flex cursor-pointer flex-col items-center rounded-lg border border-dashed border-border bg-card px-6 py-8 text-center transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25",
+          over && "border-primary bg-zinc-50",
+        )}
+      >
+        <input
+          ref={inputRef}
+          id="logo"
+          name="logo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          onChange={(event) => take(event.target.files)}
+        />
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt="" className="size-12 rounded-md border border-border bg-white object-contain" />
+        ) : organization.logoUrl ? (
+          <SupplierLogo name={organization.name} logoUrl={organization.logoUrl} className="size-12" />
+        ) : (
+          <span className="flex size-12 items-center justify-center rounded-md border border-border bg-zinc-50 text-muted-foreground">
+            <Upload className="size-5" aria-hidden="true" />
+          </span>
+        )}
+        <p className="mt-3 text-sm font-medium">{over ? "Pustite da dodate logotip" : "Prevucite logotip ovde"}</p>
+        <span className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "pointer-events-none mt-3")}>Izaberite fajl</span>
+        {fileName ? <p className="mt-2 max-w-full truncate text-sm">{fileName}</p> : null}
+        <p className="mt-2 text-xs text-muted-foreground">JPG, PNG ili WebP, do 2 MB. Prikazuje se kupcima na stranici za poručivanje.</p>
+        {reject ? (
+          <p role="alert" className="mt-2 text-sm text-destructive">
+            {reject}
+          </p>
+        ) : null}
+      </label>
+      {organization.logoUrl ? (
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input type="checkbox" name="removeLogo" className="size-4 accent-zinc-950" />
+          Uklonite logotip
+        </label>
+      ) : null}
     </div>
   );
 }
