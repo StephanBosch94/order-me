@@ -85,9 +85,9 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
           <Field name="phone" label="Telefon" autoComplete="tel" error={state.fieldErrors?.phone} />
           <Field name="address" label="Adresa" autoComplete="street-address" error={state.fieldErrors?.address} />
           <Field name="city" label="Grad" autoComplete="address-level2" error={state.fieldErrors?.city} />
+          <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={state.fieldErrors?.postalCode} />
           <Field name="pib" label="PIB" error={state.fieldErrors?.pib} />
           <Field name="mb" label="Matični broj" error={state.fieldErrors?.mb} />
-          <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={state.fieldErrors?.postalCode} />
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>

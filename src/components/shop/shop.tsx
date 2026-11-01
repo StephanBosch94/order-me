@@ -655,19 +655,19 @@ function AccountPanel({
           required={false}
         />
         <Field
-          name="postalCode"
-          label="Poštanski broj"
-          autoComplete="postal-code"
-          defaultValue={shown.postalCode}
-          error={state.fieldErrors?.postalCode}
-          required={false}
-        />
-        <Field
           name="city"
           label="Grad"
           autoComplete="address-level2"
           defaultValue={shown.city}
           error={state.fieldErrors?.city}
+          required={false}
+        />
+        <Field
+          name="postalCode"
+          label="Poštanski broj"
+          autoComplete="postal-code"
+          defaultValue={shown.postalCode}
+          error={state.fieldErrors?.postalCode}
           required={false}
         />
         <div className="flex gap-2">
@@ -810,7 +810,7 @@ export function Checkout({
     setNotes(String(form.get("notes") ?? ""));
   }
 
-  async function place(paymentMethod?: string) {
+  async function place(paymentMethod?: string, companyDraft?: { notes: string; mb: string; postalCode: string }) {
     if (pending) return;
     setPending(true);
     setMessage("");
@@ -819,9 +819,9 @@ export function Checkout({
       ? await placeShopOrderAction({
           slug,
           idempotencyKey: readIdempotencyKey(idempotencyStorage),
-          notes,
-          mb: company?.mb || companyExtra.mb,
-          postalCode: company?.postalCode || companyExtra.postalCode,
+          notes: companyDraft?.notes ?? notes,
+          mb: company?.mb || companyDraft?.mb || companyExtra.mb,
+          postalCode: company?.postalCode || companyDraft?.postalCode || companyExtra.postalCode,
           honeypot,
           items,
         })
@@ -857,9 +857,7 @@ export function Checkout({
           Nazad na korpu
         </button>
         <h2 className="text-lg font-semibold">Kasa</h2>
-        <p className="text-sm text-muted-foreground">
-          Firma mora da otvori nalog. Plaćanje je na račun. Plaćanje pouzećem nije dostupno.
-        </p>
+        <p className="text-sm text-muted-foreground">Firma mora da otvori nalog.</p>
         <div className="flex flex-wrap gap-3">
           <Link href={`/shop/${slug}/nalog`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[var(--primary-hover)]">
             Otvorite nalog
@@ -872,36 +870,7 @@ export function Checkout({
     );
   }
 
-  if (phase === "payment" && business && company) {
-    return (
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void place();
-        }}
-        className="mx-auto max-w-xl space-y-4"
-        noValidate
-      >
-        <button type="button" className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setPhase("details")}>
-          Nazad na kasu
-        </button>
-        <h2 className="text-lg font-semibold">Način plaćanja</h2>
-        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}.</p>
-        {message ? <Alert message={message} /> : null}
-        <div className="rounded-lg border border-primary bg-card p-4 text-sm">
-          <p className="font-medium">Na račun</p>
-          <p className="mt-1 text-muted-foreground">{company.businessName}</p>
-        </div>
-        <p className="text-sm text-muted-foreground">Plaćanje pouzećem nije dostupno.</p>
-        <Honeypot value={honeypot} onChange={setHoneypot} />
-        <Button type="submit" className="w-full" disabled={pending}>
-          {pending ? "Slanje…" : "Potvrdi porudžbinu"}
-        </Button>
-      </form>
-    );
-  }
-
-  if (phase === "payment") {
+  if (phase === "payment" && !business) {
     return (
       <form
         onSubmit={(event) => {
@@ -936,12 +905,14 @@ export function Checkout({
         onSubmit={(event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
-          setNotes(String(form.get("notes") ?? ""));
-          setCompanyExtra({
+          const draft = {
+            notes: String(form.get("notes") ?? ""),
             mb: String(form.get("mb") ?? ""),
             postalCode: String(form.get("postalCode") ?? ""),
-          });
-          setPhase("payment");
+          };
+          setNotes(draft.notes);
+          setCompanyExtra({ mb: draft.mb, postalCode: draft.postalCode });
+          void place(undefined, draft);
         }}
         className="mx-auto max-w-xl space-y-4"
       >
@@ -949,7 +920,7 @@ export function Checkout({
           Nazad na korpu
         </button>
         <h2 className="text-lg font-semibold">Kasa</h2>
-        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}. Plaćanje je na račun.</p>
+        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}.</p>
         {message ? <Alert message={message} /> : null}
         <div className="rounded-lg border border-border bg-card p-4 text-sm">
           <p className="font-medium">{company.businessName}</p>
@@ -961,9 +932,9 @@ export function Checkout({
           <p className="text-muted-foreground">{company.phone}</p>
           {company.mb ? <p className="mt-2 text-muted-foreground">Matični broj {company.mb}</p> : null}
           <p className="text-muted-foreground">PIB {company.pib}</p>
-          <p className="text-muted-foreground">
-            {[company.address, [company.postalCode, company.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
-          </p>
+          {company.address ? <p className="text-muted-foreground">{company.address}</p> : null}
+          {company.city ? <p className="text-muted-foreground">{company.city}</p> : null}
+          {company.postalCode ? <p className="text-muted-foreground">{company.postalCode}</p> : null}
         </div>
         {company.mb ? null : <Field name="mb" label="Matični broj" error={errors.mb} />}
         {company.postalCode ? null : (
@@ -973,8 +944,9 @@ export function Checkout({
           <Label htmlFor="notes">Napomena</Label>
           <Textarea id="notes" name="notes" defaultValue={notes} className="mt-1.5" />
         </div>
-        <Button type="submit" className="w-full">
-          Način plaćanja
+        <Honeypot value={honeypot} onChange={setHoneypot} />
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? "Slanje…" : "Potvrdi porudžbinu"}
         </Button>
       </form>
     );
@@ -1010,8 +982,8 @@ export function Checkout({
       <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={retail.email} />
       <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={retail.phone} />
       <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} defaultValue={retail.address} />
-      <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={errors.postalCode} defaultValue={retail.postalCode} />
       <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={retail.city} />
+      <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={errors.postalCode} defaultValue={retail.postalCode} />
       <div>
         <Label htmlFor="notes">Napomena</Label>
         <Textarea id="notes" name="notes" defaultValue={notes} className="mt-1.5" />

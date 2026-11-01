@@ -63,12 +63,19 @@ export default async function ConfirmationPage({
           <span>Ukupno</span>
           <span className="tabular-nums">{formatRsd(order.totalPara)}</span>
         </div>
-        {order.paymentMethod ? (
+        {order.paymentMethod && order.paymentMethod !== "racun" ? (
           <p className="border-t border-border px-4 py-3 text-sm">
             Način plaćanja: {paymentLabel(order.paymentMethod)}
-            {order.customerSnapshot.bankAccount ? ` · ${order.customerSnapshot.bankAccount}` : ""}
-            {order.customerSnapshot.mb ? ` · Matični broj ${order.customerSnapshot.mb}` : ""}
-            {order.customerSnapshot.pib ? ` · PIB ${order.customerSnapshot.pib}` : ""}
+          </p>
+        ) : null}
+        {order.customerSnapshot.mb || order.customerSnapshot.pib ? (
+          <p className="border-t border-border px-4 py-3 text-sm">
+            {[
+              order.customerSnapshot.mb ? `Matični broj ${order.customerSnapshot.mb}` : "",
+              order.customerSnapshot.pib ? `PIB ${order.customerSnapshot.pib}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         ) : null}
       </section>

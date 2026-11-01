@@ -122,11 +122,11 @@ export async function buildOrderConfirmationPdf(order: OrderDetail, supplier: Pu
     customer.contactName,
     customer.email,
     customer.phone,
-    [customer.address, customer.postalCode, customer.city].filter(Boolean).join(", "),
+    [customer.address, customer.city, customer.postalCode].filter(Boolean).join(", "),
     customer.mb ? `Matični broj: ${customer.mb}` : "",
     customer.pib ? `PIB: ${customer.pib}` : "",
     customer.bankAccount ? `Račun: ${customer.bankAccount}` : "",
-    order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
+    order.paymentMethod && order.paymentMethod !== "racun" ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
   ].filter(Boolean);
   for (const line of customerLines) {
     ensure(14);

@@ -901,9 +901,9 @@ export class DemoStore implements CommerceRepository {
     const products = db.products.filter((product) => product.organizationId === organizationId);
     const month = belgradeMonthKey(new Date().toISOString());
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recent = [...orders]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 6);
+    const awaiting = orders
+      .filter((order) => order.status === "nova")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     return {
       newOrders: orders.filter(
@@ -923,7 +923,7 @@ export class DemoStore implements CommerceRepository {
         )
         .reduce((sum, order) => sum + order.totalPara, 0),
       activeProducts: products.filter((product) => product.active).length,
-      recentOrders: recent.map((order) => orderListItem(db, order)),
+      recentOrders: awaiting.map((order) => orderListItem(db, order)),
       hasProducts: products.length > 0,
       hasOrders: orders.length > 0,
     };

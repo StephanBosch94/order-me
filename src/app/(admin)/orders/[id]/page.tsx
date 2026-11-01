@@ -104,13 +104,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <dd>{customer.pib}</dd>
                 </div>
               ) : null}
-              {customer.postalCode ? (
-                <div>
-                  <dt className="text-muted-foreground">Poštanski broj</dt>
-                  <dd>{customer.postalCode}</dd>
-                </div>
-              ) : null}
-              {order.paymentMethod ? (
+              {order.paymentMethod && order.paymentMethod !== "racun" ? (
                 <div>
                   <dt className="text-muted-foreground">Način plaćanja</dt>
                   <dd>{paymentLabel(order.paymentMethod)}</dd>
@@ -122,10 +116,22 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <dd>{customer.bankAccount}</dd>
                 </div>
               ) : null}
-              {customer.address || customer.city ? (
+              {customer.address ? (
                 <div>
                   <dt className="text-muted-foreground">Adresa</dt>
-                  <dd>{[customer.address, customer.city].filter(Boolean).join(", ")}</dd>
+                  <dd>{customer.address}</dd>
+                </div>
+              ) : null}
+              {customer.city ? (
+                <div>
+                  <dt className="text-muted-foreground">Grad</dt>
+                  <dd>{customer.city}</dd>
+                </div>
+              ) : null}
+              {customer.postalCode ? (
+                <div>
+                  <dt className="text-muted-foreground">Poštanski broj</dt>
+                  <dd>{customer.postalCode}</dd>
                 </div>
               ) : null}
             </dl>

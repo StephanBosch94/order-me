@@ -974,7 +974,9 @@ export const supabaseRepository: CommerceRepository = {
     const counts = await itemCounts(organizationId);
     const month = belgradeMonthKey(new Date().toISOString());
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const recent = [...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
+    const awaiting = orders
+      .filter((order) => order.status === "nova")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const data: DashboardData = {
       newOrders: orders.filter(
         (order) => order.status !== "otkazana" && new Date(order.createdAt).getTime() >= weekAgo,
@@ -989,7 +991,7 @@ export const supabaseRepository: CommerceRepository = {
         .filter((order) => order.status !== "otkazana" && belgradeMonthKey(order.createdAt) === month)
         .reduce((sum, order) => sum + order.totalPara, 0),
       activeProducts: products.filter((product) => product.active).length,
-      recentOrders: recent.map((order) => listItem(order, counts.get(order.id) ?? 0)),
+      recentOrders: awaiting.map((order) => listItem(order, counts.get(order.id) ?? 0)),
       hasProducts: products.length > 0,
       hasOrders: orders.length > 0,
     };

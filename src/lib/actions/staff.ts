@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
+import { deliverStaffInvite } from "@/lib/email/staff";
 import { DataError } from "@/lib/errors";
 import { employeeSchema, fieldErrors } from "@/lib/validators";
 
@@ -38,13 +39,32 @@ export async function addEmployeeAction(_prev: EmployeeState, formData: FormData
   }
 
   try {
+    const email = parsed.data.email.trim().toLowerCase();
     await getCommerce().addStaffMember(session.organization.id, {
       name: parsed.data.name,
-      email: parsed.data.email.trim().toLowerCase(),
+      email,
+      password: parsed.data.password,
+    });
+    const delivery = await deliverStaffInvite({
+      to: email,
+      name: parsed.data.name.trim(),
+      shopName: session.organization.name,
       password: parsed.data.password,
     });
     revalidatePath("/zaposleni");
-    return { ok: true, message: "Zaposleni je dodat. Može da se prijavi na ovu prodavnicu." };
+    if (delivery === "failed") {
+      return {
+        ok: true,
+        message: "Zaposleni je dodat. Pozivnica nije poslata. Pošaljite mu lozinku ručno.",
+      };
+    }
+    if (delivery === "outbox") {
+      return {
+        ok: true,
+        message: "Zaposleni je dodat. Pozivnica je sačuvana jer slanje emaila još nije podešeno.",
+      };
+    }
+    return { ok: true, message: "Zaposleni je dodat. Pozivnica je poslata na email." };
   } catch (error) {
     if (error instanceof DataError) {
       return {

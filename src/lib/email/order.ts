@@ -32,7 +32,7 @@ export async function deliverOrderEmails(
       lines,
       "",
       `Ukupno: ${formatRsd(order.totalPara)}`,
-      order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
+      order.paymentMethod && order.paymentMethod !== "racun" ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
       order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
       "",
       "Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.",
@@ -55,7 +55,7 @@ export async function deliverOrderEmails(
           lines,
           "",
           `Ukupno: ${formatRsd(order.totalPara)}`,
-          order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
+          order.paymentMethod && order.paymentMethod !== "racun" ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
           order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
           order.notes ? `Napomena: ${order.notes}` : "",
           "",
@@ -78,7 +78,7 @@ function customerHtml(order: OrderDetail, supplier: PublicSupplier, pdfUrl: stri
     )
     .join("");
   const payment = [
-    order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
+    order.paymentMethod && order.paymentMethod !== "racun" ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
     order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
   ]
     .filter(Boolean)

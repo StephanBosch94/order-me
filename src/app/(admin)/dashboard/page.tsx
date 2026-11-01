@@ -58,13 +58,20 @@ export default async function DashboardPage() {
 
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Skorašnje porudžbine</h2>
+          <h2 className="text-sm font-semibold">Porudžbine koje čekaju potvrdu</h2>
           <Link href="/orders" className="text-sm text-indigo-700 hover:underline">
             Sve porudžbine
           </Link>
         </div>
         {data.recentOrders.length === 0 ? (
-          <EmptyState title="Još nema porudžbina" body="Kada kupac pošalje prvu porudžbinu, pojaviće se u ovoj tabeli." />
+          <EmptyState
+            title={data.hasOrders ? "Nema porudžbina koje čekaju potvrdu" : "Još nema porudžbina"}
+            body={
+              data.hasOrders
+                ? "Ostale porudžbine su na listi svih porudžbina."
+                : "Kada kupac pošalje prvu porudžbinu, pojaviće se u ovoj tabeli."
+            }
+          />
         ) : (
           <div className="overflow-hidden rounded-lg border border-border bg-card">
             <table className="w-full text-sm">

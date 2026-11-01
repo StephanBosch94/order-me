@@ -90,7 +90,6 @@ export function OrderStatusMenu({ orderId, status }: { orderId: string; status: 
     <div ref={rootRef} className="relative">
       <Button
         ref={buttonRef}
-        variant="secondary"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -105,7 +104,7 @@ export function OrderStatusMenu({ orderId, status }: { orderId: string; status: 
         }}
       >
         {pending ? "Čuvanje…" : statusLabel(status)}
-        <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden />
+        <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
       </Button>
       {open ? (
         <div
