@@ -394,3 +394,55 @@ test("a buyer can update their own profile without changing the login email", as
     );
   });
 });
+
+test("owner adds a staff member to the same shop", async () => {
+  await withStore(async (store) => {
+    const owner = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    const organization = await store.createOrganization({
+      userId: owner.id,
+      userName: owner.name,
+      userEmail: owner.email,
+      name: "Mesara Pajić",
+      slug: "mesara-test",
+      phone: "",
+    });
+    const employee = await store.addStaffMember(organization.id, {
+      name: "Petar Jović",
+      email: "Petar@MesaraPajic.rs",
+      password: "lozinka123",
+    });
+    assert.equal(employee.role, "staff");
+    assert.equal(employee.email, "petar@mesarapajic.rs");
+
+    const account = await store.resolveAccount(employee.userId);
+    assert.equal(account?.kind, "supplier");
+    if (account?.kind !== "supplier") return;
+    assert.equal(account.role, "staff");
+    assert.equal(account.organization.id, organization.id);
+
+    const members = await store.listMembers(organization.id);
+    assert.deepEqual(
+      members.map((member) => ({ email: member.email, role: member.role })),
+      [
+        { email: "ana@example.com", role: "owner" },
+        { email: "petar@mesarapajic.rs", role: "staff" },
+      ],
+    );
+    const login = await store.verifyCredentials("petar@mesarapajic.rs", "lozinka123");
+    assert.equal(login?.id, employee.userId);
+
+    await assert.rejects(
+      () =>
+        store.addStaffMember(organization.id, {
+          name: "Drugi Ana",
+          email: "ANA@example.com",
+          password: "lozinka123",
+        }),
+      (error: unknown) => error instanceof DataError && error.message === "Nalog sa ovom email adresom već postoji.",
+    );
+  });
+});

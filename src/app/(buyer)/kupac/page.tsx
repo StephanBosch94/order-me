@@ -57,33 +57,47 @@ export default async function BuyerHomePage() {
           </div>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-            {orders.map((order) => (
-              <li key={order.id}>
-                <div className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <Link
-                    href={order.supplierSlug ? `/s/${order.supplierSlug}/potvrda/${order.confirmationToken}` : "/kupac"}
-                    className="min-w-0 flex-1"
-                  >
+            {orders.map((order) => {
+              const href = confirmationPath(order.supplierSlug, order.confirmationToken);
+              const summary = (
+                <>
+                  <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                      <span>{order.number}</span>
+                      <span className="underline-offset-2 group-hover:underline">{order.number}</span>
                       <StatusBadge status={order.status} />
                       <span className="font-normal text-muted-foreground">· {order.supplierName}</span>
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {formatDateTime(order.createdAt)} · {order.itemCount} {itemWord(order.itemCount)}
                     </p>
-                  </Link>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
-                    {order.supplierSlug ? (
+                  </div>
+                  <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
+                </>
+              );
+              return (
+                <li key={order.id} className="flex flex-col sm:flex-row sm:items-stretch">
+                  {href ? (
+                    <Link
+                      href={href}
+                      className="group flex min-w-0 flex-1 flex-col justify-center gap-2 px-4 py-4 outline-none hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      {summary}
+                    </Link>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                      {summary}
+                    </div>
+                  )}
+                  {order.supplierSlug ? (
+                    <div className="flex items-center px-4 pb-4 sm:py-4 sm:pl-0">
                       <Link href={`${storePath(order.supplierSlug)}?ponovi=${order.id}`} className="text-sm font-medium text-primary hover:underline">
                         Naruči isto
                       </Link>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            ))}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
