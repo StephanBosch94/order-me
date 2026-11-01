@@ -831,13 +831,7 @@ function ensureMeatShop(db: DemoDatabase) {
       changed = true;
     }
     const items = db.orderItems.filter((item) => item.orderId === order.id);
-    const stale =
-      items.length === 0 ||
-      items.some((item) => {
-        const product = bySku.get(item.sku);
-        return !product || item.productId !== product.id;
-      });
-    if (!stale) continue;
+    if (!items.some((item) => PACKAGING_SKUS.has(item.sku))) continue;
     const suffix = order.number.match(/(\d{4})$/)?.[1] ?? "";
     const spec = GASTRO_DEMO_ORDERS.find((item) => item.suffix === suffix);
     const lines = spec?.lines ?? [["MP-BUT", 2]];
