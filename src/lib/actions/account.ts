@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getSession } from "@/lib/auth";
-import { isCompanyBuyer, normalizeBankAccount, normalizeMb, normalizePostalCode } from "@/lib/buyer";
+import { isCompanyBuyer, normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import type { UpdateBuyerInput } from "@/lib/data/repository";
@@ -50,7 +50,6 @@ export async function updateBuyerAccountAction(
       pib: text(formData, "pib"),
       mb: text(formData, "mb"),
       postalCode: text(formData, "postalCode"),
-      bankAccount: text(formData, "bankAccount"),
       confirmationEmail: text(formData, "confirmationEmail"),
     });
     if (!parsed.success) {
@@ -59,20 +58,18 @@ export async function updateBuyerAccountAction(
         fieldErrors: fieldErrors(parsed.error),
       };
     }
-    const bankAccount = normalizeBankAccount(parsed.data.bankAccount);
     const mb = normalizeMb(parsed.data.mb);
     const postalCode = normalizePostalCode(parsed.data.postalCode);
-    if (!bankAccount || !mb || !postalCode) {
+    if (!mb || !postalCode) {
       return {
-        error: "Proverite matični broj, poštanski broj i račun.",
+        error: "Proverite matični broj i poštanski broj.",
         fieldErrors: {
           ...(!mb ? { mb: "Matični broj ima 8 cifara." } : {}),
           ...(!postalCode ? { postalCode: "Poštanski broj ima 5 cifara." } : {}),
-          ...(!bankAccount ? { bankAccount: "Unesite broj računa od 18 cifara." } : {}),
         },
       };
     }
-    next = { ...parsed.data, bankAccount, mb, postalCode };
+    next = { ...parsed.data, bankAccount: session.bankAccount, mb, postalCode };
   } else {
     const parsed = personBuyerProfileSchema.safeParse({
       name: text(formData, "name"),

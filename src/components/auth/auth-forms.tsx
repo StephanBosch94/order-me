@@ -30,7 +30,7 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
       </Button>
       {demo ? (
         <p className="rounded-md bg-zinc-50 px-3 py-2 text-xs leading-5 text-muted-foreground">
-          Mala mesara Pajić, pravna lica: ana@mesarapajic.rs / poruci-demo
+          Mesara Pajić, pravna lica: ana@mesarapajic.rs / poruci-demo
           <br />
           Mercis Atelier, fizička lica: vera@mercisatelier.rs / poruci-demo
           <br />
@@ -88,8 +88,6 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
           <Field name="pib" label="PIB" error={state.fieldErrors?.pib} />
           <Field name="mb" label="Matični broj" error={state.fieldErrors?.mb} />
           <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={state.fieldErrors?.postalCode} />
-          <Field name="bankAccount" label="Broj računa" autoComplete="off" error={state.fieldErrors?.bankAccount} />
-          <p className="text-sm text-muted-foreground">18 cifara. Račun ostaje na nalogu i svaka porudžbina ide na njega.</p>
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>

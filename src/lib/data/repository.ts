@@ -18,6 +18,7 @@ import type {
   OrderStatus,
   Organization,
   OrganizationInput,
+  OrganizationMember,
   Paginated,
   PlatformInvoice,
   PlatformSupplier,
@@ -77,6 +78,11 @@ export interface CommerceRepository {
   createBuyerProfile(input: CreateBuyerInput): Promise<void>;
   getOrganization(id: string): Promise<Organization | null>;
   getAccount(userId: string): Promise<AccountContext | null>;
+  listMembers(organizationId: string): Promise<OrganizationMember[]>;
+  addStaffMember(
+    organizationId: string,
+    input: { name: string; email: string; password: string },
+  ): Promise<OrganizationMember>;
   resolveAccount(userId: string): Promise<SessionAccount | null>;
   saveBuyerBankAccount(userId: string, bankAccount: string): Promise<void>;
   updateBuyerProfile(userId: string, input: UpdateBuyerInput): Promise<void>;

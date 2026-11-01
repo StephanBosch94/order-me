@@ -23,6 +23,15 @@ export type AccountContext = {
   organization: Organization;
 };
 
+export type OrganizationMember = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: MemberRole;
+  createdAt: string;
+};
+
 export type BuyerAccount = {
   kind: "buyer";
   userId: string;
@@ -218,6 +227,8 @@ export type OrderListItem = {
   businessName: string;
   contactName: string;
   itemCount: number;
+  paymentMethod: PaymentMethod | null;
+  pib: string;
 };
 
 export type CustomerSummary = {

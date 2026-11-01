@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { isCompanyBuyer } from "@/lib/buyer";
+import { confirmationPath } from "@/lib/constants";
 import type { BuyerAccount, BuyerOrder } from "@/lib/data/types";
 import { formatRsd } from "@/lib/format";
 
@@ -76,37 +77,53 @@ export function BuyerMenu({
                 <p className="px-3 py-3 text-sm text-muted-foreground">Još nema porudžbina.</p>
               ) : (
                 <ul>
-                  {orders.map((order) => (
-                    <li key={order.id} className="border-b border-border px-3 py-2.5 last:border-b-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                          <p className="text-sm font-medium">{order.number}</p>
+                  {orders.map((order) => {
+                    const href = confirmationPath(order.supplierSlug, order.confirmationToken);
+                    const summary = (
+                      <>
+                        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-sm font-medium underline-offset-2 group-hover:underline">{order.number}</span>
                           <StatusBadge status={order.status} />
-                        </div>
-                        <p className="shrink-0 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</p>
-                      </div>
-                      {onRepeat ? (
-                        <button
-                          type="button"
-                          className="mt-1 cursor-pointer text-sm font-medium text-primary hover:underline"
-                          onClick={() => {
-                            close();
-                            onRepeat(order.items);
-                          }}
-                        >
-                          Naruči isto
-                        </button>
-                      ) : repeatBase ? (
-                        <Link
-                          href={`${repeatBase}?ponovi=${order.id}`}
-                          className="mt-1 inline-block text-sm font-medium text-primary hover:underline"
-                          onClick={close}
-                        >
-                          Naruči isto
-                        </Link>
-                      ) : null}
-                    </li>
-                  ))}
+                        </span>
+                        <span className="shrink-0 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
+                      </>
+                    );
+                    return (
+                      <li key={order.id} className="border-b border-border last:border-b-0">
+                        {href ? (
+                          <Link
+                            href={href}
+                            className="group flex items-start justify-between gap-3 px-3 py-2.5 outline-none hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                            onClick={close}
+                          >
+                            {summary}
+                          </Link>
+                        ) : (
+                          <div className="flex items-start justify-between gap-3 px-3 py-2.5">{summary}</div>
+                        )}
+                        {onRepeat ? (
+                          <button
+                            type="button"
+                            className="cursor-pointer px-3 pb-2.5 text-sm font-medium text-primary hover:underline"
+                            onClick={() => {
+                              close();
+                              onRepeat(order.items);
+                            }}
+                          >
+                            Naruči isto
+                          </button>
+                        ) : repeatBase ? (
+                          <Link
+                            href={`${repeatBase}?ponovi=${order.id}`}
+                            className="inline-block px-3 pb-2.5 text-sm font-medium text-primary hover:underline"
+                            onClick={close}
+                          >
+                            Naruči isto
+                          </Link>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

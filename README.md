@@ -47,7 +47,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Demo mode starts automatically when the Supabase variables are empty. The seeded suppliers are Mala mesara Pajić and Mercis Atelier.
+Demo mode starts automatically when the Supabase variables are empty. The seeded suppliers are Mesara Pajić and Mercis Atelier.
 
 - Mesara: `ana@mesarapajic.rs` / `poruci-demo`, shop `/shop/mesara-pajic`
 - Nakit: `vera@mercisatelier.rs` / `poruci-demo`, shop `/shop/mercis-atelier`

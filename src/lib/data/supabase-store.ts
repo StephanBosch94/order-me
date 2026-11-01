@@ -28,6 +28,7 @@ import type {
   OrderStatusEvent,
   Organization,
   OrganizationInput,
+  OrganizationMember,
   Paginated,
   PlatformInvoice,
   PlatformSupplier,
@@ -253,6 +254,8 @@ function listItem(order: Order, itemCount: number): OrderListItem {
     businessName: order.customerSnapshot.businessName,
     contactName: order.customerSnapshot.contactName,
     itemCount,
+    paymentMethod: order.paymentMethod,
+    pib: order.customerSnapshot.pib,
   };
 }
 
@@ -407,6 +410,14 @@ export const supabaseRepository: CommerceRepository = {
       role: String((member.data as Record<string, unknown>).role) as "owner" | "staff",
       organization,
     };
+  },
+
+  async listMembers(organizationId) {
+    return listOrganizationMembers(organizationId);
+  },
+
+  async addStaffMember(organizationId, input) {
+    return insertStaffMember(organizationId, input);
   },
 
   async resolveAccount(userId): Promise<SessionAccount | null> {
@@ -1227,6 +1238,132 @@ function mapInvoice(row: Record<string, unknown>): PlatformInvoice {
     amountPara: Number(row.amount_para),
     status: row.status === "placena" ? "placena" : "neplacena",
     issuedAt: String(row.issued_at),
+  };
+}
+
+const DUPLICATE_EMAIL = "Nalog sa ovom email adresom već postoji.";
+
+function compareMembers(a: OrganizationMember, b: OrganizationMember) {
+  if (a.role !== b.role) return a.role === "owner" ? -1 : 1;
+  return a.name.localeCompare(b.name, "sr");
+}
+
+function duplicateAccount(error: { message?: string; code?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return (
+    error?.code === "email_exists" ||
+    error?.code === "23505" ||
+    message.includes("already") ||
+    message.includes("registered") ||
+    message.includes("exists") ||
+    message.includes("duplicate")
+  );
+}
+
+async function listOrganizationMembers(organizationId: string): Promise<OrganizationMember[]> {
+  const members = await db()
+    .from("organization_members")
+    .select("id, user_id, role, created_at")
+    .eq("organization_id", organizationId);
+  fail(members.error);
+  const rows = (members.data ?? []) as Record<string, unknown>[];
+  if (rows.length === 0) return [];
+  const profiles = await db()
+    .from("profiles")
+    .select("id, name, email")
+    .in(
+      "id",
+      rows.map((row) => String(row.user_id)),
+    );
+  fail(profiles.error);
+  const byId = new Map(
+    ((profiles.data ?? []) as Record<string, unknown>[]).map((profile) => [String(profile.id), profile]),
+  );
+  return rows
+    .flatMap((row) => {
+      const profile = byId.get(String(row.user_id));
+      if (!profile) return [];
+      const role = row.role === "owner" ? "owner" : "staff";
+      return [
+        {
+          id: String(row.id),
+          userId: String(row.user_id),
+          name: String(profile.name ?? ""),
+          email: String(profile.email ?? ""),
+          role,
+          createdAt: String(row.created_at),
+        } satisfies OrganizationMember,
+      ];
+    })
+    .sort(compareMembers);
+}
+
+async function insertStaffMember(
+  organizationId: string,
+  input: { name: string; email: string; password: string },
+): Promise<OrganizationMember> {
+  const admin = db();
+  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim();
+  const organization = await admin.from("organizations").select("id").eq("id", organizationId).maybeSingle();
+  fail(organization.error);
+  if (!organization.data) throw new DataError("Prodavnica nije pronađena.", "not_found");
+
+  const existing = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
+  fail(existing.error);
+  if (existing.data) throw new DataError(DUPLICATE_EMAIL, "conflict");
+
+  const created = await admin.auth.admin.createUser({
+    email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: { name },
+  });
+  if (created.error || !created.data.user) {
+    if (duplicateAccount(created.error)) throw new DataError(DUPLICATE_EMAIL, "conflict");
+    const message = created.error?.message?.toLowerCase() ?? "";
+    if (message.includes("password")) {
+      throw new DataError("Lozinka mora imati bar 8 karaktera.", "validation");
+    }
+    throw new DataError("Zaposleni nije dodat. Pokušajte ponovo.", "validation");
+  }
+
+  const userId = created.data.user.id;
+  const profile = await admin.from("profiles").upsert({
+    id: userId,
+    email,
+    name,
+    kind: "supplier",
+  });
+  if (profile.error) {
+    await admin.auth.admin.deleteUser(userId).catch(() => undefined);
+    if (duplicateAccount(profile.error)) throw new DataError(DUPLICATE_EMAIL, "conflict");
+    fail(profile.error);
+  }
+
+  const member = await admin
+    .from("organization_members")
+    .insert({
+      organization_id: organizationId,
+      user_id: userId,
+      role: "staff",
+    })
+    .select("id, created_at")
+    .single();
+  if (member.error) {
+    await admin.auth.admin.deleteUser(userId).catch(() => undefined);
+    if (duplicateAccount(member.error)) throw new DataError(DUPLICATE_EMAIL, "conflict");
+    fail(member.error);
+  }
+
+  const row = member.data as Record<string, unknown>;
+  return {
+    id: String(row.id),
+    userId,
+    name,
+    email,
+    role: "staff",
+    createdAt: String(row.created_at),
   };
 }
 

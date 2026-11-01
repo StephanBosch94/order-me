@@ -109,6 +109,25 @@ export function storePath(slug: string) {
   return `/shop/${slug}`;
 }
 
+const LEGACY_SHOP_SLUGS: Record<string, string> = {
+  "gastro-supply": "mesara-pajic",
+  "butik-vera": "mercis-atelier",
+};
+
+function liveShopSlug(slug: string) {
+  return LEGACY_SHOP_SLUGS[slug] ?? slug;
+}
+
+/** Potvrda lives at /s/:slug/potvrda. Legacy slugs are redirected to /shop, so links use the live slug. */
+export function confirmationPath(slug: string, token: string) {
+  if (!slug || !token) return null;
+  return `/s/${liveShopSlug(slug)}/potvrda/${token}`;
+}
+
+export function confirmationShopMatches(urlSlug: string, supplierSlug: string) {
+  return Boolean(urlSlug) && Boolean(supplierSlug) && liveShopSlug(urlSlug) === liveShopSlug(supplierSlug);
+}
+
 export function businessPath(slug: string) {
   return `/shop/${slug}?za=firme`;
 }

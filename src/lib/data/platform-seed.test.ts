@@ -61,7 +61,7 @@ test("seed and ensure create the platform admin, plans, subscriptions, and scope
     assert.ok(invoices.length >= 2);
     assert.equal(invoices.every((item) => item.organizationId === pult.id), true);
     const suppliers = await store.listPlatformSuppliers();
-    assert.equal(suppliers.some((item) => item.organization.name === "Mala mesara Pajić"), true);
+    assert.equal(suppliers.some((item) => item.organization.name === "Mesara Pajić"), true);
     assert.equal(suppliers.some((item) => item.organization.name === "Mercis Atelier"), true);
   } finally {
     await rm(dir, { recursive: true, force: true });

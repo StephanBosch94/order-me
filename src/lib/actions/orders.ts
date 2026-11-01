@@ -164,17 +164,7 @@ async function placeBusinessOrder(input: unknown): Promise<OrderActionState> {
   const buyer = session?.kind === "buyer" && isCompanyBuyer(session) ? session : null;
   if (!buyer) return { ok: false, message: "Otvorite nalog firme da biste poručili." };
 
-  const saved = normalizeBankAccount(buyer.bankAccount ?? "");
-  const entered = normalizeBankAccount(parsed.data.bankAccount ?? "");
-  const bankAccount = saved ?? entered;
-  if (!bankAccount) {
-    return {
-      ok: false,
-      message: "Unesite broj računa od 18 cifara.",
-      fieldErrors: { bankAccount: "Unesite broj računa od 18 cifara." },
-    };
-  }
-  if (!saved) await getCommerce().saveBuyerBankAccount(buyer.userId, bankAccount);
+  const bankAccount = normalizeBankAccount(buyer.bankAccount ?? "") ?? "";
 
   const mb = normalizeMb(buyer.mb) ?? normalizeMb(parsed.data.mb ?? "");
   const postalCode = normalizePostalCode(buyer.postalCode) ?? normalizePostalCode(parsed.data.postalCode ?? "");

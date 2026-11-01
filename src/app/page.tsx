@@ -123,7 +123,7 @@ export default function HomePage() {
                 Mercis Atelier
               </DemoStoreLink>
               <DemoStoreLink href="/shop/mesara-pajic" className="hover:text-[#635bff]">
-                Mala mesara Pajić
+                Mesara Pajić
               </DemoStoreLink>
             </div>
           </div>
@@ -166,7 +166,7 @@ export default function HomePage() {
                   Otvorite prodavnicu
                 </Link>
                 <DemoStoreLink href="/shop/mesara-pajic" className={secondaryButton}>
-                  Pogledajte Malu mesaru Pajić
+                  Pogledajte Mesaru Pajić
                 </DemoStoreLink>
               </div>
               <p className="mt-4 text-sm leading-6 text-[#425466]">
@@ -240,7 +240,7 @@ export default function HomePage() {
           <FooterColumn title="Prodavnica">
             <FooterLink href="/signup">Otvorite prodavnicu</FooterLink>
             <FooterLink href="/shop/mercis-atelier">Mercis Atelier</FooterLink>
-            <FooterLink href="/shop/mesara-pajic">Mala mesara Pajić</FooterLink>
+            <FooterLink href="/shop/mesara-pajic">Mesara Pajić</FooterLink>
           </FooterColumn>
           <FooterColumn title="Kupci">
             <FooterLink href="/signup/kupac">Nalog kupca</FooterLink>

@@ -8,7 +8,7 @@ import { getDataMode } from "@/lib/config";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import { safeNextPath, slugCandidate } from "@/lib/text";
-import { normalizeBankAccount, normalizeMb, normalizePostalCode } from "@/lib/buyer";
+import { normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { signDemoSession } from "@/lib/session-token";
 import { fieldErrors, loginSchema, signupSchema } from "@/lib/validators";
 
@@ -71,7 +71,6 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           pib: formData.get("pib") ?? "",
           mb: formData.get("mb") ?? "",
           postalCode: formData.get("postalCode") ?? "",
-          bankAccount: formData.get("bankAccount") ?? "",
           confirmationEmail: formData.get("confirmationEmail") ?? "",
         }
       : {
@@ -109,7 +108,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
         pib: parsed.data.kind === "buyer" ? parsed.data.pib : "",
         mb: parsed.data.kind === "buyer" ? normalizeMb(parsed.data.mb) ?? "" : "",
         postalCode: parsed.data.kind === "buyer" ? normalizePostalCode(parsed.data.postalCode) ?? "" : "",
-        bankAccount: parsed.data.kind === "buyer" ? normalizeBankAccount(parsed.data.bankAccount) ?? "" : "",
+        bankAccount: "",
         confirmationEmail: parsed.data.kind === "buyer" ? parsed.data.confirmationEmail : "",
       });
       if (parsed.data.kind === "supplier") {
@@ -149,7 +148,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
         pib: parsed.data.pib,
         mb: normalizeMb(parsed.data.mb) ?? "",
         postalCode: normalizePostalCode(parsed.data.postalCode) ?? "",
-        bankAccount: normalizeBankAccount(parsed.data.bankAccount) ?? "",
+        bankAccount: "",
         confirmationEmail: parsed.data.confirmationEmail,
       });
     } else {

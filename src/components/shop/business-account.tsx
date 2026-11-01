@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { StoreAccountLinks } from "@/components/shop/account-links";
+import { confirmationPath } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { BuyerAccount, BuyerOrder } from "@/lib/data/types";
@@ -65,27 +66,48 @@ export function BusinessAccount({
         <p className="mt-4 text-sm text-muted-foreground">Još nema porudžbina kod ove prodavnice.</p>
       ) : (
         <ul className="mt-4 divide-y divide-border border-t border-border">
-          {orders.map((order) => (
-            <li key={order.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Link href={`/s/${slug}/potvrda/${order.confirmationToken}`} className="text-sm font-medium hover:underline">
-                    {order.number}
-                  </Link>
-                  <StatusBadge status={order.status} />
+          {orders.map((order) => {
+            const href = confirmationPath(order.supplierSlug || slug, order.confirmationToken);
+            const summary = (
+              <>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium underline-offset-2 group-hover:underline">{order.number}</span>
+                    <StatusBadge status={order.status} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateTime(order.createdAt)} · {order.itemCount} {itemWord(order.itemCount)}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {formatDateTime(order.createdAt)} · {order.itemCount} {itemWord(order.itemCount)}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
                 <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
-                <button type="button" className="text-sm font-medium text-primary hover:underline" onClick={() => onRepeat(order.items)}>
-                  Ponovi
-                </button>
-              </div>
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li key={order.id} className="flex flex-col sm:flex-row sm:items-stretch">
+                {href ? (
+                  <Link
+                    href={href}
+                    className="group flex min-w-0 flex-1 flex-col justify-center gap-1 py-3 outline-none hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:pr-3"
+                  >
+                    {summary}
+                  </Link>
+                ) : (
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:pr-3">
+                    {summary}
+                  </div>
+                )}
+                <div className="flex items-center pb-3 sm:py-3">
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-primary hover:underline"
+                    onClick={() => onRepeat(order.items)}
+                  >
+                    Ponovi
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

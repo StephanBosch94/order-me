@@ -1,13 +1,13 @@
 "use client";
 
 import {
-  Building2,
   ClipboardList,
   LayoutDashboard,
   Menu,
   Package,
   Receipt,
   Settings,
+  UserPlus,
   Users,
   X,
 } from "lucide-react";
@@ -17,7 +17,6 @@ import { Fragment, useEffect, useState } from "react";
 
 import { SetupGuide } from "@/components/admin/setup-guide";
 import { LogoutButton } from "@/components/auth/logout-button";
-import { sellsToBusinesses } from "@/lib/constants";
 import type { AccountContext } from "@/lib/data/types";
 import { setupReady, type SetupStep } from "@/lib/setup";
 import { cn } from "@/lib/utils";
@@ -28,14 +27,13 @@ const items: {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
-  business?: boolean;
 }[] = [
   { href: "/dashboard", label: "Pregled", icon: LayoutDashboard },
   { href: "/orders", label: "Porudžbine", icon: ClipboardList },
-  { href: "/orders/firme", label: "Porudžbine firmi", icon: Building2, business: true },
   { href: "/products", label: "Proizvodi", icon: Package },
   { href: "/customers", label: "Kupci", icon: Users },
   { href: "/invoices", label: "Fakture", icon: Receipt },
+  { href: "/zaposleni", label: "Zaposleni", icon: UserPlus },
   { href: "/settings", label: "Podešavanja", icon: Settings },
 ];
 
@@ -64,9 +62,6 @@ function logoContact(session: AccountContext) {
 
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href;
-  if (href === "/orders") {
-    return pathname === "/orders" || (pathname.startsWith("/orders/") && !pathname.startsWith("/orders/firme"));
-  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -86,9 +81,6 @@ export function AdminShell({
   const brandMark = brandMarkColor(session.organization);
   const contact = logoContact(session);
   const showGuide = !setupReady(setup);
-  const visibleItems = items.filter(
-    (item) => !item.business || sellsToBusinesses(session.organization.audience),
-  );
 
   useEffect(() => {
     setOpen(false);
@@ -97,7 +89,7 @@ export function AdminShell({
   function renderNav() {
     return (
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label="Glavna navigacija">
-        {visibleItems.map((item) => {
+        {items.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
           return (

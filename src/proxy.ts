@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedRoots = ["/dashboard", "/orders", "/products", "/customers", "/settings", "/invoices", "/kupac", "/platform"];
+const protectedRoots = ["/dashboard", "/orders", "/products", "/customers", "/zaposleni", "/settings", "/invoices", "/kupac", "/platform"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -40,6 +40,8 @@ export const config = {
     "/products/:path*",
     "/customers",
     "/customers/:path*",
+    "/zaposleni",
+    "/zaposleni/:path*",
     "/settings",
     "/settings/:path*",
     "/kupac",

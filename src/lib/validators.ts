@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { normalizeBankAccount, normalizeMb, normalizePostalCode } from "@/lib/buyer";
+import { normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { RESERVED_SLUGS } from "@/lib/constants";
 import { normalizeQuantity } from "@/lib/data/pricing";
 import { ORDER_STATUS_VALUES, UNIT_VALUES, type ProductInput } from "@/lib/data/types";
@@ -13,6 +13,12 @@ const slugSchema = z
   .max(48, "Adresa je predugačka.")
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Adresa može sadržati mala slova, brojeve i crtice.")
   .refine((value) => !RESERVED_SLUGS.has(value), "Ova adresa je rezervisana.");
+
+export const employeeSchema = z.object({
+  name: z.string().trim().min(2, "Unesite ime.").max(80),
+  email: z.email("Unesite ispravnu email adresu."),
+  password: z.string().min(8, "Lozinka mora imati bar 8 karaktera.").max(72, "Lozinka može imati najviše 72 karaktera."),
+});
 
 export const loginSchema = z.object({
   email: z.email("Unesite ispravnu email adresu."),
@@ -51,10 +57,6 @@ export const signupSchema = z.discriminatedUnion("kind", [
     pib: z.string().trim().regex(/^\d{9}$/, "PIB ima 9 cifara."),
     mb: z.string().trim().refine((value) => normalizeMb(value) !== null, "Matični broj ima 8 cifara."),
     postalCode: z.string().trim().refine((value) => normalizePostalCode(value) !== null, "Poštanski broj ima 5 cifara."),
-    bankAccount: z
-      .string()
-      .trim()
-      .refine((value) => normalizeBankAccount(value) !== null, "Unesite broj računa od 18 cifara."),
     confirmationEmail: confirmationEmailField,
   }),
 ]);
@@ -98,10 +100,6 @@ export const companyBuyerProfileSchema = z
     pib: z.string().trim(),
     mb: z.string().trim(),
     postalCode: z.string().trim(),
-    bankAccount: z
-      .string()
-      .trim()
-      .refine((value) => normalizeBankAccount(value) !== null, "Unesite broj računa od 18 cifara."),
     confirmationEmail: confirmationEmailField,
   })
   .superRefine((value, ctx) => {

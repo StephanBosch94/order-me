@@ -6,7 +6,7 @@ import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { orderConfirmationEmail } from "@/lib/buyer";
 import { supplierTheme } from "@/lib/color";
-import { paymentLabel, storePath, unitLabel } from "@/lib/constants";
+import { confirmationShopMatches, paymentLabel, storePath, unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
 
@@ -19,7 +19,7 @@ export default async function ConfirmationPage({
 }) {
   const { slug, token } = await params;
   const view = await getCommerce().getOrderByToken(token);
-  if (!view || view.supplier.slug !== slug) notFound();
+  if (!view || !confirmationShopMatches(slug, view.supplier.slug)) notFound();
   const { order, supplier } = view;
   const emailNote =
     order.customerEmailStatus === "sent"

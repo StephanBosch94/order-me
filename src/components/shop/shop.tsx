@@ -10,9 +10,9 @@ import { BuyerMenu } from "@/components/shop/buyer-menu";
 import { PaymentMethodChoice } from "@/components/shop/checkout-kind";
 import { updateBuyerAccountAction, type BuyerAccountState } from "@/lib/actions/account";
 import { placeShopOrderAction } from "@/lib/actions/orders";
-import { isCompanyBuyer, normalizeBankAccount, orderConfirmationEmail } from "@/lib/buyer";
+import { isCompanyBuyer, orderConfirmationEmail } from "@/lib/buyer";
 import { supplierTheme } from "@/lib/color";
-import { isBusinessStore, productPath, quantityStep, storePath, unitLabel } from "@/lib/constants";
+import { confirmationPath, isBusinessStore, productPath, quantityStep, storePath, unitLabel } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
 import type { BuyerAccount, BuyerOrder, OrderedQuantity, Product, PublicCatalog } from "@/lib/data/types";
 import { belgradeMonthKey, currentBelgradeMonthKey, formatDateTime, formatQuantity, formatRsd, monthLabel } from "@/lib/format";
@@ -142,7 +142,7 @@ export function Shop({
 
   return (
     <div className="min-h-dvh bg-background pb-24" style={supplierTheme(catalog.supplier.brandColor)}>
-      <header className="relative z-20 border-b border-border bg-card">
+      <header className="sticky top-0 z-30 border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Link
             href={catalogHref}
@@ -433,21 +433,31 @@ function LastOrder({
   onRepeat: (items: BuyerOrder["items"]) => void;
 }) {
   if (!order) return null;
+  const href = confirmationPath(order.supplierSlug, order.confirmationToken);
+  const summary = (
+    <>
+      <h2 id="poslednja-naslov" className="text-sm font-semibold">
+        Poslednja porudžbina
+        <span className="ml-2 inline-flex flex-wrap items-center gap-2 align-middle font-normal">
+          <span className="font-medium text-foreground underline-offset-2 group-hover:underline">{order.number}</span>
+          <StatusBadge status={order.status} />
+          <span className="text-muted-foreground">· {formatRsd(order.totalPara)}</span>
+        </span>
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {order.items.map((item) => `${formatQuantity(item.quantity)} ${item.name}`).join(" · ")}
+      </p>
+    </>
+  );
   return (
     <section className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-border bg-card px-4 py-3" aria-labelledby="poslednja-naslov">
-      <div className="min-w-0">
-        <h2 id="poslednja-naslov" className="text-sm font-semibold">
-          Poslednja porudžbina
-          <span className="ml-2 inline-flex flex-wrap items-center gap-2 align-middle font-normal">
-            <span className="text-muted-foreground">{order.number}</span>
-            <StatusBadge status={order.status} />
-            <span className="text-muted-foreground">· {formatRsd(order.totalPara)}</span>
-          </span>
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {order.items.map((item) => `${formatQuantity(item.quantity)} ${item.name}`).join(" · ")}
-        </p>
-      </div>
+      {href ? (
+        <Link href={href} className="group min-w-0 flex-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          {summary}
+        </Link>
+      ) : (
+        <div className="min-w-0 flex-1">{summary}</div>
+      )}
       <Button type="button" size="sm" onClick={() => onRepeat(order.items)}>
         Naruči opet
       </Button>
@@ -471,27 +481,46 @@ function OrderList({
         <p className="mt-4 text-sm text-muted-foreground">Još nema porudžbina kod ove prodavnice.</p>
       ) : (
         <ul className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">
-          {orders.map((order) => (
-            <li key={order.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                  {order.number}
-                  <StatusBadge status={order.status} />
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(order.createdAt)}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
+          {orders.map((order) => {
+            const href = confirmationPath(order.supplierSlug, order.confirmationToken);
+            const summary = (
+              <>
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                    <span className="underline-offset-2 group-hover:underline">{order.number}</span>
+                    <StatusBadge status={order.status} />
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(order.createdAt)}</p>
+                </div>
                 <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
-                <button
-                  type="button"
-                  className="cursor-pointer text-sm font-medium text-primary hover:underline"
-                  onClick={() => onRepeat(order.items)}
-                >
-                  Naruči isto
-                </button>
-              </div>
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li key={order.id} className="flex flex-col sm:flex-row sm:items-stretch">
+                {href ? (
+                  <Link
+                    href={href}
+                    className="group flex min-w-0 flex-1 flex-col justify-center gap-2 px-4 py-3 outline-none hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    {summary}
+                  </Link>
+                ) : (
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    {summary}
+                  </div>
+                )}
+                <div className="flex items-center px-4 pb-3 sm:py-3 sm:pl-0">
+                  <button
+                    type="button"
+                    className="cursor-pointer text-sm font-medium text-primary hover:underline"
+                    onClick={() => onRepeat(order.items)}
+                  >
+                    Naruči isto
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -618,16 +647,6 @@ function AccountPanel({
           error={state.fieldErrors?.city}
           required={false}
         />
-        {company ? (
-          <Field
-            name="bankAccount"
-            label="Na račun"
-            autoComplete="off"
-            defaultValue={normalizeBankAccount(shown.bankAccount ?? "") ?? ""}
-            error={state.fieldErrors?.bankAccount}
-            required={false}
-          />
-        ) : null}
         <div className="flex gap-2">
           <Button type="submit" disabled={pending}>
             {pending ? "Čuvanje…" : "Sačuvaj"}
@@ -759,7 +778,6 @@ function Checkout({
   });
 
   const company = buyer && isCompanyBuyer(buyer) ? buyer : null;
-  const savedAccount = company ? normalizeBankAccount(company.bankAccount ?? "") : null;
 
   function rememberRetail(form: FormData) {
     setRetail({
@@ -772,7 +790,7 @@ function Checkout({
     setNotes(String(form.get("notes") ?? ""));
   }
 
-  async function place(input: { bankAccount?: string; paymentMethod?: string }) {
+  async function place(paymentMethod?: string) {
     if (pending) return;
     setPending(true);
     setMessage("");
@@ -784,7 +802,6 @@ function Checkout({
           notes,
           mb: company?.mb || companyExtra.mb,
           postalCode: company?.postalCode || companyExtra.postalCode,
-          bankAccount: input.bankAccount ?? savedAccount ?? "",
           honeypot,
           items,
         })
@@ -797,7 +814,7 @@ function Checkout({
           address: retail.address,
           city: retail.city,
           notes,
-          paymentMethod: input.paymentMethod,
+          paymentMethod,
           honeypot,
           items,
         });
@@ -805,7 +822,7 @@ function Checkout({
     if (!result.ok || !result.token) {
       setMessage(result.message ?? "Kupovina nije poslata.");
       setErrors(result.fieldErrors ?? {});
-      if (result.fieldErrors && !result.fieldErrors.paymentMethod && !result.fieldErrors.bankAccount) setPhase("details");
+      if (result.fieldErrors && !result.fieldErrors.paymentMethod) setPhase("details");
       return;
     }
     onSuccess(result.token);
@@ -820,7 +837,7 @@ function Checkout({
         </button>
         <h2 className="text-lg font-semibold">Kasa</h2>
         <p className="text-sm text-muted-foreground">
-          Firma mora da otvori nalog. Račun ostaje sačuvan i svaka porudžbina ide na njega. Plaćanje pouzećem nije dostupno.
+          Firma mora da otvori nalog. Plaćanje je na račun. Plaćanje pouzećem nije dostupno.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href={`/shop/${slug}/nalog`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
@@ -839,8 +856,7 @@ function Checkout({
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          const form = new FormData(event.currentTarget);
-          void place({ bankAccount: String(form.get("bankAccount") ?? savedAccount ?? "") });
+          void place();
         }}
         className="mx-auto max-w-xl space-y-4"
         noValidate
@@ -853,15 +869,8 @@ function Checkout({
         {message ? <Alert message={message} /> : null}
         <div className="rounded-lg border border-primary bg-card p-4 text-sm">
           <p className="font-medium">Na račun</p>
-          {savedAccount ? <p className="mt-1">{savedAccount}</p> : null}
           <p className="mt-1 text-muted-foreground">{company.businessName}</p>
         </div>
-        {savedAccount ? null : (
-          <div>
-            <Field name="bankAccount" label="Broj računa" autoComplete="off" error={errors.bankAccount} />
-            <p className="mt-1 text-xs text-muted-foreground">18 cifara. Ostaje na nalogu i svaka naredna porudžbina ide na njega.</p>
-          </div>
-        )}
         <p className="text-sm text-muted-foreground">Plaćanje pouzećem nije dostupno.</p>
         <Honeypot value={honeypot} onChange={setHoneypot} />
         <Button type="submit" className="w-full" disabled={pending}>
@@ -880,7 +889,7 @@ function Checkout({
             setErrors({ paymentMethod: "Izaberite način plaćanja." });
             return;
           }
-          void place({ paymentMethod });
+          void place(paymentMethod);
         }}
         className="mx-auto max-w-xl space-y-4"
         noValidate
@@ -919,7 +928,7 @@ function Checkout({
           Nazad na korpu
         </button>
         <h2 className="text-lg font-semibold">Kasa</h2>
-        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}. Porudžbina ide na sačuvani račun.</p>
+        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}. Plaćanje je na račun.</p>
         {message ? <Alert message={message} /> : null}
         <div className="rounded-lg border border-border bg-card p-4 text-sm">
           <p className="font-medium">{company.businessName}</p>

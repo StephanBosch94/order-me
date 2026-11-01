@@ -38,6 +38,7 @@ import type {
   OrderStatus,
   Organization,
   OrganizationInput,
+  OrganizationMember,
   Paginated,
   PlatformInvoice,
   PlatformSupplier,
@@ -100,6 +101,8 @@ function orderListItem(db: DemoDatabase, order: Order): OrderListItem {
     businessName: order.customerSnapshot.businessName,
     contactName: order.customerSnapshot.contactName,
     itemCount: db.orderItems.filter((item) => item.orderId === order.id).length,
+    paymentMethod: order.paymentMethod,
+    pib: order.customerSnapshot.pib,
   };
 }
 
@@ -338,6 +341,79 @@ export class DemoStore implements CommerceRepository {
       role: member.role,
       organization,
     };
+  }
+
+  async listMembers(organizationId: string): Promise<OrganizationMember[]> {
+    const db = await this.read();
+    return db.members
+      .filter((member) => member.organizationId === organizationId)
+      .flatMap((member) => {
+        const user = db.users.find((item) => item.id === member.userId);
+        if (!user) return [];
+        return [
+          {
+            id: member.id,
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+            role: member.role,
+            createdAt: member.createdAt,
+          },
+        ];
+      })
+      .sort(compareMembers);
+  }
+
+  async addStaffMember(
+    organizationId: string,
+    input: { name: string; email: string; password: string },
+  ): Promise<OrganizationMember> {
+    const passwordHash = await hashPassword(input.password);
+    const email = input.email.trim().toLowerCase();
+    const name = input.name.trim();
+    return this.exclusive(async (db) => {
+      if (!db.organizations.some((organization) => organization.id === organizationId)) {
+        throw new DataError("Prodavnica nije pronađena.", "not_found");
+      }
+      if (db.users.some((user) => user.email.toLowerCase() === email)) {
+        throw new DataError("Nalog sa ovom email adresom već postoji.", "conflict");
+      }
+      const now = new Date().toISOString();
+      const user: DemoUser = {
+        id: randomUUID(),
+        email,
+        name,
+        passwordHash,
+        kind: "supplier",
+        businessName: "",
+        phone: "",
+        address: "",
+        city: "",
+        pib: "",
+        mb: "",
+        postalCode: "",
+        bankAccount: "",
+        confirmationEmail: "",
+        createdAt: now,
+      };
+      const member: DemoMembership = {
+        id: randomUUID(),
+        organizationId,
+        userId: user.id,
+        role: "staff",
+        createdAt: now,
+      };
+      db.users.push(user);
+      db.members.push(member);
+      return {
+        id: member.id,
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        role: member.role,
+        createdAt: member.createdAt,
+      };
+    });
   }
 
   async resolveAccount(userId: string): Promise<SessionAccount | null> {
@@ -1161,6 +1237,11 @@ function platformSuppliers(db: DemoDatabase): PlatformSupplier[] {
         monthValuePara: usage.monthValuePara,
       };
     });
+}
+
+function compareMembers(a: OrganizationMember, b: OrganizationMember) {
+  if (a.role !== b.role) return a.role === "owner" ? -1 : 1;
+  return a.name.localeCompare(b.name, "sr");
 }
 
 function consumeRateLimit(db: DemoDatabase, key: string) {

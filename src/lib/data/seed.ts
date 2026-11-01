@@ -509,7 +509,7 @@ function boutiqueCatalog(organizationId: string, now: string) {
   return { categories: [earrings, necklaces, rings], items };
 }
 
-const MEAT_SHOP_NAME = "Mala mesara Pajić";
+const MEAT_SHOP_NAME = "Mesara Pajić";
 const MEAT_BRAND_COLOR = "#7a1f2b";
 const PACKAGING_SKUS = new Set([
   "KB-4030",
@@ -796,7 +796,7 @@ function ensureMeatShop(db: DemoDatabase) {
     changed = true;
   }
   const legacyName = organization.name === "Pult" || organization.name === "Gastro Supply";
-  if (legacyName) {
+  if (legacyName || organization.name === "Mala mesara Pajić") {
     organization.name = MEAT_SHOP_NAME;
     changed = true;
   }

@@ -21,7 +21,7 @@ test("demo catalog ids stay the same on every seed", async () => {
   assert.notEqual(vera?.id, ana?.id);
   assert.equal(first.members.some((item) => item.userId === vera?.id && item.organizationId === butik?.id && item.role === "owner"), true);
   const mesara = first.organizations.find((item) => item.slug === "mesara-pajic");
-  assert.equal(mesara?.name, "Mala mesara Pajić");
+  assert.equal(mesara?.name, "Mesara Pajić");
   assert.equal(mesara?.city, "Bački Petrovac");
   assert.equal(mesara?.brandColor, "#7a1f2b");
   assert.equal(mesara?.audience, "pravna");
@@ -109,7 +109,7 @@ test("an existing Pult database picks up the meat shop without a new generation"
   });
   const cancelled = db.orders.find((order) => order.organizationId === org.id && order.number.endsWith("-1008"));
   assert.equal(await ensureRetailDemo(db), true);
-  assert.equal(org.name, "Mala mesara Pajić");
+  assert.equal(org.name, "Mesara Pajić");
   assert.equal(org.city, "Bački Petrovac");
   assert.equal(org.address, "Jarmočna 20");
   assert.equal(org.brandColor, "#7a1f2b");
@@ -131,4 +131,24 @@ test("an existing Pult database picks up the meat shop without a new generation"
   assert.equal(db.products.find((item) => item.sku === "MA-ALK")?.name, ring);
   assert.equal(db.products.some((item) => item.sku === "BV-HALJ"), false);
   assert.equal(await ensureRetailDemo(db), false);
+});
+
+test("an existing Mala mesara Pajić name becomes Mesara Pajić without replacing a chosen name", async () => {
+  const db = await createSeedDatabase();
+  const org = db.organizations.find((item) => item.slug === "mesara-pajic");
+  assert.ok(org);
+  const productIds = db.products.filter((item) => item.organizationId === org.id).map((item) => item.id);
+  org.name = "Mala mesara Pajić";
+  assert.equal(await ensureRetailDemo(db), true);
+  assert.equal(org.name, "Mesara Pajić");
+  assert.equal(org.slug, "mesara-pajic");
+  assert.deepEqual(
+    db.products.filter((item) => item.organizationId === org.id).map((item) => item.id),
+    productIds,
+  );
+  assert.equal(await ensureRetailDemo(db), false);
+
+  org.name = "Porodična mesara";
+  assert.equal(await ensureRetailDemo(db), false);
+  assert.equal(org.name, "Porodična mesara");
 });

@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
-import { isBusinessStore, sellsToBusinesses, storePath } from "@/lib/constants";
+import { isBusinessStore, storePath } from "@/lib/constants";
 import { setupReady, storeSetup } from "@/lib/setup";
 import { formatDateTime, formatLongDate, formatRsd } from "@/lib/format";
 
@@ -69,16 +69,9 @@ export default async function DashboardPage() {
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Skorašnje porudžbine</h2>
-          <div className="flex gap-3">
-            {sellsToBusinesses(session.organization.audience) ? (
-              <Link href="/orders/firme" className="text-sm text-indigo-700 hover:underline">
-                Porudžbine firmi
-              </Link>
-            ) : null}
-            <Link href="/orders" className="text-sm text-indigo-700 hover:underline">
-              Sve porudžbine
-            </Link>
-          </div>
+          <Link href="/orders" className="text-sm text-indigo-700 hover:underline">
+            Sve porudžbine
+          </Link>
         </div>
         {data.recentOrders.length === 0 ? (
           <EmptyState title="Još nema porudžbina" body="Kada kupac pošalje prvu porudžbinu, pojaviće se u ovoj tabeli." />

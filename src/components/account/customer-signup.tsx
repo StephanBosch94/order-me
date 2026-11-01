@@ -11,7 +11,7 @@ export function CustomerSignup({ catalog }: { catalog: PublicCatalog }) {
   return (
     <AuthShell
       title="Otvorite nalog"
-      subtitle={`Nalog firme kod ${catalog.supplier.name}. Račun ostaje sačuvan i svaka porudžbina ide na njega.`}
+      subtitle={`Nalog firme kod ${catalog.supplier.name}. Porudžbine se plaćaju na račun.`}
       store={{
         name: catalog.supplier.name,
         logoUrl: catalog.supplier.logoUrl,

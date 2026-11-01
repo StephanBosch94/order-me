@@ -4,7 +4,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireBuyerSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
-import { storePath } from "@/lib/constants";
+import { confirmationPath, storePath } from "@/lib/constants";
 import { formatDateTime, formatRsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Kupac" };
