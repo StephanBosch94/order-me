@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { isCompanyBuyer } from "@/lib/buyer";
-import { createSeedDatabase } from "@/lib/data/seed";
+import { createSeedDatabase, ensureRetailDemo } from "@/lib/data/seed";
 
 test("demo catalog ids stay the same on every seed", async () => {
   const first = await createSeedDatabase();
@@ -20,7 +20,25 @@ test("demo catalog ids stay the same on every seed", async () => {
   assert.equal(vera?.kind, "supplier");
   assert.notEqual(vera?.id, ana?.id);
   assert.equal(first.members.some((item) => item.userId === vera?.id && item.organizationId === butik?.id && item.role === "owner"), true);
-  assert.equal(first.organizations.find((item) => item.slug === "gastro-supply")?.audience, "pravna");
+  const mesara = first.organizations.find((item) => item.slug === "gastro-supply");
+  assert.equal(mesara?.name, "Mala mesara Pajić");
+  assert.equal(mesara?.city, "Bački Petrovac");
+  assert.equal(mesara?.brandColor, "#7a1f2b");
+  assert.equal(mesara?.audience, "pravna");
+  assert.equal(mesara?.slug, "gastro-supply");
+  const meat = first.products.filter((product) => product.organizationId === mesara?.id && product.active);
+  assert.equal(meat.length, 11);
+  assert.equal(
+    meat.every((product) => product.unit !== "kilogram" || product.minQuantity === 0.5),
+    true,
+  );
+  const cancelled = first.orders.find((order) => order.organizationId === mesara?.id && order.number.endsWith("-1008"));
+  assert.equal(cancelled?.status, "otkazana");
+  const dunav = first.orders.find((order) => order.organizationId === mesara?.id && order.number.endsWith("-1001"));
+  assert.equal(
+    first.orderItems.some((item) => item.orderId === dunav?.id && item.name === "Petrovački kulen"),
+    true,
+  );
   assert.equal(butik?.audience, "fizicka");
 
   const marko = first.users.find((item) => item.email === "marko@restorandunav.rs");
@@ -43,4 +61,55 @@ test("demo catalog ids stay the same on every seed", async () => {
     first.orders.some((order) => order.buyerUserId === jovana?.id && order.number.endsWith("-0901")),
     true,
   );
+});
+
+test("an existing Pult database picks up the meat shop without a new generation", async () => {
+  const db = await createSeedDatabase();
+  const org = db.organizations.find((item) => item.slug === "gastro-supply");
+  assert.ok(org);
+  org.name = "Pult";
+  org.city = "Novi Sad";
+  org.address = "Bulevar oslobođenja 88";
+  org.brandColor = "#14532d";
+  const dress = db.products.find((item) => item.sku === "BV-HALJ")?.name;
+  for (const item of db.orderItems.filter((entry) => entry.organizationId === org.id)) {
+    item.sku = "PC-025";
+    item.name = "Papirna čaša 2,5 dl";
+    item.productId = "stara-casa";
+  }
+  db.products.push({
+    id: "stara-casa",
+    organizationId: org.id,
+    categoryId: null,
+    name: "Papirna čaša 2,5 dl",
+    sku: "PC-025",
+    description: "",
+    unit: "komad",
+    pricePara: 450,
+    salePricePara: null,
+    imageUrl: null,
+    imageUrls: [],
+    active: true,
+    minQuantity: 100,
+    createdAt: org.createdAt,
+    updatedAt: org.createdAt,
+  });
+  const cancelled = db.orders.find((order) => order.organizationId === org.id && order.number.endsWith("-1008"));
+  assert.equal(await ensureRetailDemo(db), true);
+  assert.equal(org.name, "Mala mesara Pajić");
+  assert.equal(org.city, "Bački Petrovac");
+  assert.equal(org.address, "Jarmočna 20");
+  assert.equal(org.brandColor, "#7a1f2b");
+  assert.equal(org.audience, "pravna");
+  assert.equal(db.products.some((item) => item.organizationId === org.id && item.sku === "PC-025"), false);
+  assert.equal(db.products.filter((item) => item.organizationId === org.id && item.active).length, 11);
+  assert.equal(db.orderItems.some((item) => item.organizationId === org.id && item.sku === "PC-025"), false);
+  assert.equal(cancelled?.status, "otkazana");
+  for (const order of db.orders.filter((item) => item.organizationId === org.id)) {
+    const lines = db.orderItems.filter((item) => item.orderId === order.id);
+    assert.equal(lines.reduce((sum, item) => sum + item.lineTotalPara, 0), order.totalPara);
+    assert.equal(lines.every((item) => item.name !== "Papirna čaša 2,5 dl"), true);
+  }
+  assert.equal(db.products.find((item) => item.sku === "BV-HALJ")?.name, dress);
+  assert.equal(await ensureRetailDemo(db), false);
 });
