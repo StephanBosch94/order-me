@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ConfirmOrderButton } from "@/components/admin/order-actions";
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,8 @@ export function OrdersBrowser({
   publicPath,
   emptyTitle,
   emptyBody,
+  emptyHref,
+  emptyLabel,
 }: {
   result: Paginated<OrderListItem>;
   filters: OrderListFilters;
@@ -52,6 +55,8 @@ export function OrdersBrowser({
   publicPath: string;
   emptyTitle: string;
   emptyBody: string;
+  emptyHref?: string;
+  emptyLabel?: string;
 }) {
   const pages = Math.max(Math.ceil(result.total / result.pageSize), 1);
   const { q, status, from, to, sort } = filters;
@@ -87,8 +92,8 @@ export function OrdersBrowser({
           title={emptyTitle}
           body={emptyBody}
           action={
-            <Link href={publicPath} target="_blank">
-              <Button variant="secondary">Pogledaj stranicu za poručivanje</Button>
+            <Link href={emptyHref ?? publicPath} target={emptyHref ? undefined : "_blank"}>
+              <Button variant="secondary">{emptyLabel ?? "Pogledaj stranicu za poručivanje"}</Button>
             </Link>
           }
         />
@@ -96,15 +101,22 @@ export function OrdersBrowser({
         <>
           <div className="space-y-3 md:hidden">
             {result.items.map((order) => (
-              <Link key={order.id} href={`/orders/${order.id}`} className="block rounded-lg border border-border bg-card p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium">{order.number}</span>
-                  <StatusBadge status={order.status} />
-                </div>
-                <p className="mt-2 text-sm">{order.businessName}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
-                <p className="mt-2 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</p>
-              </Link>
+              <div key={order.id} className="relative rounded-lg border border-border bg-card p-4">
+                <Link href={`/orders/${order.id}`} className="block after:absolute after:inset-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{order.number}</span>
+                    <StatusBadge status={order.status} />
+                  </div>
+                  <p className="mt-2 text-sm">{order.businessName}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
+                  <p className="mt-2 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</p>
+                </Link>
+                {order.status === "nova" ? (
+                  <div className="relative z-10 mt-3">
+                    <ConfirmOrderButton orderId={order.id} />
+                  </div>
+                ) : null}
+              </div>
             ))}
           </div>
           <div className="hidden overflow-hidden rounded-lg border border-border bg-card md:block">
@@ -113,7 +125,6 @@ export function OrdersBrowser({
                 <tr>
                   <th className="px-4 py-3 font-medium">Broj</th>
                   <th className="px-4 py-3 font-medium">Kupac</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Stavke</th>
                   <th className="px-4 py-3 text-right font-medium">Ukupno</th>
                   <th className="px-4 py-3 font-medium">Datum</th>
@@ -121,18 +132,25 @@ export function OrdersBrowser({
               </thead>
               <tbody>
                 {result.items.map((order) => (
-                  <tr key={order.id} className="border-b border-border last:border-0">
+                  <tr key={order.id} className="relative border-b border-border last:border-0">
                     <td className="px-4 py-3">
-                      <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
-                        {order.number}
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/orders/${order.id}`} className="font-medium hover:underline after:absolute after:inset-0">
+                          {order.number}
+                        </Link>
+                        <span className="relative z-10">
+                          <StatusBadge status={order.status} />
+                        </span>
+                        {order.status === "nova" ? (
+                          <span className="relative z-10">
+                            <ConfirmOrderButton orderId={order.id} />
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div>{order.businessName}</div>
                       <div className="text-muted-foreground">{order.contactName}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={order.status} />
                     </td>
                     <td className="px-4 py-3 tabular-nums">{order.itemCount}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatRsd(order.totalPara)}</td>

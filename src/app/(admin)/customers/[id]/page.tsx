@@ -41,15 +41,15 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               {customer.orders.map((order) => (
                 <li key={order.id} className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 text-sm last:border-0">
                   <div>
-                    <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
-                      {order.number}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
+                        {order.number}
+                      </Link>
+                      <StatusBadge status={order.status} />
+                    </div>
                     <p className="text-muted-foreground">{formatDateTime(order.createdAt)}</p>
                   </div>
-                  <div className="text-right">
-                    <StatusBadge status={order.status} />
-                    <p className="mt-1 tabular-nums">{formatRsd(order.totalPara)}</p>
-                  </div>
+                  <p className="tabular-nums">{formatRsd(order.totalPara)}</p>
                 </li>
               ))}
             </ul>

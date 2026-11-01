@@ -39,6 +39,8 @@ export default async function OrdersPage({
           ? "Porudžbine firmi su na posebnoj strani. Ovde ostaju ostale porudžbine."
           : "Promenite pretragu ili sačekajte da kupac pošalje porudžbinu sa vaše javne stranice."
       }
+      emptyHref={separateCompanyOrders ? "/orders/firme" : undefined}
+      emptyLabel={separateCompanyOrders ? "Porudžbine firmi" : undefined}
     />
   );
 }

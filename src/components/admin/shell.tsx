@@ -50,6 +50,18 @@ function PoweredBy() {
   );
 }
 
+function brandMarkColor(organization: { slug: string; name: string; brandColor: string | null }) {
+  if (!organization.brandColor) return null;
+  if (organization.slug === "mercis-atelier" || organization.name === "Mercis Atelier") return null;
+  return organization.brandColor;
+}
+
+function logoContact(session: AccountContext) {
+  const email = session.email.trim();
+  const phone = session.organization.phone.trim();
+  return [email, phone].filter(Boolean).join(" · ");
+}
+
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href;
   if (href === "/orders") {
@@ -71,6 +83,8 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const brandMark = brandMarkColor(session.organization);
+  const contact = logoContact(session);
   const showGuide = !setupReady(setup);
   const visibleItems = items.filter(
     (item) => !item.business || sellsToBusinesses(session.organization.audience),
@@ -82,7 +96,7 @@ export function AdminShell({
 
   function renderNav() {
     return (
-      <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Glavna navigacija">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label="Glavna navigacija">
         {visibleItems.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
@@ -123,23 +137,21 @@ export function AdminShell({
               <SupplierLogo name={session.organization.name} logoUrl={session.organization.logoUrl} />
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 truncate text-sm font-medium">
-                  {session.organization.brandColor ? (
+                  {brandMark ? (
                     <span
                       aria-hidden="true"
                       className="size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: session.organization.brandColor }}
+                      style={{ backgroundColor: brandMark }}
                     />
                   ) : null}
                   <span className="truncate">{session.organization.name}</span>
                 </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  Prodavnica
-                </p>
+                {contact ? <p className="truncate text-xs text-muted-foreground">{contact}</p> : null}
               </div>
             </Link>
           </div>
           {renderNav()}
-          <div className="mt-auto border-t border-border p-3">
+          <div className="mt-auto shrink-0 border-t border-border p-3">
             <p className="truncate px-2 text-sm font-medium">{session.name}</p>
             <p className="truncate px-2 text-xs text-muted-foreground">{session.email}</p>
             <LogoutButton className="mt-2 flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 hover:bg-zinc-100" />

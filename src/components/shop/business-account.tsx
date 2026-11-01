@@ -3,10 +3,10 @@
 import Link from "next/link";
 
 import { StoreAccountLinks } from "@/components/shop/account-links";
-import { statusLabel } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import type { BuyerAccount, BuyerOrder } from "@/lib/data/types";
 import { formatDateTime, formatRsd } from "@/lib/format";
-import { Button } from "@/components/ui/button";
 
 export function BusinessAccount({
   slug,
@@ -68,11 +68,14 @@ export function BusinessAccount({
           {orders.map((order) => (
             <li key={order.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <Link href={`/s/${slug}/potvrda/${order.confirmationToken}`} className="text-sm font-medium hover:underline">
-                  {order.number}
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link href={`/s/${slug}/potvrda/${order.confirmationToken}`} className="text-sm font-medium hover:underline">
+                    {order.number}
+                  </Link>
+                  <StatusBadge status={order.status} />
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  {formatDateTime(order.createdAt)} · {statusLabel(order.status)} · {order.itemCount} {itemWord(order.itemCount)}
+                  {formatDateTime(order.createdAt)} · {order.itemCount} {itemWord(order.itemCount)}
                 </p>
               </div>
               <div className="flex items-center gap-3">

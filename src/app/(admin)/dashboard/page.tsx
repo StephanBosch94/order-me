@@ -89,7 +89,6 @@ export default async function DashboardPage() {
                 <tr>
                   <th className="px-4 py-3 font-medium">Broj</th>
                   <th className="px-4 py-3 font-medium">Kupac</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 text-right font-medium">Ukupno</th>
                   <th className="hidden px-4 py-3 font-medium sm:table-cell">Datum</th>
                 </tr>
@@ -98,14 +97,14 @@ export default async function DashboardPage() {
                 {data.recentOrders.map((order) => (
                   <tr key={order.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3">
-                      <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
-                        {order.number}
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
+                          {order.number}
+                        </Link>
+                        <StatusBadge status={order.status} />
+                      </div>
                     </td>
                     <td className="px-4 py-3">{order.businessName}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={order.status} />
-                    </td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatRsd(order.totalPara)}</td>
                     <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">{formatDateTime(order.createdAt)}</td>
                   </tr>

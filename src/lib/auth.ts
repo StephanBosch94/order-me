@@ -7,6 +7,7 @@ import { getDataMode } from "@/lib/config";
 import { storePath } from "@/lib/constants";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
 import type { AccountContext, BuyerAccount, PlatformAccount, SessionAccount } from "@/lib/data/types";
+import { readDemoSession } from "@/lib/session-token";
 
 export const SESSION_COOKIE = "poruci_session";
 
@@ -55,7 +56,7 @@ export async function getSession(): Promise<SessionAccount | null> {
   if (getDataMode() === "demo") {
     const token = (await cookies()).get(SESSION_COOKIE)?.value;
     if (!token) return null;
-    const userId = await getDemoIdentity().getUserIdBySession(token);
+    const userId = readDemoSession(token) ?? (await getDemoIdentity().getUserIdBySession(token));
     if (!userId) return null;
     return getDemoIdentity().resolveAccount(userId);
   }
@@ -101,6 +102,6 @@ export async function setDemoSession(token: string) {
 export async function clearDemoSession() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (token) await getDemoIdentity().deleteSession(token);
+  if (token && !readDemoSession(token)) await getDemoIdentity().deleteSession(token);
   store.delete(SESSION_COOKIE);
 }

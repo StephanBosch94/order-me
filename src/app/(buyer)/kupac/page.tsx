@@ -64,15 +64,16 @@ export default async function BuyerHomePage() {
                     href={order.supplierSlug ? `/s/${order.supplierSlug}/potvrda/${order.confirmationToken}` : "/kupac"}
                     className="min-w-0 flex-1"
                   >
-                    <p className="text-sm font-medium">
-                      {order.number} · {order.supplierName}
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                      <span>{order.number}</span>
+                      <StatusBadge status={order.status} />
+                      <span className="font-normal text-muted-foreground">· {order.supplierName}</span>
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {formatDateTime(order.createdAt)} · {order.itemCount} {itemWord(order.itemCount)}
                     </p>
                   </Link>
                   <div className="flex items-center gap-3">
-                    <StatusBadge status={order.status} />
                     <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
                     {order.supplierSlug ? (
                       <Link href={`${storePath(order.supplierSlug)}?ponovi=${order.id}`} className="text-sm font-medium text-primary hover:underline">

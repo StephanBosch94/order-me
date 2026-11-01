@@ -25,15 +25,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       </Link>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">{order.number}</h1>
+          <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold tracking-tight">
+            {order.number}
+            <StatusBadge status={order.status} />
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={order.status} />
-          <a href={`/api/orders/${order.id}/pdf`} className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium">
-            Preuzmi potvrdu
-          </a>
-        </div>
+        <a href={`/api/orders/${order.id}/pdf`} className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium">
+          Preuzmi potvrdu
+        </a>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">

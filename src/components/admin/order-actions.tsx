@@ -49,8 +49,28 @@ export function OrderStatusForm({ orderId, status }: { orderId: string; status: 
           Otkazati porudžbinu? Promena se beleži u istoriji statusa.
         </p>
       ) : null}
-      <div className="flex gap-2">
-        <Button onClick={save} disabled={pending || value === status}>
+      <div className="flex flex-wrap gap-2">
+        {status === "nova" ? (
+          <Button
+            disabled={pending}
+            onClick={() => {
+              setValue("potvrdjena");
+              startTransition(async () => {
+                const result = await updateOrderStatusAction(orderId, "potvrdjena");
+                setConfirming(false);
+                if (!result.ok) {
+                  toast.error(result.message ?? "Porudžbina nije potvrđena.");
+                  return;
+                }
+                toast.success("Porudžbina je potvrđena.");
+                router.refresh();
+              });
+            }}
+          >
+            {pending ? "Potvrda…" : "Potvrdi porudžbinu"}
+          </Button>
+        ) : null}
+        <Button onClick={save} disabled={pending || value === status} variant={status === "nova" ? "secondary" : "default"}>
           {pending ? "Čuvanje…" : confirming ? "Potvrdi otkazivanje" : "Sačuvaj status"}
         </Button>
         {confirming ? (
@@ -60,6 +80,32 @@ export function OrderStatusForm({ orderId, status }: { orderId: string; status: 
         ) : null}
       </div>
     </div>
+  );
+}
+
+export function ConfirmOrderButton({ orderId }: { orderId: string }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  return (
+    <Button
+      size="sm"
+      disabled={pending}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        startTransition(async () => {
+          const result = await updateOrderStatusAction(orderId, "potvrdjena");
+          if (!result.ok) {
+            toast.error(result.message ?? "Porudžbina nije potvrđena.");
+            return;
+          }
+          toast.success("Porudžbina je potvrđena.");
+          router.refresh();
+        });
+      }}
+    >
+      {pending ? "Potvrda…" : "Potvrdi"}
+    </Button>
   );
 }
 

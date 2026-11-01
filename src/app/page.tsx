@@ -4,15 +4,6 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
-const gallery = [
-  { src: "/products/ma-mindjuse.svg", name: "Minđuše alke", href: "/shop/mercis-atelier" },
-  { src: "/products/ma-ogrlica.svg", name: "Ogrlica Love", href: "/shop/mercis-atelier" },
-  { src: "/products/ma-prsten.svg", name: "Prsten sa inicijalom", href: "/shop/mercis-atelier" },
-  { src: "/products/mp-suvo.jpg", name: "Petrovački kulen", href: "/shop/mesara-pajic" },
-  { src: "/products/mp-kobasica.jpg", name: "Petrovačka kobasica", href: "/shop/mesara-pajic" },
-  { src: "/products/mp-cvarci.jpg", name: "Čvarci", href: "/shop/mesara-pajic" },
-];
-
 export const metadata: Metadata = {
   title: { absolute: "Prodora" },
   description:
@@ -136,24 +127,6 @@ export default function HomePage() {
               </DemoStoreLink>
             </div>
           </div>
-        </section>
-
-        <section aria-label="Iz demo kataloga" className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <h2 className="max-w-3xl text-3xl leading-tight font-semibold tracking-[-0.03em] text-[#425466] sm:text-4xl">
-            Iz demo kataloga. Prave fotografije, cene u dinarima.
-          </h2>
-          <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {gallery.map((item) => (
-              <li key={item.name}>
-                <DemoStoreLink href={item.href} className="group block">
-                  <span className="block overflow-hidden rounded-xl border border-[#e6ebf1]">
-                    <img src={item.src} alt="" className="aspect-[3/4] w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
-                  </span>
-                  <span className="mt-2 block text-sm font-medium">{item.name}</span>
-                </DemoStoreLink>
-              </li>
-            ))}
-          </ul>
         </section>
 
         <section id="prodavnica" className="scroll-mt-20 border-t border-[#e6ebf1]">

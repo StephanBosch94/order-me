@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { isCompanyBuyer } from "@/lib/buyer";
-import { statusLabel } from "@/lib/constants";
 import type { BuyerAccount, BuyerOrder } from "@/lib/data/types";
 import { formatRsd } from "@/lib/format";
 
@@ -79,9 +79,9 @@ export function BuyerMenu({
                   {orders.map((order) => (
                     <li key={order.id} className="border-b border-border px-3 py-2.5 last:border-b-0">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{order.number}</p>
-                          <p className="text-xs text-muted-foreground">{statusLabel(order.status)}</p>
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                          <p className="text-sm font-medium">{order.number}</p>
+                          <StatusBadge status={order.status} />
                         </div>
                         <p className="shrink-0 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</p>
                       </div>

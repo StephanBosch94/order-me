@@ -438,8 +438,10 @@ function LastOrder({
       <div className="min-w-0">
         <h2 id="poslednja-naslov" className="text-sm font-semibold">
           Poslednja porudžbina
-          <span className="ml-2 font-normal text-muted-foreground">
-            {order.number} · {formatRsd(order.totalPara)}
+          <span className="ml-2 inline-flex flex-wrap items-center gap-2 align-middle font-normal">
+            <span className="text-muted-foreground">{order.number}</span>
+            <StatusBadge status={order.status} />
+            <span className="text-muted-foreground">· {formatRsd(order.totalPara)}</span>
           </span>
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -472,11 +474,13 @@ function OrderList({
           {orders.map((order) => (
             <li key={order.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-sm font-medium">{order.number}</p>
+                <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                  {order.number}
+                  <StatusBadge status={order.status} />
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(order.createdAt)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <StatusBadge status={order.status} />
                 <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
                 <button
                   type="button"

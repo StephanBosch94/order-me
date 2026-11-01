@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SupplierLogo } from "@/components/brand/supplier-logo";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { orderConfirmationEmail } from "@/lib/buyer";
 import { supplierTheme } from "@/lib/color";
 import { paymentLabel, storePath, unitLabel } from "@/lib/constants";
@@ -36,7 +37,11 @@ export default async function ConfirmationPage({
         <p className="text-sm font-medium">{supplier.name}</p>
       </div>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-        Porudžbina {order.number} je primljena
+        <span className="inline-flex flex-wrap items-center gap-2 align-middle">
+          Porudžbina {order.number}
+          <StatusBadge status={order.status} />
+        </span>{" "}
+        je primljena
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
       <p className="mt-4 text-sm">{emailNote}</p>

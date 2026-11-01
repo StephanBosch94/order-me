@@ -9,6 +9,7 @@ import { getCommerce, getDemoIdentity } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import { safeNextPath, slugCandidate } from "@/lib/text";
 import { normalizeBankAccount, normalizeMb, normalizePostalCode } from "@/lib/buyer";
+import { signDemoSession } from "@/lib/session-token";
 import { fieldErrors, loginSchema, signupSchema } from "@/lib/validators";
 
 export type AuthState = {
@@ -33,8 +34,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
     if (!user) return { error: "Prijava nije uspela. Proverite email i lozinku." };
     const account = await getDemoIdentity().resolveAccount(user.id);
     if (!account) return { error: "Nalog nije završen. Završite registraciju." };
-    const token = await getDemoIdentity().createSession(user.id);
-    await setDemoSession(token);
+    await setDemoSession(signDemoSession(user.id));
     redirect(await landingPath(account, nextPath));
   }
 
@@ -123,8 +123,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           audience: parsed.data.audience,
         });
       }
-      const token = await getDemoIdentity().createSession(user.id);
-      await setDemoSession(token);
+      await setDemoSession(signDemoSession(user.id));
       redirect(parsed.data.kind === "buyer" ? await buyerDestination(requestedNext, user.id) : "/dashboard");
     }
 
