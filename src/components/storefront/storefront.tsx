@@ -168,10 +168,10 @@ export function Storefront({
       {showSwitch ? <AudienceSwitch slug={catalog.supplier.slug} mode="pravna" /> : null}
       {catalog.supplier.slug === "gastro-supply" ? (
         <div className="relative h-52 overflow-hidden sm:h-64">
-          <img src="/marketing/kuhinja.jpg" alt="" className="size-full object-cover" />
+          <img src="/products/mp-suvo.jpg" alt="" className="size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
           <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
-            Čaše, kutije, folija i sredstva za kuhinju.
+            Petrovački kulen, kobasice i suvo meso iz Bačkog Petrovca.
           </p>
         </div>
       ) : null}

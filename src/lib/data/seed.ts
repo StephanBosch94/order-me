@@ -288,89 +288,15 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     }
   };
 
-  addOrder({
-    customer: "Restoran Dunav",
-    lines: [
-      ["PC-025", 500],
-      ["PK-CAP", 500],
-      ["SV-3333", 12],
-    ],
-    status: "nova",
-    createdAt: ago(0, 2),
-    notes: "Molimo isporuku pre 11 časova.",
-  });
-  addOrder({
-    customer: "Kafić Luna",
-    lines: [
-      ["KF-1KG", 2],
-      ["SC-1KG", 3],
-      ["PC-040", 200],
-    ],
-    status: "nova",
-    createdAt: ago(1, 3),
-    notes: "",
-  });
-  addOrder({
-    customer: "Market 22",
-    lines: [
-      ["KB-4030", 40],
-      ["KS-RUC", 100],
-    ],
-    status: "potvrdjena",
-    createdAt: ago(2, 5),
-    notes: "Dostava na magacin, ulaz iz dvorišta.",
-  });
-  addOrder({
-    customer: "Pekara Zrno",
-    lines: [
-      ["KB-4030", 80],
-      ["KS-RUC", 200],
-      ["PF-300", 4],
-    ],
-    status: "potvrdjena",
-    createdAt: ago(3, 4),
-    notes: "",
-  });
-  addOrder({
-    customer: "Market 22",
-    lines: [
-      ["OD-5L", 2],
-      ["RK-NIT", 3],
-      ["TS-1L", 6],
-    ],
-    status: "u_pripremi",
-    createdAt: ago(5, 2),
-    notes: "Rukavice u veličini M.",
-  });
-  addOrder({
-    customer: "Restoran Dunav",
-    lines: [
-      ["AF-50", 6],
-      ["SV-3333", 20],
-      ["UB-2SL", 10],
-    ],
-    status: "isporucena",
-    createdAt: ago(10, 6),
-    notes: "",
-  });
-  addOrder({
-    customer: "Kafić Luna",
-    lines: [
-      ["PC-025", 300],
-      ["PK-CAP", 300],
-      ["KF-1KG", 1.5],
-    ],
-    status: "isporucena",
-    createdAt: ago(16, 1),
-    notes: "",
-  });
-  addOrder({
-    customer: "Pekara Zrno",
-    lines: [["KS-RUC", 50]],
-    status: "otkazana",
-    createdAt: ago(20, 4),
-    notes: "Kupac je otkazao jer je stigla druga isporuka.",
-  });
+  for (const spec of GASTRO_DEMO_ORDERS) {
+    addOrder({
+      customer: spec.customer,
+      lines: spec.lines,
+      status: spec.status,
+      createdAt: ago(spec.days, spec.hours),
+      notes: spec.notes,
+    });
+  }
 
   const database: DemoDatabase = {
     version: 1,
@@ -426,20 +352,17 @@ const DEMO_SALE_PRICES: Record<string, number> = {
 };
 
 const DEMO_PRODUCT_PHOTOS: Record<string, string> = {
-  "KB-4030": "/products/KB-4030.jpg",
-  "PC-025": "/products/PC-025.jpg",
-  "PC-040": "/products/PC-040.jpg",
-  "PK-CAP": "/products/PK-CAP.jpg",
-  "SV-3333": "/products/SV-3333.jpg",
-  "UB-2SL": "/products/UB-2SL.jpg",
-  "KS-RUC": "/products/KS-RUC.jpg",
-  "AF-50": "/products/AF-50.jpg",
-  "PF-300": "/products/PF-300.jpg",
-  "OD-5L": "/products/OD-5L.jpg",
-  "TS-1L": "/products/TS-1L.jpg",
-  "RK-NIT": "/products/RK-NIT.jpg",
-  "SC-1KG": "/products/SC-1KG.jpg",
-  "KF-1KG": "/products/KF-1KG.jpg",
+  "MP-BUT": "/products/mp-sveze.jpg",
+  "MP-VRT": "/products/mp-sveze.jpg",
+  "MP-PLC": "/products/mp-sveze.jpg",
+  "MP-SSL": "/products/mp-sveze.jpg",
+  "MP-PKO": "/products/mp-kobasica.jpg",
+  "MP-SKOB": "/products/mp-kobasica.jpg",
+  "MP-KUL": "/products/mp-suvo.jpg",
+  "MP-PEC": "/products/mp-suvo.jpg",
+  "MP-SVR": "/products/mp-suvo.jpg",
+  "MP-DSL": "/products/mp-suvo.jpg",
+  "MP-CVA": "/products/mp-cvarci.jpg",
   "BV-KAPUT": "/products/bv-kaput.jpg",
   "BV-HALJ": "/products/bv-haljina.jpg",
   "BV-KOS": "/products/bv-kosulja.jpg",
@@ -455,20 +378,17 @@ const DEMO_GALLERIES: Record<string, string[]> = {
   "BV-MAJ": ["/products/bv-majica.jpg", "/products/bv-majica-2.jpg", "/products/bv-majica-3.jpg"],
   "BV-JAK": ["/products/bv-jakna.jpg", "/products/bv-jakna-2.jpg", "/products/bv-jakna-3.jpg"],
   "BV-MIN": ["/products/bv-mindjuse.jpg", "/products/bv-mindjuse-2.jpg", "/products/bv-mindjuse-3.jpg"],
-  "PC-025": ["/products/PC-025.jpg", "/products/pc-025-2.jpg", "/products/pc-025-3.jpg"],
-  "PC-040": ["/products/PC-040.jpg", "/products/pc-040-2.jpg", "/products/pc-040-3.jpg"],
-  "KB-4030": ["/products/KB-4030.jpg", "/products/kb-4030-2.jpg", "/products/kb-4030-3.jpg"],
-  "AF-50": ["/products/AF-50.jpg", "/products/af-50-2.jpg", "/products/af-50-3.jpg"],
-  "KF-1KG": ["/products/KF-1KG.jpg", "/products/kf-1kg-2.jpg", "/products/kf-1kg-3.jpg"],
-  "SV-3333": ["/products/SV-3333.jpg", "/products/sv-3333-2.jpg", "/products/sv-3333-3.jpg"],
-  "PK-CAP": ["/products/PK-CAP.jpg", "/products/pk-cap-2.jpg"],
-  "KS-RUC": ["/products/KS-RUC.jpg", "/products/ks-ruc-2.jpg"],
-  "PF-300": ["/products/PF-300.jpg", "/products/pf-300-2.jpg"],
-  "UB-2SL": ["/products/UB-2SL.jpg", "/products/ub-2sl-2.jpg"],
-  "OD-5L": ["/products/OD-5L.jpg", "/products/od-5l-2.jpg"],
-  "TS-1L": ["/products/TS-1L.jpg", "/products/ts-1l-2.jpg"],
-  "RK-NIT": ["/products/RK-NIT.jpg", "/products/rk-nit-2.jpg"],
-  "SC-1KG": ["/products/SC-1KG.jpg", "/products/sc-1kg-2.jpg"],
+  "MP-BUT": ["/products/mp-sveze.jpg"],
+  "MP-VRT": ["/products/mp-sveze.jpg"],
+  "MP-PLC": ["/products/mp-sveze.jpg"],
+  "MP-SSL": ["/products/mp-sveze.jpg"],
+  "MP-PKO": ["/products/mp-kobasica.jpg"],
+  "MP-SKOB": ["/products/mp-kobasica.jpg"],
+  "MP-KUL": ["/products/mp-suvo.jpg"],
+  "MP-PEC": ["/products/mp-suvo.jpg"],
+  "MP-SVR": ["/products/mp-suvo.jpg"],
+  "MP-DSL": ["/products/mp-suvo.jpg"],
+  "MP-CVA": ["/products/mp-cvarci.jpg"],
 };
 
 function galleryFor(sku: string, fallback: string) {
@@ -588,18 +508,370 @@ function boutiqueCatalog(organizationId: string, now: string) {
   return { categories: [clothing, jewelry], items };
 }
 
-function renameSupplyHouse(db: DemoDatabase) {
+const MEAT_SHOP_NAME = "Mala mesara Pajić";
+const MEAT_BRAND_COLOR = "#7a1f2b";
+const PACKAGING_SKUS = new Set([
+  "KB-4030",
+  "PC-025",
+  "PC-040",
+  "PK-CAP",
+  "SV-3333",
+  "UB-2SL",
+  "KS-RUC",
+  "AF-50",
+  "PF-300",
+  "OD-5L",
+  "TS-1L",
+  "RK-NIT",
+  "SC-1KG",
+  "KF-1KG",
+]);
+
+const MEAT_PRODUCTS: Array<{
+  sku: string;
+  name: string;
+  category: "Sveže meso" | "Kobasice" | "Suhomesnato";
+  unit: Unit;
+  pricePara: number;
+  minQuantity: number;
+  description: string;
+}> = [
+  {
+    sku: "MP-BUT",
+    name: "Svinjski but",
+    category: "Sveže meso",
+    unit: "kilogram",
+    pricePara: 78_000,
+    minQuantity: 0.5,
+    description: "Svež svinjski but za pečenje i kuvanje.",
+  },
+  {
+    sku: "MP-VRT",
+    name: "Svinjski vrat",
+    category: "Sveže meso",
+    unit: "kilogram",
+    pricePara: 92_000,
+    minQuantity: 0.5,
+    description: "Svež vrat, za roštilj i dugo pečenje.",
+  },
+  {
+    sku: "MP-PLC",
+    name: "Svinjska plećka",
+    category: "Sveže meso",
+    unit: "kilogram",
+    pricePara: 69_000,
+    minQuantity: 0.5,
+    description: "Sveža plećka od svinja iz sopstvenog uzgoja.",
+  },
+  {
+    sku: "MP-SSL",
+    name: "Sveža slanina",
+    category: "Sveže meso",
+    unit: "kilogram",
+    pricePara: 64_000,
+    minQuantity: 0.5,
+    description: "Sveža leđna slanina, meri se po kilogramu.",
+  },
+  {
+    sku: "MP-PKO",
+    name: "Petrovačka kobasica",
+    category: "Kobasice",
+    unit: "kilogram",
+    pricePara: 145_000,
+    minQuantity: 0.5,
+    description: "Kobasica sa začinskom paprikom, kimom i belim lukom, bez aditiva.",
+  },
+  {
+    sku: "MP-SKOB",
+    name: "Suva kobasica",
+    category: "Kobasice",
+    unit: "komad",
+    pricePara: 89_000,
+    minQuantity: 1,
+    description: "Suva kobasica, jedan komad vezan kanapom.",
+  },
+  {
+    sku: "MP-KUL",
+    name: "Petrovački kulen",
+    category: "Suhomesnato",
+    unit: "kilogram",
+    pricePara: 185_000,
+    minQuantity: 0.5,
+    description: "Kulen u prirodnom crevu, paprika iz Bačkog Petrovca, bez aditiva.",
+  },
+  {
+    sku: "MP-PEC",
+    name: "Suva pečenica",
+    category: "Suhomesnato",
+    unit: "kilogram",
+    pricePara: 210_000,
+    minQuantity: 0.5,
+    description: "Sušena pečenica, samo so i dim.",
+  },
+  {
+    sku: "MP-SVR",
+    name: "Suvi vrat",
+    category: "Suhomesnato",
+    unit: "kilogram",
+    pricePara: 195_000,
+    minQuantity: 0.5,
+    description: "Sušeni vrat, seče se po želji kupca.",
+  },
+  {
+    sku: "MP-DSL",
+    name: "Domaća slanina",
+    category: "Suhomesnato",
+    unit: "kilogram",
+    pricePara: 125_000,
+    minQuantity: 0.5,
+    description: "Dimljena i sušena slanina.",
+  },
+  {
+    sku: "MP-CVA",
+    name: "Čvarci",
+    category: "Suhomesnato",
+    unit: "kilogram",
+    pricePara: 135_000,
+    minQuantity: 0.5,
+    description: "Domaći čvarci, hrskavi, po kilogramu.",
+  },
+];
+
+const GASTRO_DEMO_ORDERS: Array<{
+  suffix: string;
+  customer: string;
+  lines: Array<[string, number]>;
+  status: OrderStatus;
+  days: number;
+  hours: number;
+  notes: string;
+}> = [
+  {
+    suffix: "1001",
+    customer: "Restoran Dunav",
+    lines: [
+      ["MP-BUT", 8],
+      ["MP-KUL", 1.5],
+      ["MP-SKOB", 4],
+    ],
+    status: "nova",
+    days: 0,
+    hours: 2,
+    notes: "Molimo isporuku pre 11 časova.",
+  },
+  {
+    suffix: "1002",
+    customer: "Kafić Luna",
+    lines: [
+      ["MP-CVA", 2],
+      ["MP-PKO", 1],
+      ["MP-SVR", 1],
+    ],
+    status: "nova",
+    days: 1,
+    hours: 3,
+    notes: "",
+  },
+  {
+    suffix: "1003",
+    customer: "Market 22",
+    lines: [
+      ["MP-VRT", 15],
+      ["MP-PLC", 10],
+    ],
+    status: "potvrdjena",
+    days: 2,
+    hours: 5,
+    notes: "Dostava na magacin, ulaz iz dvorišta.",
+  },
+  {
+    suffix: "1004",
+    customer: "Pekara Zrno",
+    lines: [
+      ["MP-SSL", 6],
+      ["MP-CVA", 3],
+      ["MP-SKOB", 4],
+    ],
+    status: "potvrdjena",
+    days: 3,
+    hours: 4,
+    notes: "",
+  },
+  {
+    suffix: "1005",
+    customer: "Market 22",
+    lines: [
+      ["MP-SVR", 4],
+      ["MP-DSL", 5],
+      ["MP-KUL", 2],
+    ],
+    status: "u_pripremi",
+    days: 5,
+    hours: 2,
+    notes: "Cela komada, bez sečenja.",
+  },
+  {
+    suffix: "1006",
+    customer: "Restoran Dunav",
+    lines: [
+      ["MP-BUT", 12],
+      ["MP-PEC", 2],
+      ["MP-DSL", 3],
+    ],
+    status: "isporucena",
+    days: 10,
+    hours: 6,
+    notes: "",
+  },
+  {
+    suffix: "1007",
+    customer: "Kafić Luna",
+    lines: [
+      ["MP-CVA", 1.5],
+      ["MP-KUL", 0.5],
+      ["MP-SKOB", 2],
+    ],
+    status: "isporucena",
+    days: 16,
+    hours: 1,
+    notes: "",
+  },
+  {
+    suffix: "1008",
+    customer: "Pekara Zrno",
+    lines: [["MP-VRT", 4]],
+    status: "otkazana",
+    days: 20,
+    hours: 4,
+    notes: "Kupac je otkazao jer je stigla druga isporuka.",
+  },
+];
+
+function gastroCatalog(organizationId: string, createdAt: string) {
+  const names = ["Sveže meso", "Kobasice", "Suhomesnato"] as const;
+  const categories: Category[] = names.map((name, index) => ({
+    id: seedId(`category:gastro-supply:${name}`),
+    organizationId,
+    name,
+    sortOrder: index + 1,
+    createdAt,
+  }));
+  const categoryId = (name: string) => categories.find((category) => category.name === name)!.id;
+  const products: Product[] = MEAT_PRODUCTS.map((product) => {
+    const gallery = galleryFor(product.sku, DEMO_PRODUCT_PHOTOS[product.sku] ?? "/products/mp-sveze.jpg");
+    return {
+      id: seedId(`product:gastro-supply:${product.sku}`),
+      organizationId,
+      categoryId: categoryId(product.category),
+      name: product.name,
+      sku: product.sku,
+      description: product.description,
+      unit: product.unit,
+      pricePara: product.pricePara,
+      salePricePara: null,
+      imageUrl: gallery[0] ?? null,
+      imageUrls: gallery,
+      active: true,
+      minQuantity: product.minQuantity,
+      createdAt,
+      updatedAt: createdAt,
+    };
+  });
+  return { categories, products };
+}
+
+function ensureMeatShop(db: DemoDatabase) {
   const organization = db.organizations.find((item) => item.slug === "gastro-supply");
-  if (!organization || organization.name !== "Gastro Supply") return false;
-  organization.name = "Pult";
-  organization.logoUrl = "/suppliers/gastro-supply.svg";
-  organization.orderPrefix = "PU";
-  organization.updatedAt = new Date().toISOString();
-  return true;
+  if (!organization) return false;
+  let changed = false;
+  const now = new Date().toISOString();
+  const legacyName = organization.name === "Pult" || organization.name === "Gastro Supply";
+  if (legacyName) {
+    organization.name = MEAT_SHOP_NAME;
+    changed = true;
+  }
+  if (organization.city === "Novi Sad" && organization.address === "Bulevar oslobođenja 88") {
+    organization.city = "Bački Petrovac";
+    organization.address = "Jarmočna 20";
+    changed = true;
+  }
+  if (organization.brandColor === "#14532d") {
+    organization.brandColor = MEAT_BRAND_COLOR;
+    changed = true;
+  }
+  if (!organization.logoUrl) {
+    organization.logoUrl = "/suppliers/gastro-supply.svg";
+    changed = true;
+  }
+  if (changed) organization.updatedAt = now;
+
+  const orgProducts = db.products.filter((product) => product.organizationId === organization.id);
+  const hasPackaging = orgProducts.some((product) => PACKAGING_SKUS.has(product.sku));
+  const missingMeat = MEAT_PRODUCTS.some((product) => !orgProducts.some((item) => item.sku === product.sku && item.active));
+  if (hasPackaging || (legacyName && missingMeat)) {
+    const catalog = gastroCatalog(organization.id, organization.createdAt);
+    db.categories = [
+      ...db.categories.filter((category) => category.organizationId !== organization.id),
+      ...catalog.categories,
+    ];
+    db.products = [
+      ...db.products.filter((product) => product.organizationId !== organization.id),
+      ...catalog.products,
+    ];
+    changed = true;
+  }
+
+  const bySku = new Map(
+    db.products.filter((product) => product.organizationId === organization.id).map((product) => [product.sku, product]),
+  );
+  for (const order of db.orders) {
+    if (order.organizationId !== organization.id) continue;
+    if (order.notes === "Rukavice u veličini M.") {
+      order.notes = "Cela komada, bez sečenja.";
+      changed = true;
+    }
+    const items = db.orderItems.filter((item) => item.orderId === order.id);
+    const stale =
+      items.length === 0 ||
+      items.some((item) => {
+        const product = bySku.get(item.sku);
+        return !product || item.productId !== product.id;
+      });
+    if (!stale) continue;
+    const suffix = order.number.match(/(\d{4})$/)?.[1] ?? "";
+    const spec = GASTRO_DEMO_ORDERS.find((item) => item.suffix === suffix);
+    const lines = spec?.lines ?? [["MP-BUT", 2]];
+    const nextItems: OrderItem[] = [];
+    for (const [sku, quantity] of lines) {
+      const product = bySku.get(sku);
+      if (!product) continue;
+      const lineTotalPara = Math.round(product.pricePara * quantity);
+      nextItems.push({
+        id: seedId(`item:${order.number}:${sku}`),
+        orderId: order.id,
+        organizationId: organization.id,
+        productId: product.id,
+        name: product.name,
+        sku: product.sku,
+        unit: product.unit,
+        quantity,
+        unitPricePara: product.pricePara,
+        lineTotalPara,
+      });
+    }
+    if (nextItems.length === 0) continue;
+    db.orderItems = db.orderItems.filter((item) => item.orderId !== order.id);
+    db.orderItems.push(...nextItems);
+    const totalPara = nextItems.reduce((sum, item) => sum + item.lineTotalPara, 0);
+    order.subtotalPara = totalPara;
+    order.totalPara = totalPara;
+    changed = true;
+  }
+  return changed;
 }
 
 export async function ensureRetailDemo(db: DemoDatabase) {
-  let changed = renameSupplyHouse(db);
+  let changed = ensureMeatShop(db);
   const legacy = db.organizations.find((organization) => organization.slug === "kafa-kutak");
   if (legacy) {
     const now = new Date().toISOString();

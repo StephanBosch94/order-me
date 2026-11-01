@@ -30,7 +30,7 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
       </Button>
       {demo ? (
         <p className="rounded-md bg-zinc-50 px-3 py-2 text-xs leading-5 text-muted-foreground">
-          Pravnim licima: ana@gastrosupply.rs / poruci-demo
+          Mala mesara Pajić, pravna lica: ana@gastrosupply.rs / poruci-demo
           <br />
           Fizičkim licima i jednim i drugima: vera@butikvera.rs / poruci-demo
           <br />

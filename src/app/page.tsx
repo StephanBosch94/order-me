@@ -8,9 +8,9 @@ const gallery = [
   { src: "/products/bv-kaput.jpg", name: "Kaput", href: "/shop/butik-vera" },
   { src: "/products/bv-haljina.jpg", name: "Crvena haljina", href: "/shop/butik-vera" },
   { src: "/products/bv-kosulja.jpg", name: "Bela košulja", href: "/shop/butik-vera" },
-  { src: "/products/PC-025.jpg", name: "Papirna čaša", href: "/shop/gastro-supply" },
-  { src: "/products/KB-4030.jpg", name: "Kartonska kutija", href: "/shop/gastro-supply" },
-  { src: "/products/AF-50.jpg", name: "Folija", href: "/shop/gastro-supply" },
+  { src: "/products/mp-suvo.jpg", name: "Petrovački kulen", href: "/shop/gastro-supply" },
+  { src: "/products/mp-kobasica.jpg", name: "Petrovačka kobasica", href: "/shop/gastro-supply" },
+  { src: "/products/mp-cvarci.jpg", name: "Čvarci", href: "/shop/gastro-supply" },
 ];
 
 export const metadata: Metadata = {
@@ -132,7 +132,7 @@ export default function HomePage() {
                 Butik Vera
               </DemoStoreLink>
               <DemoStoreLink href="/shop/gastro-supply" className="hover:text-[#635bff]">
-                Pult
+                Mala mesara Pajić
               </DemoStoreLink>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function HomePage() {
                   Otvorite prodavnicu
                 </Link>
                 <DemoStoreLink href="/shop/gastro-supply" className={secondaryButton}>
-                  Pogledajte Pult
+                  Pogledajte Malu mesaru Pajić
                 </DemoStoreLink>
               </div>
               <p className="mt-4 text-sm leading-6 text-[#425466]">
@@ -267,7 +267,7 @@ export default function HomePage() {
           <FooterColumn title="Prodavnica">
             <FooterLink href="/signup">Otvorite prodavnicu</FooterLink>
             <FooterLink href="/shop/butik-vera">Butik Vera</FooterLink>
-            <FooterLink href="/shop/gastro-supply">Pult</FooterLink>
+            <FooterLink href="/shop/gastro-supply">Mala mesara Pajić</FooterLink>
           </FooterColumn>
           <FooterColumn title="Kupci">
             <FooterLink href="/signup/kupac">Nalog kupca</FooterLink>

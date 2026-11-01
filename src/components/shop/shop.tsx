@@ -182,6 +182,15 @@ export function Shop({
           </p>
         </div>
       ) : null}
+      {catalog.supplier.slug === "gastro-supply" ? (
+        <div className="relative h-56 overflow-hidden sm:h-72">
+          <img src="/products/mp-suvo.jpg" alt="" className="size-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
+          <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
+            Petrovački kulen, kobasice i suvo meso iz Bačkog Petrovca.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         {step === "browse" && companyBuyer && pane !== "account" ? (
