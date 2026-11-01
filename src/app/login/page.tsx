@@ -25,7 +25,7 @@ export default async function LoginPage({
   if (session) redirect(await landingPath(session, nextPath));
   const store = await storeFromPath(nextPath);
   return (
-    <AuthShell title="Prijava" subtitle="Prijavite se na nalog prodavca ili kupca." store={store}>
+    <AuthShell title="Prijava" subtitle="Prijavite se na nalog prodavca ili kupca." store={store} showStoreBack={false}>
       <LoginForm nextPath={nextPath} demo={isDemoMode()} />
       <p className="mt-6 text-sm text-muted-foreground">
         Nemate nalog?{" "}
@@ -71,22 +71,28 @@ export function AuthShell({
   subtitle,
   children,
   store = null,
+  showStoreBack = true,
 }: {
   title: string;
   subtitle: string;
   children: React.ReactNode;
   store?: AuthStore | null;
+  showStoreBack?: boolean;
 }) {
+  const backHref = store ? (showStoreBack ? store.href : null) : "/";
+  const backLabel = store ? "Nazad u prodavnicu" : "Početna";
   return (
     <main
       className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-12"
       style={supplierTheme(store?.brandColor ?? null)}
     >
-      <Link href={store?.href ?? "/"} className="w-fit rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-        {store ? "Nazad u prodavnicu" : "Početna"}
-      </Link>
+      {backHref ? (
+        <Link href={backHref} className="w-fit rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+          {backLabel}
+        </Link>
+      ) : null}
       {store ? (
-        <Link href={store.href} className="mt-6 flex w-fit items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href={store.href} className={`${backHref ? "mt-6" : ""} flex w-fit items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
           <SupplierLogo name={store.name} logoUrl={store.logoUrl} className="size-12" />
           <span className="truncate text-lg font-semibold tracking-tight">{store.name}</span>
         </Link>
