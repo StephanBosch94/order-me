@@ -21,7 +21,7 @@ export default async function LoginPage({
   const params = await searchParams;
   const nextPath = safeNextPath(params.next);
   const session = await getSession();
-  if (session) redirect(landingPath(session, nextPath));
+  if (session) redirect(await landingPath(session, nextPath));
   const store = await storeFromPath(nextPath);
   return (
     <AuthShell title="Prijava" subtitle="Prijavite se na nalog prodavca ili kupca." store={store}>

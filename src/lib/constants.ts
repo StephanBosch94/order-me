@@ -49,7 +49,12 @@ export const RESERVED_SLUGS = new Set([
   "app",
   "prijava",
   "kupac",
+  "platform",
+  "invoices",
+  "fakture",
 ]);
+
+export const STORE_CLOSED_MESSAGE = "Ova prodavnica trenutno ne prima nove porudžbine.";
 
 export const ORDER_PAGE_SIZE = 10;
 
@@ -64,17 +69,22 @@ export function statusLabel(status: OrderStatus) {
 export function paymentLabel(method: PaymentMethod | null | undefined) {
   if (method === "pouzecem") return "Plaćanje pouzećem";
   if (method === "kartica") return "Karticom";
+  if (method === "racun") return "Na račun";
   return "";
 }
 
+export function isBusinessStore(audience: Audience) {
+  return audience === "pravna";
+}
+
 export const AUDIENCES: { value: Audience; label: string; hint: string }[] = [
-  { value: "fizicka", label: "Fizičkim licima", hint: "Korpa, kasa i adresa isporuke." },
-  { value: "pravna", label: "Pravnim licima", hint: "Količine, podaci firme, statistika i ponovna porudžbina." },
-  { value: "oba", label: "I jednim i drugima", hint: "Ista prodavnica, kupac bira kako kupuje." },
+  { value: "pravna", label: "Pravna lica", hint: "Količine, podaci firme, statistika i ponovna porudžbina." },
+  { value: "fizicka", label: "Fizička lica", hint: "Korpa, kasa i adresa isporuke." },
+  { value: "oba", label: "Oba (pravna i fizička)", hint: "Ista prodavnica, kupac bira kako kupuje." },
 ];
 
 export function audienceLabel(audience: Audience) {
-  return AUDIENCES.find((item) => item.value === audience)?.label ?? "Fizičkim licima";
+  return AUDIENCES.find((item) => item.value === audience)?.label ?? "Fizička lica";
 }
 
 export function sellsToConsumers(audience: Audience) {

@@ -12,13 +12,7 @@ export function StoreAccountLinks({
   buyer?: BuyerAccount | null;
   showAccount?: boolean;
 }) {
-  if (buyer) {
-    return (
-      <Link href="/kupac" className="text-sm font-medium underline-offset-2 hover:underline">
-        Moj nalog
-      </Link>
-    );
-  }
+  if (buyer) return null;
   if (!showAccount) return null;
 
   const back = storePath(slug);

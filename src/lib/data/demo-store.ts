@@ -3,8 +3,9 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { CsvProductRow } from "@/lib/csv";
-import { RESERVED_SLUGS, channelForAudience } from "@/lib/constants";
-import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput } from "@/lib/data/repository";
+import { isCompanyOrder } from "@/lib/company-order";
+import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
+import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
 import { priceOrderLines } from "@/lib/data/pricing";
 import {
@@ -34,10 +35,13 @@ import type {
   OrderItem,
   OrderListItem,
   OrderListQuery,
+  OrderedQuantity,
   OrderStatus,
   Organization,
   OrganizationInput,
   Paginated,
+  PlatformInvoice,
+  PlatformSupplier,
   Product,
   ProductInput,
   PublicCatalog,
@@ -45,9 +49,12 @@ import type {
   PublicOrderView,
   PublicSupplier,
   SessionAccount,
+  Subscription,
+  SubscriptionStatus,
 } from "@/lib/data/types";
+import { monthOrderUsage } from "@/lib/data/usage";
 import { DataError } from "@/lib/errors";
-import { belgradeDateKey, belgradeMonthKey, belgradeYear } from "@/lib/format";
+import { belgradeDateKey, belgradeMonthKey, belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { getLocalDataDir } from "@/lib/config";
 import { fold, orderPrefixFromName } from "@/lib/text";
@@ -97,15 +104,19 @@ function orderListItem(db: DemoDatabase, order: Order): OrderListItem {
   };
 }
 
-function snapshot(customer: Customer) {
+function snapshot(customer: Customer, extra: { bankAccount?: string; mb?: string; postalCode?: string; confirmationEmail?: string } = {}) {
   return {
     businessName: customer.businessName,
     contactName: customer.contactName,
     email: customer.email,
+    confirmationEmail: extra.confirmationEmail?.trim() ?? "",
     phone: customer.phone,
     pib: customer.pib,
+    mb: extra.mb ?? "",
     address: customer.address,
+    postalCode: extra.postalCode ?? "",
     city: customer.city,
+    bankAccount: extra.bankAccount ?? "",
   };
 }
 
@@ -133,6 +144,10 @@ export class DemoStore implements CommerceRepository {
     address?: string;
     city?: string;
     pib?: string;
+    mb?: string;
+    postalCode?: string;
+    bankAccount?: string;
+    confirmationEmail?: string;
   }) {
     const passwordHash = await hashPassword(input.password);
     return this.exclusive(async (db) => {
@@ -150,6 +165,10 @@ export class DemoStore implements CommerceRepository {
         address: input.address ?? "",
         city: input.city ?? "",
         pib: input.pib ?? "",
+        mb: input.mb ?? "",
+        postalCode: input.postalCode ?? "",
+        bankAccount: input.bankAccount ?? "",
+        confirmationEmail: input.confirmationEmail?.trim() ?? "",
         createdAt: new Date().toISOString(),
       };
       db.users.push(user);
@@ -227,6 +246,19 @@ export class DemoStore implements CommerceRepository {
       };
       db.organizations.push(organization);
       db.members.push(member);
+      const plan = (db.plans ?? []).find((item) => item.name === "Osnovni") ?? db.plans?.[0];
+      if (plan && !(db.subscriptions ?? []).some((item) => item.organizationId === organization.id)) {
+        db.subscriptions ??= [];
+        db.subscriptions.push({
+          id: randomUUID(),
+          organizationId: organization.id,
+          planId: plan.id,
+          status: "aktivna",
+          periodStart: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
       const owner = db.users.find((user) => user.id === input.userId);
       if (owner) owner.kind = "supplier";
       return organization;
@@ -247,6 +279,44 @@ export class DemoStore implements CommerceRepository {
       user.address = input.address;
       user.city = input.city;
       user.pib = input.pib;
+      user.mb = input.mb;
+      user.postalCode = input.postalCode;
+      user.bankAccount = input.bankAccount;
+      user.confirmationEmail = input.confirmationEmail.trim();
+    });
+  }
+
+  async saveBuyerBankAccount(userId: string, bankAccount: string) {
+    await this.exclusive(async (db) => {
+      const user = db.users.find((item) => item.id === userId && item.kind === "buyer");
+      if (!user) throw new DataError("Nalog nije pronađen.", "not_found");
+      user.bankAccount = bankAccount;
+    });
+  }
+
+  async updateBuyerProfile(userId: string, input: UpdateBuyerInput) {
+    await this.exclusive(async (db) => {
+      const user = db.users.find((item) => item.id === userId && item.kind === "buyer");
+      if (!user) throw new DataError("Nalog nije pronađen.", "not_found");
+      user.name = input.name;
+      user.businessName = input.businessName;
+      user.phone = input.phone;
+      user.address = input.address;
+      user.city = input.city;
+      user.pib = input.pib;
+      user.mb = input.mb;
+      user.postalCode = input.postalCode;
+      user.bankAccount = input.bankAccount;
+      user.confirmationEmail = input.confirmationEmail.trim();
+    });
+  }
+
+  async saveBuyerCompanyDetails(userId: string, input: { mb: string; postalCode: string }) {
+    await this.exclusive(async (db) => {
+      const user = db.users.find((item) => item.id === userId && item.kind === "buyer");
+      if (!user) throw new DataError("Nalog nije pronađen.", "not_found");
+      user.mb = input.mb;
+      user.postalCode = input.postalCode;
     });
   }
 
@@ -275,6 +345,9 @@ export class DemoStore implements CommerceRepository {
     const db = await this.read();
     const user = db.users.find((item) => item.id === userId);
     if (!user) return null;
+    if (user.kind === "platform") {
+      return { kind: "platform", userId: user.id, name: user.name, email: user.email };
+    }
     if (user.kind === "buyer") {
       return {
         kind: "buyer",
@@ -286,6 +359,10 @@ export class DemoStore implements CommerceRepository {
         address: user.address,
         city: user.city,
         pib: user.pib,
+        mb: user.mb ?? "",
+        postalCode: user.postalCode ?? "",
+        bankAccount: user.bankAccount ?? "",
+        confirmationEmail: user.confirmationEmail?.trim() ?? "",
       };
     }
     const account = await this.getAccount(userId);
@@ -313,12 +390,16 @@ export class DemoStore implements CommerceRepository {
           itemCount: db.orderItems.filter((item) => item.orderId === order.id).length,
           items: db.orderItems
             .filter((item) => item.orderId === order.id)
-            .map((item) => ({
-              productId: item.productId,
-              name: item.name,
-              quantity: item.quantity,
-              unit: item.unit,
-            })),
+            .map((item) => {
+              const product = item.productId ? db.products.find((entry) => entry.id === item.productId) : undefined;
+              return {
+                productId: item.productId,
+                name: item.name,
+                quantity: item.quantity,
+                unit: item.unit,
+                imageUrl: product?.imageUrls[0] ?? product?.imageUrl ?? null,
+              };
+            }),
         };
       });
   }
@@ -531,6 +612,8 @@ export class DemoStore implements CommerceRepository {
       const to = query.to;
       rows = rows.filter((order) => belgradeDateKey(order.createdAt) <= to);
     }
+    if (query.company === true) rows = rows.filter((order) => isCompanyOrder(order));
+    if (query.company === false) rows = rows.filter((order) => !isCompanyOrder(order));
 
     const sort = query.sort ?? "newest";
     rows.sort((a, b) => {
@@ -550,6 +633,28 @@ export class DemoStore implements CommerceRepository {
       pageSize,
     };
     return pageResult;
+  }
+
+  async listOrderedQuantities(organizationId: string): Promise<OrderedQuantity[]> {
+    const db = await this.read();
+    const lines: OrderedQuantity[] = [];
+    for (const order of db.orders) {
+      if (order.organizationId !== organizationId) continue;
+      for (const item of db.orderItems) {
+        if (item.orderId !== order.id) continue;
+        const product = item.productId ? db.products.find((entry) => entry.id === item.productId) : undefined;
+        lines.push({
+          createdAt: order.createdAt,
+          status: order.status,
+          productId: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          imageUrl: product?.imageUrls[0] ?? product?.imageUrl ?? null,
+        });
+      }
+    }
+    return lines;
   }
 
   async getOrder(organizationId: string, orderId: string) {
@@ -575,10 +680,9 @@ export class DemoStore implements CommerceRepository {
 
   async createPublicOrder(input: PublicOrderInput, ip: string): Promise<CreateOrderResult> {
     return this.exclusive(async (db) => {
-      const organization = db.organizations.find(
-        (item) => item.slug === input.slug && item.active,
-      );
+      const organization = db.organizations.find((item) => item.slug === input.slug);
       if (!organization) return { ok: false, message: "Dobavljač nije pronađen." };
+      if (!organization.active) return { ok: false, message: STORE_CLOSED_MESSAGE };
 
       const existing = db.orders.find(
         (order) =>
@@ -653,7 +757,12 @@ export class DemoStore implements CommerceRepository {
         totalPara: priced.subtotalPara,
         idempotencyKey: input.idempotencyKey,
         confirmationToken: randomUUID(),
-        customerSnapshot: snapshot(customer),
+        customerSnapshot: snapshot(customer, {
+          bankAccount: input.bankAccount ?? "",
+          mb: input.mb ?? "",
+          postalCode: input.postalCode ?? "",
+          confirmationEmail: input.confirmationEmail ?? "",
+        }),
         customerEmailStatus: "pending",
         supplierEmailStatus: "pending",
         paymentMethod: input.paymentMethod ?? null,
@@ -770,8 +879,16 @@ export class DemoStore implements CommerceRepository {
 
   async getPublicCatalog(slug: string): Promise<PublicCatalog | null> {
     const db = await this.read();
-    const organization = db.organizations.find((item) => item.slug === slug && item.active);
+    const organization = db.organizations.find((item) => item.slug === slug);
     if (!organization) return null;
+    if (!organization.active) {
+      return {
+        supplier: toPublicSupplier(organization),
+        categories: [],
+        products: [],
+        closedMessage: STORE_CLOSED_MESSAGE,
+      };
+    }
     const categories = db.categories
       .filter((category) => category.organizationId === organization.id)
       .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "sr"));
@@ -779,6 +896,99 @@ export class DemoStore implements CommerceRepository {
       .filter((product) => product.organizationId === organization.id && product.active)
       .sort((a, b) => a.name.localeCompare(b.name, "sr"));
     return { supplier: toPublicSupplier(organization), categories, products };
+  }
+
+  async listPlatformSuppliers(): Promise<PlatformSupplier[]> {
+    const db = await this.read();
+    return platformSuppliers(db);
+  }
+
+  async setOrganizationActive(organizationId: string, active: boolean) {
+    await this.exclusive(async (db) => {
+      const organization = db.organizations.find((item) => item.id === organizationId);
+      if (!organization) throw new DataError("Dobavljač nije pronađen.", "not_found");
+      organization.active = active;
+      organization.updatedAt = new Date().toISOString();
+    });
+  }
+
+  async listPlans() {
+    const db = await this.read();
+    return [...(db.plans ?? [])].sort((a, b) => a.monthlyPricePara - b.monthlyPricePara || a.name.localeCompare(b.name, "sr"));
+  }
+
+  async updatePlan(planId: string, input: { name: string; monthlyPricePara: number }) {
+    const name = input.name.trim();
+    if (!name) throw new DataError("Unesite naziv paketa.", "validation");
+    if (!Number.isInteger(input.monthlyPricePara) || input.monthlyPricePara < 0) {
+      throw new DataError("Cena nije ispravna.", "validation");
+    }
+    await this.exclusive(async (db) => {
+      const plan = (db.plans ?? []).find((item) => item.id === planId);
+      if (!plan) throw new DataError("Paket nije pronađen.", "not_found");
+      if ((db.plans ?? []).some((item) => item.id !== planId && fold(item.name) === fold(name))) {
+        throw new DataError("Paket sa ovim nazivom već postoji.", "conflict");
+      }
+      plan.name = name;
+      plan.monthlyPricePara = input.monthlyPricePara;
+      plan.updatedAt = new Date().toISOString();
+    });
+  }
+
+  async updateSubscription(organizationId: string, input: { planId: string; status: SubscriptionStatus }) {
+    if (!SUBSCRIPTION_STATUSES.has(input.status)) {
+      throw new DataError("Status pretplate nije ispravan.", "validation");
+    }
+    await this.exclusive(async (db) => {
+      const organization = db.organizations.find((item) => item.id === organizationId);
+      if (!organization) throw new DataError("Dobavljač nije pronađen.", "not_found");
+      const plan = (db.plans ?? []).find((item) => item.id === input.planId);
+      if (!plan) throw new DataError("Paket nije pronađen.", "not_found");
+      const now = new Date().toISOString();
+      db.subscriptions ??= [];
+      const existing = db.subscriptions.find((item) => item.organizationId === organizationId);
+      if (!existing) {
+        const created: Subscription = {
+          id: randomUUID(),
+          organizationId,
+          planId: plan.id,
+          status: input.status,
+          periodStart: now,
+          createdAt: now,
+          updatedAt: now,
+        };
+        db.subscriptions.push(created);
+        return;
+      }
+      existing.planId = plan.id;
+      existing.status = input.status;
+      existing.updatedAt = now;
+    });
+  }
+
+  async updateSupplierNote(organizationId: string, note: string) {
+    const body = note.trim();
+    if (body.length > 2000) throw new DataError("Beleška može imati najviše 2000 karaktera.", "validation");
+    await this.exclusive(async (db) => {
+      const organization = db.organizations.find((item) => item.id === organizationId);
+      if (!organization) throw new DataError("Dobavljač nije pronađen.", "not_found");
+      const now = new Date().toISOString();
+      db.supplierNotes ??= [];
+      const existing = db.supplierNotes.find((item) => item.organizationId === organizationId);
+      if (!existing) {
+        db.supplierNotes.push({ organizationId, body, updatedAt: now });
+        return;
+      }
+      existing.body = body;
+      existing.updatedAt = now;
+    });
+  }
+
+  async listInvoices(organizationId: string): Promise<PlatformInvoice[]> {
+    const db = await this.read();
+    return (db.invoices ?? [])
+      .filter((invoice) => invoice.organizationId === organizationId)
+      .sort((a, b) => b.issuedAt.localeCompare(a.issuedAt));
   }
 
   private async read(): Promise<DemoDatabase> {
@@ -797,7 +1007,7 @@ export class DemoStore implements CommerceRepository {
       }
       let changed = false;
       if (this.options.seed !== false) {
-        const retail = ensureRetailDemo(parsed);
+        const retail = await ensureRetailDemo(parsed);
         const photos = applyDemoPhotos(parsed);
         const galleries = applyDemoGalleries(parsed);
         changed = retail || photos || galleries;
@@ -836,17 +1046,31 @@ export class DemoStore implements CommerceRepository {
 }
 
 function normalizeDatabase(db: DemoDatabase) {
+  db.plans ??= [];
+  db.subscriptions ??= [];
+  db.invoices ??= [];
+  db.supplierNotes ??= [];
   for (const user of db.users) {
-    if (user.kind !== "buyer" && user.kind !== "supplier") user.kind = "supplier";
+    if (user.kind !== "buyer" && user.kind !== "supplier" && user.kind !== "platform") user.kind = "supplier";
     user.businessName ??= "";
     user.phone ??= "";
     user.address ??= "";
     user.city ??= "";
     user.pib ??= "";
+    user.mb ??= "";
+    user.postalCode ??= "";
+    user.bankAccount ??= "";
+    user.confirmationEmail ??= "";
   }
   for (const order of db.orders) {
     if (!order.buyerUserId) order.buyerUserId = null;
-    if (order.paymentMethod !== "pouzecem" && order.paymentMethod !== "kartica") order.paymentMethod = null;
+    if (order.paymentMethod !== "pouzecem" && order.paymentMethod !== "kartica" && order.paymentMethod !== "racun") {
+      order.paymentMethod = null;
+    }
+    order.customerSnapshot.bankAccount ??= "";
+    order.customerSnapshot.mb ??= "";
+    order.customerSnapshot.postalCode ??= "";
+    order.customerSnapshot.confirmationEmail ??= "";
   }
   for (const organization of db.organizations) {
     if (organization.audience !== "fizicka" && organization.audience !== "pravna" && organization.audience !== "oba") {
@@ -921,6 +1145,29 @@ function summarizeCustomer(db: DemoDatabase, customer: Customer): CustomerSummar
     totalPara: billable.reduce((sum, order) => sum + order.totalPara, 0),
     lastOrderAt: last?.createdAt ?? null,
   };
+}
+
+const SUBSCRIPTION_STATUSES = new Set<SubscriptionStatus>(["aktivna", "otkazana", "istekla"]);
+
+function platformSuppliers(db: DemoDatabase): PlatformSupplier[] {
+  const month = currentBelgradeMonthKey();
+  return [...db.organizations]
+    .sort((a, b) => a.name.localeCompare(b.name, "sr"))
+    .map((organization) => {
+      const subscription = (db.subscriptions ?? []).find((item) => item.organizationId === organization.id) ?? null;
+      const plan = subscription ? (db.plans ?? []).find((item) => item.id === subscription.planId) ?? null : null;
+      const orders = db.orders.filter((order) => order.organizationId === organization.id);
+      const usage = monthOrderUsage(orders, month);
+      return {
+        organization,
+        plan,
+        subscription,
+        note: (db.supplierNotes ?? []).find((item) => item.organizationId === organization.id)?.body ?? "",
+        productCount: db.products.filter((product) => product.organizationId === organization.id).length,
+        ordersThisMonth: usage.ordersThisMonth,
+        monthValuePara: usage.monthValuePara,
+      };
+    });
 }
 
 function consumeRateLimit(db: DemoDatabase, key: string) {

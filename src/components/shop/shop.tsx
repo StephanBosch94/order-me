@@ -3,42 +3,56 @@
 import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { StoreAccountLinks } from "@/components/shop/account-links";
-import { BusinessAccount } from "@/components/shop/business-account";
+import { BuyerMenu } from "@/components/shop/buyer-menu";
 import { PaymentMethodChoice } from "@/components/shop/checkout-kind";
+import { updateBuyerAccountAction, type BuyerAccountState } from "@/lib/actions/account";
 import { placeShopOrderAction } from "@/lib/actions/orders";
-import { isCompanyBuyer } from "@/lib/buyer";
+import { isCompanyBuyer, normalizeBankAccount, orderConfirmationEmail } from "@/lib/buyer";
 import { supplierTheme } from "@/lib/color";
-import { DEMO_SLUGS, productPath, quantityStep } from "@/lib/constants";
+import { isBusinessStore, productPath, quantityStep, storePath, unitLabel } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
-import type { BuyerAccount, BuyerOrder, Product, PublicCatalog } from "@/lib/data/types";
-import { formatRsd } from "@/lib/format";
+import type { BuyerAccount, BuyerOrder, OrderedQuantity, Product, PublicCatalog } from "@/lib/data/types";
+import { belgradeMonthKey, currentBelgradeMonthKey, formatDateTime, formatQuantity, formatRsd, monthLabel } from "@/lib/format";
+import { purchaseMonths, purchasesForMonth } from "@/lib/purchases";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
 
 type Step = "browse" | "cart" | "checkout";
 
 export function Shop({
   catalog,
-  buyer,
+  buyer: buyerFromServer,
   showAccount = true,
   orders = [],
   repeatOrderId,
+  openAccount = false,
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
   showAccount?: boolean;
   orders?: BuyerOrder[];
   repeatOrderId?: string;
+  openAccount?: boolean;
 }) {
   const router = useRouter();
+  const [savedBuyer, setSavedBuyer] = useState<BuyerAccount | null>(null);
+  const buyer =
+    buyerFromServer &&
+    savedBuyer &&
+    savedBuyer.userId === buyerFromServer.userId &&
+    !sameBuyerProfile(buyerFromServer, savedBuyer)
+      ? savedBuyer
+      : buyerFromServer;
   const storageKey = `poruci-shop:${catalog.supplier.slug}`;
   const idempotencyStorage = `poruci-shop-idem:${catalog.supplier.slug}`;
   const [step, setStep] = useState<Step>("browse");
+  const [pane, setPane] = useState<"catalog" | "orders" | "account">(openAccount ? "account" : "catalog");
   const [categoryId, setCategoryId] = useState("all");
   const storedCart = useSyncExternalStore(subscribeCart, () => readCartRaw(storageKey), () => "{}");
   const quantities = useMemo(() => parseCart(storedCart), [storedCart]);
@@ -51,7 +65,20 @@ export function Shop({
     .map((product) => ({ product, quantity: quantities[product.id] ?? 0 }))
     .filter((line) => line.quantity > 0);
   const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
-  const count = lines.reduce((sum, line) => sum + line.quantity, 0);
+  const count = lines.length;
+  const companyBuyer = buyer && isCompanyBuyer(buyer) ? buyer : null;
+  const catalogHref = storePath(catalog.supplier.slug);
+
+  function openCatalog(event: { preventDefault: () => void }) {
+    if (!buyer) return;
+    event.preventDefault();
+    setStep("browse");
+    setPane("catalog");
+    setCategoryId("all");
+    if (window.location.pathname === catalogHref && window.location.search) {
+      router.replace(catalogHref);
+    }
+  }
 
   function setQuantity(product: Product, quantity: number) {
     const next = { ...quantities };
@@ -70,6 +97,12 @@ export function Shop({
     setQuantity(product, next);
   }
 
+  function writeCart(next: Record<string, number>) {
+    localStorage.setItem(storageKey, JSON.stringify(next));
+    window.dispatchEvent(new Event("poruci-cart"));
+    setStep("cart");
+  }
+
   function repeatOrder(items: BuyerOrder["items"]) {
     const next: Record<string, number> = {};
     for (const item of items) {
@@ -78,9 +111,21 @@ export function Shop({
       if (!product) continue;
       next[product.id] = Math.max(product.minQuantity, item.quantity);
     }
-    localStorage.setItem(storageKey, JSON.stringify(next));
-    window.dispatchEvent(new Event("poruci-cart"));
-    setStep("cart");
+    writeCart(next);
+  }
+
+  function addOrderToCart(items: BuyerOrder["items"]) {
+    const next = { ...quantities };
+    for (const item of items) {
+      if (!item.productId) continue;
+      const product = catalog.products.find((entry) => entry.id === item.productId);
+      if (!product) continue;
+      const current = next[product.id] ?? 0;
+      const quantity = Math.max(product.minQuantity, item.quantity);
+      next[product.id] =
+        current === 0 ? quantity : Math.min(9999, Math.round((current + quantity) * 1000) / 1000);
+    }
+    writeCart(next);
   }
 
   useEffect(() => {
@@ -97,24 +142,16 @@ export function Shop({
 
   return (
     <div className="min-h-dvh bg-background pb-24" style={supplierTheme(catalog.supplier.brandColor)}>
-      {DEMO_SLUGS.has(catalog.supplier.slug) ? (
-        <div className="border-b border-border bg-zinc-50">
-          <div className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Nazad na sajt
-            </Link>
-          </div>
-        </div>
-      ) : null}
-      <header className="border-b border-border bg-card">
+      <header className="relative z-20 border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href={catalogHref}
+            onClick={openCatalog}
+            className="flex min-w-0 items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <SupplierLogo name={catalog.supplier.name} logoUrl={catalog.supplier.logoUrl} className="size-12" />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Internet prodavnica</p>
-              <h1 className="truncate text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
-            </div>
-          </div>
+            <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
+          </Link>
           <div className="flex items-center gap-3">
             <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} />
             <Button variant="secondary" onClick={() => setStep(step === "browse" ? "cart" : "browse")}>
@@ -122,6 +159,17 @@ export function Shop({
               Korpa
               <span className="tabular-nums">{count}</span>
             </Button>
+            {buyer ? (
+              <BuyerMenu
+                buyer={buyer}
+                orders={companyBuyer ? [] : orders}
+                onAccount={() => {
+                  setPane("account");
+                  setStep("browse");
+                }}
+                onRepeat={repeatOrder}
+              />
+            ) : null}
           </div>
         </div>
       </header>
@@ -136,19 +184,38 @@ export function Shop({
       ) : null}
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        {step === "browse" && buyer && isCompanyBuyer(buyer) ? (
+        {step === "browse" && companyBuyer && pane !== "account" ? (
+          <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1" role="tablist" aria-label="Prodavnica">
+            <ShopTab selected={pane === "catalog"} onClick={() => setPane("catalog")}>
+              Prodavnica
+            </ShopTab>
+            <ShopTab selected={pane === "orders"} onClick={() => setPane("orders")}>
+              Porudžbine
+            </ShopTab>
+          </div>
+        ) : null}
+        {step === "browse" && pane === "account" && buyer ? (
           <div className="mb-6">
-            <BusinessAccount
-              slug={catalog.supplier.slug}
+            <button
+              type="button"
+              className="mb-3 inline-flex min-h-11 cursor-pointer items-center py-2 text-base font-medium text-foreground underline decoration-foreground/40 underline-offset-4 hover:decoration-foreground"
+              onClick={() => setPane("catalog")}
+            >
+              Nazad na proizvode
+            </button>
+            <AccountPanel
               buyer={buyer}
-              orders={orders}
-              onRepeat={repeatOrder}
-              showAccount={showAccount}
+              slug={catalog.supplier.slug}
+              onSaved={setSavedBuyer}
             />
           </div>
         ) : null}
-        {step === "browse" ? (
+        {step === "browse" && pane === "orders" && companyBuyer ? (
+          <CompanyOrders orders={orders} onRepeat={repeatOrder} />
+        ) : null}
+        {step === "browse" && pane === "catalog" ? (
           <>
+            {companyBuyer ? <LastOrder order={latestOrder(orders)} onRepeat={addOrderToCart} /> : null}
             <div className="flex gap-2 overflow-x-auto pb-1" role="toolbar" aria-label="Kategorije">
               <CategoryButton active={categoryId === "all"} onClick={() => setCategoryId("all")}>
                 Sve
@@ -205,6 +272,7 @@ export function Shop({
         {step === "checkout" ? (
           <Checkout
             slug={catalog.supplier.slug}
+            business={isBusinessStore(catalog.supplier.audience)}
             buyer={buyer}
             lines={lines}
             total={total}
@@ -223,6 +291,350 @@ export function Shop({
   );
 }
 
+function ShopTab({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      onClick={onClick}
+      className={`h-9 cursor-pointer rounded-md px-3 text-sm font-medium ${selected ? "bg-primary text-primary-foreground" : "text-foreground"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function latestOrder(orders: BuyerOrder[]) {
+  return orders.find((order) => order.status !== "otkazana") ?? orders[0] ?? null;
+}
+
+function orderLines(orders: BuyerOrder[]): OrderedQuantity[] {
+  return orders.flatMap((order) =>
+    order.items.map((item) => ({
+      createdAt: order.createdAt,
+      status: order.status,
+      productId: item.productId,
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      imageUrl: item.imageUrl,
+    })),
+  );
+}
+
+function CompanyOrders({
+  orders,
+  onRepeat,
+}: {
+  orders: BuyerOrder[];
+  onRepeat: (items: BuyerOrder["items"]) => void;
+}) {
+  const active = orders.filter((order) => order.status !== "otkazana");
+  const spent = active.reduce((sum, order) => sum + order.totalPara, 0);
+  const month = currentBelgradeMonthKey();
+  const thisMonth = active.filter((order) => belgradeMonthKey(order.createdAt) === month);
+  const monthSpent = thisMonth.reduce((sum, order) => sum + order.totalPara, 0);
+  const lines = orderLines(orders);
+  const months = purchaseMonths(lines);
+  const [selectedMonth, setSelectedMonth] = useState(months[0] ?? month);
+  const bought = purchasesForMonth(lines, selectedMonth);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat label="Porudžbine" value={String(active.length)} />
+        <Stat label="Ukupno" value={formatRsd(spent)} />
+        <Stat label="Ovog meseca" value={formatRsd(monthSpent)} hint={`${thisMonth.length} ${orderWord(thisMonth.length)}`} />
+      </div>
+      <section className="rounded-lg border border-border bg-card p-4" aria-labelledby="mesec-naslov">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="mesec-naslov" className="text-sm font-semibold">
+            Naručeno po proizvodu
+          </h2>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            Mesec
+            <select
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+              className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+            >
+              {months.map((key) => (
+                <option key={key} value={key}>
+                  {monthLabel(key)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {bought.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">U ovom mesecu nema porudžbina.</p>
+        ) : (
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {bought.map((line) => (
+              <li key={line.key} className="flex items-center gap-3 rounded-md border border-border px-3 py-2">
+                <ProductImage src={line.imageUrl} alt="" className="size-14" />
+                <p className="min-w-0 text-sm font-medium">
+                  <span className="tabular-nums">{formatQuantity(line.quantity)}</span> {line.name}
+                  {line.unit === "komad" ? null : (
+                    <span className="font-normal text-muted-foreground"> · {unitLabel(line.unit)}</span>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <OrderList orders={orders} onRepeat={onRepeat} />
+    </div>
+  );
+}
+
+function orderWord(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "porudžbina";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "porudžbine";
+  return "porudžbina";
+}
+
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
+function LastOrder({
+  order,
+  onRepeat,
+}: {
+  order: BuyerOrder | null;
+  onRepeat: (items: BuyerOrder["items"]) => void;
+}) {
+  if (!order) return null;
+  return (
+    <section className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-border bg-card px-4 py-3" aria-labelledby="poslednja-naslov">
+      <div className="min-w-0">
+        <h2 id="poslednja-naslov" className="text-sm font-semibold">
+          Poslednja porudžbina
+          <span className="ml-2 font-normal text-muted-foreground">
+            {order.number} · {formatRsd(order.totalPara)}
+          </span>
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {order.items.map((item) => `${formatQuantity(item.quantity)} ${item.name}`).join(" · ")}
+        </p>
+      </div>
+      <Button type="button" size="sm" onClick={() => onRepeat(order.items)}>
+        Naruči opet
+      </Button>
+    </section>
+  );
+}
+
+function OrderList({
+  orders,
+  onRepeat,
+}: {
+  orders: BuyerOrder[];
+  onRepeat: (items: BuyerOrder["items"]) => void;
+}) {
+  return (
+    <section aria-labelledby="porudzbine-naslov">
+      <h2 id="porudzbine-naslov" className="text-lg font-semibold">
+        Porudžbine
+      </h2>
+      {orders.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">Još nema porudžbina kod ove prodavnice.</p>
+      ) : (
+        <ul className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">
+          {orders.map((order) => (
+            <li key={order.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{order.number}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(order.createdAt)}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <StatusBadge status={order.status} />
+                <span className="text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
+                <button
+                  type="button"
+                  className="cursor-pointer text-sm font-medium text-primary hover:underline"
+                  onClick={() => onRepeat(order.items)}
+                >
+                  Naruči isto
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function sameBuyerProfile(left: BuyerAccount, right: BuyerAccount) {
+  return (
+    left.name === right.name &&
+    left.businessName === right.businessName &&
+    left.phone === right.phone &&
+    left.address === right.address &&
+    left.city === right.city &&
+    left.pib === right.pib &&
+    left.mb === right.mb &&
+    left.postalCode === right.postalCode &&
+    left.bankAccount === right.bankAccount &&
+    left.confirmationEmail === right.confirmationEmail
+  );
+}
+
+function AccountPanel({
+  buyer,
+  slug,
+  onSaved,
+}: {
+  buyer: BuyerAccount;
+  slug: string;
+  onSaved: (buyer: BuyerAccount) => void;
+}) {
+  const router = useRouter();
+  const company = isCompanyBuyer(buyer);
+  const [notice, setNotice] = useState("");
+  const [formKey, setFormKey] = useState(0);
+  const [state, action, pending] = useActionState(updateBuyerAccountAction, {} as BuyerAccountState);
+  const shown = state.buyer ?? buyer;
+
+  useEffect(() => {
+    if (!state.ok || !state.buyer) return;
+    onSaved(state.buyer);
+    setNotice("Podaci su sačuvani.");
+    setFormKey((key) => key + 1);
+    router.refresh();
+  }, [state.ok, state.buyer, onSaved, router]);
+
+  return (
+    <section aria-labelledby="moj-nalog-naslov">
+      <h2 id="moj-nalog-naslov" className="text-lg font-semibold">
+        Moj nalog
+      </h2>
+      {notice ? <p className="mt-3 text-sm text-emerald-700">{notice}</p> : null}
+      <form key={formKey} action={action} className="mt-4 max-w-xl space-y-4">
+        <input type="hidden" name="slug" value={slug} />
+        {state.error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {state.error}
+          </p>
+        ) : null}
+        {company ? (
+          <Field
+            name="businessName"
+            label="Naziv firme"
+            autoComplete="organization"
+            defaultValue={shown.businessName}
+            error={state.fieldErrors?.businessName}
+            required={false}
+          />
+        ) : null}
+        <Field
+          name="name"
+          label="Ime i prezime"
+          autoComplete="name"
+          defaultValue={shown.name}
+          error={state.fieldErrors?.name}
+          required={false}
+        />
+        <div>
+          <p className="text-sm font-medium">Email</p>
+          <p className="mt-1.5 text-sm">{shown.email}</p>
+        </div>
+        <Field
+          name="confirmationEmail"
+          label="Email za potvrde"
+          type="email"
+          autoComplete="email"
+          defaultValue={shown.confirmationEmail}
+          error={state.fieldErrors?.confirmationEmail}
+          required={false}
+          hint="Potvrde porudžbine stižu na ovu adresu. Može biti drugačija od emaila za prijavu. Ako je prazno, stižu na email za prijavu."
+        />
+        {company ? <Field name="mb" label="Matični broj" defaultValue={shown.mb} error={state.fieldErrors?.mb} required={false} /> : null}
+        {company ? <Field name="pib" label="PIB" defaultValue={shown.pib} error={state.fieldErrors?.pib} required={false} /> : null}
+        <Field
+          name="phone"
+          label="Telefon"
+          autoComplete="tel"
+          defaultValue={shown.phone}
+          error={state.fieldErrors?.phone}
+          required={false}
+        />
+        <Field
+          name="address"
+          label="Adresa"
+          autoComplete="street-address"
+          defaultValue={shown.address}
+          error={state.fieldErrors?.address}
+          required={false}
+        />
+        {company ? (
+          <Field
+            name="postalCode"
+            label="Poštanski broj"
+            autoComplete="postal-code"
+            defaultValue={shown.postalCode}
+            error={state.fieldErrors?.postalCode}
+            required={false}
+          />
+        ) : null}
+        <Field
+          name="city"
+          label="Grad"
+          autoComplete="address-level2"
+          defaultValue={shown.city}
+          error={state.fieldErrors?.city}
+          required={false}
+        />
+        {company ? (
+          <Field
+            name="bankAccount"
+            label="Na račun"
+            autoComplete="off"
+            defaultValue={normalizeBankAccount(shown.bankAccount ?? "") ?? ""}
+            error={state.fieldErrors?.bankAccount}
+            required={false}
+          />
+        ) : null}
+        <div className="flex gap-2">
+          <Button type="submit" disabled={pending}>
+            {pending ? "Čuvanje…" : "Sačuvaj"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setNotice("");
+              setFormKey((key) => key + 1);
+            }}
+          >
+            Otkaži
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 function Cart({
   lines,
   total,
@@ -238,7 +650,7 @@ function Cart({
 }) {
   return (
     <div className="mx-auto max-w-xl">
-      <button type="button" className="text-sm text-muted-foreground hover:text-foreground" onClick={onBack}>
+      <button type="button" className="inline-flex min-h-11 cursor-pointer items-center py-2 text-base font-medium text-foreground underline decoration-foreground/40 underline-offset-4 hover:decoration-foreground" onClick={onBack}>
         Nazad na proizvode
       </button>
       <h2 className="mt-2 text-lg font-semibold">Korpa</h2>
@@ -300,6 +712,7 @@ function Cart({
 
 function Checkout({
   slug,
+  business,
   buyer,
   lines,
   total,
@@ -308,6 +721,7 @@ function Checkout({
   onSuccess,
 }: {
   slug: string;
+  business: boolean;
   buyer?: BuyerAccount | null;
   lines: { product: Product; quantity: number }[];
   total: number;
@@ -315,74 +729,265 @@ function Checkout({
   onBack: () => void;
   onSuccess: (token: string) => void;
 }) {
+  const [phase, setPhase] = useState<"details" | "payment">("details");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [honeypot, setHoneypot] = useState("");
+  const [notes, setNotes] = useState("");
+  const [companyExtra, setCompanyExtra] = useState({ mb: "", postalCode: "" });
+  const [paymentMethod, setPaymentMethod] = useState<"" | "pouzecem" | "kartica">("");
+  const [retail, setRetail] = useState({
+    customerName: buyer?.name ?? "",
+    email: buyer?.email ?? "",
+    phone: buyer?.phone ?? "",
+    address: buyer?.address ?? "",
+    city: buyer?.city ?? "",
+  });
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const company = buyer && isCompanyBuyer(buyer) ? buyer : null;
+  const savedAccount = company ? normalizeBankAccount(company.bankAccount ?? "") : null;
+
+  function rememberRetail(form: FormData) {
+    setRetail({
+      customerName: String(form.get("customerName") ?? ""),
+      email: String(form.get("email") ?? ""),
+      phone: String(form.get("phone") ?? ""),
+      address: String(form.get("address") ?? ""),
+      city: String(form.get("city") ?? ""),
+    });
+    setNotes(String(form.get("notes") ?? ""));
+  }
+
+  async function place(input: { bankAccount?: string; paymentMethod?: string }) {
     if (pending) return;
-    const form = new FormData(event.currentTarget);
     setPending(true);
     setMessage("");
-    const result = await placeShopOrderAction({
-      slug,
-      idempotencyKey: readIdempotencyKey(idempotencyStorage),
-      customerName: form.get("customerName"),
-      email: form.get("email"),
-      phone: form.get("phone"),
-      address: form.get("address"),
-      city: form.get("city"),
-      notes: form.get("notes") ?? "",
-      paymentMethod: form.get("paymentMethod"),
-      honeypot,
-      items: lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
-    });
+    const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
+    const result = business
+      ? await placeShopOrderAction({
+          slug,
+          idempotencyKey: readIdempotencyKey(idempotencyStorage),
+          notes,
+          mb: company?.mb || companyExtra.mb,
+          postalCode: company?.postalCode || companyExtra.postalCode,
+          bankAccount: input.bankAccount ?? savedAccount ?? "",
+          honeypot,
+          items,
+        })
+      : await placeShopOrderAction({
+          slug,
+          idempotencyKey: readIdempotencyKey(idempotencyStorage),
+          customerName: retail.customerName,
+          email: retail.email,
+          phone: retail.phone,
+          address: retail.address,
+          city: retail.city,
+          notes,
+          paymentMethod: input.paymentMethod,
+          honeypot,
+          items,
+        });
     setPending(false);
     if (!result.ok || !result.token) {
       setMessage(result.message ?? "Kupovina nije poslata.");
       setErrors(result.fieldErrors ?? {});
+      if (result.fieldErrors && !result.fieldErrors.paymentMethod && !result.fieldErrors.bankAccount) setPhase("details");
       return;
     }
     onSuccess(result.token);
   }
 
+  if (business && !company) {
+    const back = storePath(slug);
+    return (
+      <div className="mx-auto max-w-xl space-y-4">
+        <button type="button" className="text-sm text-muted-foreground hover:text-foreground" onClick={onBack}>
+          Nazad na korpu
+        </button>
+        <h2 className="text-lg font-semibold">Kasa</h2>
+        <p className="text-sm text-muted-foreground">
+          Firma mora da otvori nalog. Račun ostaje sačuvan i svaka porudžbina ide na njega. Plaćanje pouzećem nije dostupno.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Link href={`/shop/${slug}/nalog`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+            Otvorite nalog
+          </Link>
+          <Link href={`/login?next=${encodeURIComponent(back)}`} className="inline-flex h-11 items-center rounded-md border border-border bg-card px-4 text-sm font-medium">
+            Prijavite se
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "payment" && business && company) {
+    return (
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          void place({ bankAccount: String(form.get("bankAccount") ?? savedAccount ?? "") });
+        }}
+        className="mx-auto max-w-xl space-y-4"
+        noValidate
+      >
+        <button type="button" className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setPhase("details")}>
+          Nazad na kasu
+        </button>
+        <h2 className="text-lg font-semibold">Način plaćanja</h2>
+        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}.</p>
+        {message ? <Alert message={message} /> : null}
+        <div className="rounded-lg border border-primary bg-card p-4 text-sm">
+          <p className="font-medium">Na račun</p>
+          {savedAccount ? <p className="mt-1">{savedAccount}</p> : null}
+          <p className="mt-1 text-muted-foreground">{company.businessName}</p>
+        </div>
+        {savedAccount ? null : (
+          <div>
+            <Field name="bankAccount" label="Broj računa" autoComplete="off" error={errors.bankAccount} />
+            <p className="mt-1 text-xs text-muted-foreground">18 cifara. Ostaje na nalogu i svaka naredna porudžbina ide na njega.</p>
+          </div>
+        )}
+        <p className="text-sm text-muted-foreground">Plaćanje pouzećem nije dostupno.</p>
+        <Honeypot value={honeypot} onChange={setHoneypot} />
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? "Slanje…" : "Potvrdi porudžbinu"}
+        </Button>
+      </form>
+    );
+  }
+
+  if (phase === "payment") {
+    return (
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!paymentMethod) {
+            setErrors({ paymentMethod: "Izaberite način plaćanja." });
+            return;
+          }
+          void place({ paymentMethod });
+        }}
+        className="mx-auto max-w-xl space-y-4"
+        noValidate
+      >
+        <button type="button" className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setPhase("details")}>
+          Nazad na kasu
+        </button>
+        <h2 className="text-lg font-semibold">Način plaćanja</h2>
+        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}.</p>
+        {message ? <Alert message={message} /> : null}
+        <PaymentMethodChoice value={paymentMethod} error={errors.paymentMethod} onChange={setPaymentMethod} />
+        <Honeypot value={honeypot} onChange={setHoneypot} />
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? "Slanje…" : "Potvrdi kupovinu"}
+        </Button>
+      </form>
+    );
+  }
+
+  if (business && company) {
+    return (
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          setNotes(String(form.get("notes") ?? ""));
+          setCompanyExtra({
+            mb: String(form.get("mb") ?? ""),
+            postalCode: String(form.get("postalCode") ?? ""),
+          });
+          setPhase("payment");
+        }}
+        className="mx-auto max-w-xl space-y-4"
+      >
+        <button type="button" className="text-sm text-muted-foreground hover:text-foreground" onClick={onBack}>
+          Nazad na korpu
+        </button>
+        <h2 className="text-lg font-semibold">Kasa</h2>
+        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}. Porudžbina ide na sačuvani račun.</p>
+        {message ? <Alert message={message} /> : null}
+        <div className="rounded-lg border border-border bg-card p-4 text-sm">
+          <p className="font-medium">{company.businessName}</p>
+          <p className="mt-1 text-muted-foreground">{company.name}</p>
+          <p className="text-muted-foreground">{company.email}</p>
+          {company.confirmationEmail.trim() ? (
+            <p className="text-muted-foreground">Potvrda stiže na {company.confirmationEmail.trim()}</p>
+          ) : null}
+          <p className="text-muted-foreground">{company.phone}</p>
+          {company.mb ? <p className="mt-2 text-muted-foreground">Matični broj {company.mb}</p> : null}
+          <p className="text-muted-foreground">PIB {company.pib}</p>
+          <p className="text-muted-foreground">
+            {[company.address, [company.postalCode, company.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+          </p>
+        </div>
+        {company.mb ? null : <Field name="mb" label="Matični broj" error={errors.mb} />}
+        {company.postalCode ? null : (
+          <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={errors.postalCode} />
+        )}
+        <div>
+          <Label htmlFor="notes">Napomena</Label>
+          <Textarea id="notes" name="notes" defaultValue={notes} className="mt-1.5" />
+        </div>
+        <Button type="submit" className="w-full">
+          Način plaćanja
+        </Button>
+      </form>
+    );
+  }
+
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-xl space-y-4" noValidate>
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        rememberRetail(new FormData(event.currentTarget));
+        setPhase("payment");
+      }}
+      className="mx-auto max-w-xl space-y-4"
+    >
       <button type="button" className="text-sm text-muted-foreground hover:text-foreground" onClick={onBack}>
         Nazad na korpu
       </button>
       <h2 className="text-lg font-semibold">Kasa</h2>
       <p className="text-sm text-muted-foreground">
         {buyer ? `Prijavljeni ste kao ${buyer.name}. ` : null}
+        {buyer ? `Potvrda porudžbine stiže na ${orderConfirmationEmail(buyer)}. ` : null}
         Ukupno {formatRsd(total)}. Isporuka na adresu koju unesete.
       </p>
-      {message ? (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {message}
-        </p>
-      ) : null}
-      <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} defaultValue={buyer?.name} />
-      <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={buyer?.email} />
-      <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={buyer?.phone} />
-      <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} defaultValue={buyer?.address} />
-      <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={buyer?.city} />
-      <PaymentMethodChoice error={errors.paymentMethod} />
+      {message ? <Alert message={message} /> : null}
+      <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} defaultValue={retail.customerName} />
+      <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={retail.email} />
+      <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={retail.phone} />
+      <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} defaultValue={retail.address} />
+      <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={retail.city} />
       <div>
         <Label htmlFor="notes">Napomena</Label>
-        <Textarea id="notes" name="notes" className="mt-1.5" />
+        <Textarea id="notes" name="notes" defaultValue={notes} className="mt-1.5" />
       </div>
-      <div className="absolute -left-[9999px] h-0 overflow-hidden" aria-hidden="true">
-        <label>
-          Website
-          <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
-        </label>
-      </div>
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Slanje…" : "Potvrdi kupovinu"}
+      <Button type="submit" className="w-full">
+        Način plaćanja
       </Button>
     </form>
+  );
+}
+
+function Alert({ message }: { message: string }) {
+  return (
+    <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+      {message}
+    </p>
+  );
+}
+
+function Honeypot({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="absolute -left-[9999px] h-0 overflow-hidden" aria-hidden="true">
+      <label>
+        Website
+        <input tabIndex={-1} autoComplete="off" value={value} onChange={(event) => onChange(event.target.value)} />
+      </label>
+    </div>
   );
 }
 
@@ -394,6 +999,7 @@ function Field({
   autoComplete,
   defaultValue,
   required = true,
+  hint,
 }: {
   name: string;
   label: string;
@@ -402,11 +1008,13 @@ function Field({
   autoComplete?: string;
   defaultValue?: string;
   required?: boolean;
+  hint?: string;
 }) {
   return (
     <div>
       <Label htmlFor={name}>{label}</Label>
       <Input id={name} name={name} type={type} autoComplete={autoComplete} defaultValue={defaultValue} required={required} className="mt-1.5 h-11" aria-invalid={Boolean(error)} />
+      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
       <FieldError message={error} />
     </div>
   );

@@ -1,16 +1,22 @@
 import { createHash } from "node:crypto";
 
-import { belgradeYear } from "@/lib/format";
+import { effectivePricePara } from "@/lib/data/pricing";
+import { belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { hashPassword } from "@/lib/password";
 import type {
   Category,
   Customer,
+  InvoiceStatus,
   Order,
   OrderItem,
   OrderStatus,
   OrderStatusEvent,
   Organization,
+  PlatformInvoice,
   Product,
+  Subscription,
+  SubscriptionPlan,
+  SupplierNote,
   Unit,
 } from "@/lib/data/types";
 
@@ -19,12 +25,16 @@ export type DemoUser = {
   email: string;
   name: string;
   passwordHash: string;
-  kind: "supplier" | "buyer";
+  kind: "supplier" | "buyer" | "platform";
   businessName: string;
   phone: string;
   address: string;
   city: string;
   pib: string;
+  mb?: string;
+  postalCode?: string;
+  bankAccount: string;
+  confirmationEmail?: string;
   createdAt: string;
 };
 
@@ -69,10 +79,19 @@ export type DemoDatabase = {
   orderItems: OrderItem[];
   statusHistory: OrderStatusEvent[];
   rateLimits: { key: string; hits: number[] }[];
+  plans: SubscriptionPlan[];
+  subscriptions: Subscription[];
+  invoices: PlatformInvoice[];
+  supplierNotes: SupplierNote[];
 };
 
 export const DEMO_EMAIL = "ana@gastrosupply.rs";
+export const RETAIL_DEMO_EMAIL = "vera@butikvera.rs";
+export const BUSINESS_BUYER_EMAIL = "marko@restorandunav.rs";
+export const RETAIL_BUYER_EMAIL = "jovana@butikvera.rs";
+export const PLATFORM_ADMIN_EMAIL = "admin@prodora.rs";
 export const DEMO_PASSWORD = "poruci-demo";
+const BUSINESS_BUYER_ACCOUNT = "160-0000000011111-45";
 
 export function emptyDatabase(): DemoDatabase {
   return {
@@ -89,6 +108,10 @@ export function emptyDatabase(): DemoDatabase {
     orderItems: [],
     statusHistory: [],
     rateLimits: [],
+    plans: [],
+    subscriptions: [],
+    invoices: [],
+    supplierNotes: [],
   };
 }
 
@@ -105,17 +128,17 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
 
   const organization: Organization = {
     id: orgId,
-    name: "Pult",
+    name: MEAT_SHOP_NAME,
     slug: "gastro-supply",
     email: "porudzbine@gastrosupply.rs",
     notificationEmail: "porudzbine@gastrosupply.rs",
     phone: "+381 21 555 0142",
-    address: "Bulevar oslobođenja 88",
-    city: "Novi Sad",
+    address: "Jarmočna 20",
+    city: "Bački Petrovac",
     pib: "109876543",
     mb: "21456789",
     logoUrl: "/suppliers/gastro-supply.svg",
-    brandColor: "#14532d",
+    brandColor: MEAT_BRAND_COLOR,
     channel: "b2b",
     audience: "pravna",
     orderPrefix: "PU",
@@ -125,177 +148,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     updatedAt: now,
   };
 
-  const categoryDefs = [
-    ["Ambalaža", 1],
-    ["Ugostiteljstvo", 2],
-    ["Higijena", 3],
-  ] as const;
-  const categories: Category[] = categoryDefs.map(([name, sortOrder]) => ({
-    id: seedId(`category:gastro-supply:${name}`),
-    organizationId: orgId,
-    name,
-    sortOrder,
-    createdAt: ago(90),
-  }));
-  const categoryId = (name: string) => categories.find((category) => category.name === name)!.id;
-
-  const productDefs: Array<{
-    sku: string;
-    name: string;
-    category: string;
-    unit: Unit;
-    pricePara: number;
-    minQuantity: number;
-    description: string;
-  }> = [
-    {
-      sku: "KB-4030",
-      name: "Kartonska kutija 40×30×20",
-      category: "Ambalaža",
-      unit: "kutija",
-      pricePara: 9500,
-      minQuantity: 1,
-      description: "Troslojna kutija za pakovanje hrane i suve robe.",
-    },
-    {
-      sku: "PC-025",
-      name: "Papirna čaša 2,5 dl",
-      category: "Ugostiteljstvo",
-      unit: "komad",
-      pricePara: 450,
-      minQuantity: 100,
-      description: "Bela čaša za topli napitak.",
-    },
-    {
-      sku: "PC-040",
-      name: "Papirna čaša 4 dl",
-      category: "Ugostiteljstvo",
-      unit: "komad",
-      pricePara: 620,
-      minQuantity: 100,
-      description: "Čaša za hladne napitke i veće porcije kafe.",
-    },
-    {
-      sku: "PK-CAP",
-      name: "Poklopac za čašu",
-      category: "Ugostiteljstvo",
-      unit: "komad",
-      pricePara: 190,
-      minQuantity: 100,
-      description: "Univerzalni poklopac za čaše od 2,5 i 4 dl.",
-    },
-    {
-      sku: "SV-3333",
-      name: "Salvete 33×33 cm",
-      category: "Ugostiteljstvo",
-      unit: "paket",
-      pricePara: 18900,
-      minQuantity: 1,
-      description: "Paket od 100 salveta, dve sloja.",
-    },
-    {
-      sku: "UB-2SL",
-      name: "Ubrus dvoslojni",
-      category: "Ugostiteljstvo",
-      unit: "paket",
-      pricePara: 24900,
-      minQuantity: 1,
-      description: "Paket ubrusa za stolove.",
-    },
-    {
-      sku: "KS-RUC",
-      name: "Kesa sa ručkom",
-      category: "Ambalaža",
-      unit: "komad",
-      pricePara: 1450,
-      minQuantity: 50,
-      description: "Papirna kesa sa unutrašnjim slojem.",
-    },
-    {
-      sku: "AF-50",
-      name: "Aluminijumska folija 50 m",
-      category: "Ambalaža",
-      unit: "komad",
-      pricePara: 42900,
-      minQuantity: 1,
-      description: "Rolna širine 30 cm.",
-    },
-    {
-      sku: "PF-300",
-      name: "Providna folija 300 m",
-      category: "Ambalaža",
-      unit: "komad",
-      pricePara: 38900,
-      minQuantity: 1,
-      description: "Folija za umotavanje i zaštitu namirnica.",
-    },
-    {
-      sku: "OD-5L",
-      name: "Sredstvo za odmašćivanje 5 l",
-      category: "Higijena",
-      unit: "komad",
-      pricePara: 189000,
-      minQuantity: 1,
-      description: "Profesionalno sredstvo za kuhinjske površine.",
-    },
-    {
-      sku: "TS-1L",
-      name: "Tečnost za sudove 1 l",
-      category: "Higijena",
-      unit: "komad",
-      pricePara: 24900,
-      minQuantity: 1,
-      description: "Koncentrovana tečnost za ručno pranje.",
-    },
-    {
-      sku: "RK-NIT",
-      name: "Rukavice nitril M",
-      category: "Higijena",
-      unit: "kutija",
-      pricePara: 89000,
-      minQuantity: 1,
-      description: "Kutija od 100 rukavica, veličina M.",
-    },
-    {
-      sku: "SC-1KG",
-      name: "Šećer u kesicama",
-      category: "Ugostiteljstvo",
-      unit: "kilogram",
-      pricePara: 16500,
-      minQuantity: 1,
-      description: "Bele kesice, pakovanje po kilogramu.",
-    },
-    {
-      sku: "KF-1KG",
-      name: "Kafa mlevena 1 kg",
-      category: "Ugostiteljstvo",
-      unit: "kilogram",
-      pricePara: 145000,
-      minQuantity: 0.5,
-      description: "Mešavina za espresso, veleprodajno pakovanje.",
-    },
-  ];
-
-  const products: Product[] = productDefs.map((product) => {
-    const gallery = galleryFor(product.sku, `/products/${product.sku}.jpg`);
-    return {
-    id: seedId(`product:gastro-supply:${product.sku}`),
-    organizationId: orgId,
-    categoryId: categoryId(product.category),
-    name: product.name,
-    sku: product.sku,
-    description: product.description,
-    unit: product.unit,
-    pricePara: product.pricePara,
-    salePricePara: null,
-    imageUrl: gallery[0] ?? null,
-    imageUrls: gallery,
-    active: true,
-    minQuantity: product.minQuantity,
-    createdAt: ago(80),
-    updatedAt: ago(4),
-    };
-  });
+  const { categories, products } = gastroCatalog(orgId, ago(80));
 
   const bySku = (sku: string) => products.find((product) => product.sku === sku)!;
 
@@ -400,8 +253,11 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
         email: customer.email,
         phone: customer.phone,
         pib: customer.pib,
+        mb: "",
         address: customer.address,
+        postalCode: "",
         city: customer.city,
+        bankAccount: "",
       },
       customerEmailStatus: "skipped",
       supplierEmailStatus: "skipped",
@@ -531,6 +387,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
         address: "",
         city: "",
         pib: "",
+        bankAccount: "",
         createdAt: ago(120),
       },
     ],
@@ -552,8 +409,12 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     orderItems,
     statusHistory,
     rateLimits: [],
+    plans: [],
+    subscriptions: [],
+    invoices: [],
+    supplierNotes: [],
   };
-  ensureRetailDemo(database);
+  await ensureRetailDemo(database);
   return database;
 }
 
@@ -737,8 +598,8 @@ function renameSupplyHouse(db: DemoDatabase) {
   return true;
 }
 
-export function ensureRetailDemo(db: DemoDatabase) {
-  const renamed = renameSupplyHouse(db);
+export async function ensureRetailDemo(db: DemoDatabase) {
+  let changed = renameSupplyHouse(db);
   const legacy = db.organizations.find((organization) => organization.slug === "kafa-kutak");
   if (legacy) {
     const now = new Date().toISOString();
@@ -748,36 +609,438 @@ export function ensureRetailDemo(db: DemoDatabase) {
     const catalog = boutiqueCatalog(legacy.id, now);
     db.categories.push(...catalog.categories);
     db.products.push(...catalog.items);
-    return true;
+    changed = true;
+  } else {
+    const existing = db.organizations.find((organization) => organization.slug === BOUTIQUE_SLUG);
+    if (existing) {
+      changed = backfillBoutiqueSales(db, existing.id) || changed;
+    } else {
+      const now = new Date().toISOString();
+      const organization: Organization = {
+        id: seedId("org:butik-vera"),
+        name: "Butik Vera",
+        slug: BOUTIQUE_SLUG,
+        email: "",
+        notificationEmail: "",
+        phone: "",
+        address: "",
+        city: "",
+        pib: "",
+        mb: "",
+        logoUrl: null,
+        brandColor: null,
+        channel: "b2c",
+        audience: "fizicka",
+        orderPrefix: "BV",
+        nextOrderNumber: 1001,
+        active: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      fillBoutique(organization, now);
+      const catalog = boutiqueCatalog(organization.id, now);
+      db.organizations.push(organization);
+      db.categories.push(...catalog.categories);
+      db.products.push(...catalog.items);
+      changed = true;
+    }
   }
-  const existing = db.organizations.find((organization) => organization.slug === BOUTIQUE_SLUG);
-  if (existing) return backfillBoutiqueSales(db, existing.id) || renamed;
-  const now = new Date().toISOString();
-  const organization: Organization = {
-    id: seedId("org:butik-vera"),
-    name: "Butik Vera",
-    slug: BOUTIQUE_SLUG,
-    email: "",
-    notificationEmail: "",
-    phone: "",
-    address: "",
-    city: "",
-    pib: "",
-    mb: "",
-    logoUrl: null,
-    brandColor: null,
-    channel: "b2c",
-    audience: "fizicka",
-    orderPrefix: "BV",
-    nextOrderNumber: 1001,
-    active: true,
-    createdAt: now,
-    updatedAt: now,
+  const ownerChanged = await ensureBoutiqueOwner(db);
+  const buyersChanged = await ensureDemoBuyers(db);
+  const platformChanged = await ensurePlatformAdmin(db);
+  return ownerChanged || buyersChanged || platformChanged || changed;
+}
+
+const PLAN_OSNOVNI_ID = seedId("plan:osnovni");
+const PLAN_POSLOVNI_ID = seedId("plan:poslovni");
+
+function billingMonth(monthsBack: number) {
+  const [yearText, monthText] = currentBelgradeMonthKey().split("-");
+  const cursor = new Date(Date.UTC(Number(yearText), Number(monthText) - 1 - monthsBack, 1, 12, 0, 0));
+  const year = cursor.getUTCFullYear();
+  const month = cursor.getUTCMonth();
+  return {
+    year: String(year),
+    start: new Date(Date.UTC(year, month, 1, 12, 0, 0)).toISOString(),
+    end: new Date(Date.UTC(year, month + 1, 0, 12, 0, 0)).toISOString(),
   };
-  fillBoutique(organization, now);
-  const catalog = boutiqueCatalog(organization.id, now);
-  db.organizations.push(organization);
-  db.categories.push(...catalog.categories);
-  db.products.push(...catalog.items);
-  return true;
+}
+
+export async function ensurePlatformAdmin(db: DemoDatabase) {
+  db.plans ??= [];
+  db.subscriptions ??= [];
+  db.invoices ??= [];
+  db.supplierNotes ??= [];
+  let changed = false;
+  const now = new Date().toISOString();
+
+  let admin = db.users.find((user) => user.email === PLATFORM_ADMIN_EMAIL);
+  if (!admin) {
+    admin = {
+      id: seedId(`user:${PLATFORM_ADMIN_EMAIL}`),
+      email: PLATFORM_ADMIN_EMAIL,
+      name: "Prodora administracija",
+      passwordHash: await hashPassword(DEMO_PASSWORD),
+      kind: "platform",
+      businessName: "",
+      phone: "",
+      address: "",
+      city: "",
+      pib: "",
+      bankAccount: "",
+      createdAt: now,
+    };
+    db.users.push(admin);
+    changed = true;
+  }
+
+  if (admin.kind !== "platform" && !db.members.some((member) => member.userId === admin.id)) {
+    admin.kind = "platform";
+    changed = true;
+  }
+  if (admin.kind === "platform") {
+    const members = db.members.filter((member) => member.userId !== admin.id);
+    if (members.length !== db.members.length) {
+      db.members = members;
+      changed = true;
+    }
+  }
+
+  const defaults: SubscriptionPlan[] = [
+    {
+      id: PLAN_OSNOVNI_ID,
+      name: "Osnovni",
+      monthlyPricePara: 199_000,
+      description: "Katalog, porudžbine i stranica prodavnice.",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: PLAN_POSLOVNI_ID,
+      name: "Poslovni",
+      monthlyPricePara: 499_000,
+      description: "Veći katalog i prioritetna podrška.",
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+  for (const plan of defaults) {
+    if (db.plans.some((item) => item.id === plan.id)) continue;
+    db.plans.push(plan);
+    changed = true;
+  }
+
+  const osnovni = db.plans.find((plan) => plan.id === PLAN_OSNOVNI_ID) ?? db.plans[0];
+  for (const organization of db.organizations) {
+    if (db.subscriptions.some((item) => item.organizationId === organization.id)) continue;
+    const preferred = organization.slug === "gastro-supply" ? PLAN_POSLOVNI_ID : osnovni?.id;
+    const planId = db.plans.some((plan) => plan.id === preferred) ? preferred : osnovni?.id;
+    if (!planId) continue;
+    const subscription: Subscription = {
+      id: seedId(`subscription:${organization.slug}`),
+      organizationId: organization.id,
+      planId,
+      status: "aktivna",
+      periodStart: billingMonth(0).start,
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.subscriptions.push(subscription);
+    changed = true;
+  }
+
+  const notes: Record<string, string> = {
+    "gastro-supply": "Demo nalog. Prodavnica za pravna lica.",
+    "butik-vera": "Demo nalog. Prodavnica za fizička lica.",
+  };
+  for (const [slug, body] of Object.entries(notes)) {
+    const organization = db.organizations.find((item) => item.slug === slug);
+    if (!organization || db.supplierNotes.some((item) => item.organizationId === organization.id)) continue;
+    db.supplierNotes.push({ organizationId: organization.id, body, updatedAt: now });
+    changed = true;
+  }
+
+  const invoiceSpecs: { slug: string; planId: string; rows: { key: string; monthsBack: number; status: InvoiceStatus }[] }[] = [
+    {
+      slug: "gastro-supply",
+      planId: PLAN_POSLOVNI_ID,
+      rows: [
+        { key: "1001", monthsBack: 2, status: "placena" },
+        { key: "1002", monthsBack: 1, status: "placena" },
+        { key: "1003", monthsBack: 0, status: "neplacena" },
+      ],
+    },
+    {
+      slug: "butik-vera",
+      planId: PLAN_OSNOVNI_ID,
+      rows: [
+        { key: "2001", monthsBack: 1, status: "placena" },
+        { key: "2002", monthsBack: 0, status: "neplacena" },
+      ],
+    },
+  ];
+  for (const spec of invoiceSpecs) {
+    const organization = db.organizations.find((item) => item.slug === spec.slug);
+    const plan = db.plans.find((item) => item.id === spec.planId);
+    if (!organization || !plan) continue;
+    for (const row of spec.rows) {
+      const id = seedId(`invoice:${spec.slug}:${row.key}`);
+      if (db.invoices.some((item) => item.id === id)) continue;
+      const month = billingMonth(row.monthsBack);
+      db.invoices.push({
+        id,
+        organizationId: organization.id,
+        number: `PF-${month.year}-${row.key}`,
+        periodStart: month.start,
+        periodEnd: month.end,
+        amountPara: plan.monthlyPricePara,
+        status: row.status,
+        issuedAt: month.start,
+      });
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
+async function ensureBoutiqueOwner(db: DemoDatabase) {
+  const organization = db.organizations.find((item) => item.slug === BOUTIQUE_SLUG);
+  if (!organization) return false;
+  let user = db.users.find((item) => item.email === RETAIL_DEMO_EMAIL);
+  let changed = false;
+  if (!user) {
+    user = {
+      id: seedId(`user:${RETAIL_DEMO_EMAIL}`),
+      email: RETAIL_DEMO_EMAIL,
+      name: "Vera Jovanović",
+      passwordHash: await hashPassword(DEMO_PASSWORD),
+      kind: "supplier",
+      businessName: "",
+      phone: "",
+      address: "",
+      city: "",
+      pib: "",
+      bankAccount: "",
+      createdAt: organization.createdAt,
+    };
+    db.users.push(user);
+    changed = true;
+  }
+  if (!db.members.some((item) => item.organizationId === organization.id && item.userId === user.id)) {
+    db.members.push({
+      id: seedId("member:butik-vera:vera"),
+      organizationId: organization.id,
+      userId: user.id,
+      role: "owner",
+      createdAt: organization.createdAt,
+    });
+    changed = true;
+  }
+  return changed;
+}
+
+async function ensureDemoBuyers(db: DemoDatabase) {
+  const now = new Date().toISOString();
+  const marko = await ensureBuyer(db, {
+    email: BUSINESS_BUYER_EMAIL,
+    name: "Marko Jović",
+    businessName: "Restoran Dunav",
+    phone: "+381 63 111 2200",
+    address: "Bulevar kralja Aleksandra 142",
+    city: "Beograd",
+    pib: "108765432",
+    mb: "20123456",
+    postalCode: "11000",
+    bankAccount: BUSINESS_BUYER_ACCOUNT,
+    createdAt: now,
+  });
+  const jovana = await ensureBuyer(db, {
+    email: RETAIL_BUYER_EMAIL,
+    name: "Jovana Ilić",
+    businessName: "",
+    phone: "+381 64 555 0199",
+    address: "Knez Mihailova 18",
+    city: "Beograd",
+    pib: "",
+    bankAccount: "",
+    createdAt: now,
+  });
+  const linked = linkBusinessBuyerOrders(db, marko.user);
+  const retailOrders = ensureRetailBuyerOrders(db, jovana.user);
+  return marko.changed || jovana.changed || linked || retailOrders;
+}
+
+async function ensureBuyer(
+  db: DemoDatabase,
+  input: Omit<DemoUser, "id" | "passwordHash" | "kind">,
+) {
+  const existing = db.users.find((item) => item.email === input.email);
+  if (existing) {
+    let changed = false;
+    if (input.mb && !existing.mb) {
+      existing.mb = input.mb;
+      changed = true;
+    }
+    if (input.postalCode && !existing.postalCode) {
+      existing.postalCode = input.postalCode;
+      changed = true;
+    }
+    return { user: existing, changed };
+  }
+  const user: DemoUser = {
+    ...input,
+    id: seedId(`user:${input.email}`),
+    passwordHash: await hashPassword(DEMO_PASSWORD),
+    kind: "buyer",
+  };
+  db.users.push(user);
+  return { user, changed: true };
+}
+
+function linkBusinessBuyerOrders(db: DemoDatabase, user: DemoUser) {
+  let changed = false;
+  for (const order of db.orders) {
+    const customer = db.customers.find((item) => item.id === order.customerId);
+    const owned = order.buyerUserId === user.id || (!order.buyerUserId && customer?.email === BUSINESS_BUYER_EMAIL);
+    if (!owned) continue;
+    if (!order.buyerUserId) {
+      order.buyerUserId = user.id;
+      changed = true;
+    }
+    if (!order.paymentMethod) {
+      order.paymentMethod = "racun";
+      changed = true;
+    }
+    if (!order.customerSnapshot.bankAccount) {
+      order.customerSnapshot.bankAccount = BUSINESS_BUYER_ACCOUNT;
+      changed = true;
+    }
+    if (!order.customerSnapshot.mb && user.mb) {
+      order.customerSnapshot.mb = user.mb;
+      changed = true;
+    }
+    if (!order.customerSnapshot.postalCode && user.postalCode) {
+      order.customerSnapshot.postalCode = user.postalCode;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function ensureRetailBuyerOrders(db: DemoDatabase, user: DemoUser) {
+  const organization = db.organizations.find((item) => item.slug === BOUTIQUE_SLUG);
+  if (!organization) return false;
+  let changed = false;
+  let customer = db.customers.find(
+    (item) => item.organizationId === organization.id && item.email === RETAIL_BUYER_EMAIL,
+  );
+  if (!customer) {
+    const now = new Date().toISOString();
+    customer = {
+      id: seedId(`customer:butik-vera:${RETAIL_BUYER_EMAIL}`),
+      organizationId: organization.id,
+      businessName: user.name,
+      contactName: user.name,
+      email: user.email,
+      phone: user.phone,
+      pib: "",
+      address: user.address,
+      city: user.city,
+      notes: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.customers.push(customer);
+    changed = true;
+  }
+
+  const year = belgradeYear(new Date().toISOString());
+  const specs = [
+    { suffix: "0901", sku: "BV-HALJ", status: "isporucena" as const, payment: "kartica" as const, days: 6 },
+    { suffix: "0902", sku: "BV-MIN", status: "potvrdjena" as const, payment: "pouzecem" as const, days: 20 },
+  ];
+  for (const spec of specs) {
+    const number = `BV-${year}-${spec.suffix}`;
+    const orderId = seedId(`order:demo-buyer:butik:${spec.suffix}`);
+    const existing = db.orders.find(
+      (order) => order.id === orderId || (order.organizationId === organization.id && order.number === number),
+    );
+    if (existing) {
+      if (!existing.buyerUserId) {
+        existing.buyerUserId = user.id;
+        changed = true;
+      }
+      continue;
+    }
+    const product = db.products.find((item) => item.organizationId === organization.id && item.sku === spec.sku);
+    if (!product) continue;
+    const unitPricePara = effectivePricePara(product);
+    const lineTotalPara = Math.round(unitPricePara);
+    const createdAt = ago(spec.days, 4);
+    db.orderItems.push({
+      id: seedId(`item:demo-buyer:butik:${spec.suffix}:${spec.sku}`),
+      orderId,
+      organizationId: organization.id,
+      productId: product.id,
+      name: product.name,
+      sku: product.sku,
+      unit: product.unit,
+      quantity: 1,
+      unitPricePara,
+      lineTotalPara,
+    });
+    db.orders.push({
+      id: orderId,
+      organizationId: organization.id,
+      customerId: customer.id,
+      buyerUserId: user.id,
+      number,
+      status: spec.status,
+      notes: "",
+      subtotalPara: lineTotalPara,
+      totalPara: lineTotalPara,
+      idempotencyKey: seedId(`idem:demo-buyer:butik:${spec.suffix}`),
+      confirmationToken: seedId(`confirm:demo-buyer:butik:${spec.suffix}`),
+      paymentMethod: spec.payment,
+      customerSnapshot: {
+        businessName: user.name,
+        contactName: user.name,
+        email: user.email,
+        phone: user.phone,
+        pib: "",
+        mb: "",
+        address: user.address,
+        postalCode: "",
+        city: user.city,
+        bankAccount: "",
+      },
+      customerEmailStatus: "skipped",
+      supplierEmailStatus: "skipped",
+      createdAt,
+      updatedAt: createdAt,
+    });
+    db.statusHistory.push(
+      {
+        id: seedId(`status:demo-buyer:butik:${spec.suffix}:nova`),
+        orderId,
+        organizationId: organization.id,
+        fromStatus: null,
+        toStatus: "nova",
+        actorName: "Sistem",
+        createdAt,
+      },
+      {
+        id: seedId(`status:demo-buyer:butik:${spec.suffix}:${spec.status}`),
+        orderId,
+        organizationId: organization.id,
+        fromStatus: "nova",
+        toStatus: spec.status,
+        actorName: "Vera Jovanović",
+        createdAt: new Date(new Date(createdAt).getTime() + 45 * 60 * 1000).toISOString(),
+      },
+    );
+    changed = true;
+  }
+  return changed;
 }

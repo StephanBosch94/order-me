@@ -14,27 +14,49 @@ import type {
   OrderDetail,
   OrderListItem,
   OrderListQuery,
+  OrderedQuantity,
   OrderStatus,
   Organization,
   OrganizationInput,
   Paginated,
+  PlatformInvoice,
+  PlatformSupplier,
   Product,
   ProductInput,
   PublicCatalog,
   PublicOrderInput,
   PublicOrderView,
   SessionAccount,
+  SubscriptionPlan,
+  SubscriptionStatus,
 } from "@/lib/data/types";
 
 export type CreateBuyerInput = {
   userId: string;
   name: string;
   email: string;
+  confirmationEmail: string;
   businessName: string;
   phone: string;
   address: string;
   city: string;
   pib: string;
+  mb: string;
+  postalCode: string;
+  bankAccount: string;
+};
+
+export type UpdateBuyerInput = {
+  name: string;
+  businessName: string;
+  phone: string;
+  address: string;
+  city: string;
+  pib: string;
+  mb: string;
+  postalCode: string;
+  bankAccount: string;
+  confirmationEmail: string;
 };
 
 export type CreateOrganizationInput = {
@@ -56,6 +78,9 @@ export interface CommerceRepository {
   getOrganization(id: string): Promise<Organization | null>;
   getAccount(userId: string): Promise<AccountContext | null>;
   resolveAccount(userId: string): Promise<SessionAccount | null>;
+  saveBuyerBankAccount(userId: string, bankAccount: string): Promise<void>;
+  updateBuyerProfile(userId: string, input: UpdateBuyerInput): Promise<void>;
+  saveBuyerCompanyDetails(userId: string, input: { mb: string; postalCode: string }): Promise<void>;
   listBuyerOrders(userId: string): Promise<BuyerOrder[]>;
   updateOrganization(id: string, input: OrganizationInput): Promise<Organization>;
   isSlugTaken(slug: string, exceptId?: string): Promise<boolean>;
@@ -77,6 +102,7 @@ export interface CommerceRepository {
     input: CustomerInput,
   ): Promise<Customer | null>;
   listOrders(organizationId: string, query: OrderListQuery): Promise<Paginated<OrderListItem>>;
+  listOrderedQuantities(organizationId: string): Promise<OrderedQuantity[]>;
   getOrder(organizationId: string, orderId: string): Promise<OrderDetail | null>;
   getOrderByToken(token: string): Promise<PublicOrderView | null>;
   createPublicOrder(input: PublicOrderInput, ip: string): Promise<CreateOrderResult>;
@@ -89,4 +115,14 @@ export interface CommerceRepository {
   setEmailStatus(orderId: string, customer: EmailDelivery, supplier: EmailDelivery): Promise<void>;
   getDashboard(organizationId: string): Promise<DashboardData>;
   getPublicCatalog(slug: string): Promise<PublicCatalog | null>;
+  listPlatformSuppliers(): Promise<PlatformSupplier[]>;
+  setOrganizationActive(organizationId: string, active: boolean): Promise<void>;
+  listPlans(): Promise<SubscriptionPlan[]>;
+  updatePlan(planId: string, input: { name: string; monthlyPricePara: number }): Promise<void>;
+  updateSubscription(
+    organizationId: string,
+    input: { planId: string; status: SubscriptionStatus },
+  ): Promise<void>;
+  updateSupplierNote(organizationId: string, note: string): Promise<void>;
+  listInvoices(organizationId: string): Promise<PlatformInvoice[]>;
 }

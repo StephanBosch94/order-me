@@ -266,8 +266,8 @@ export default function HomePage() {
           <Logo />
           <FooterColumn title="Prodavnica">
             <FooterLink href="/signup">Otvorite prodavnicu</FooterLink>
-            <FooterLink href="/shop/butik-vera" newTab>Butik Vera</FooterLink>
-            <FooterLink href="/shop/gastro-supply" newTab>Pult</FooterLink>
+            <FooterLink href="/shop/butik-vera">Butik Vera</FooterLink>
+            <FooterLink href="/shop/gastro-supply">Pult</FooterLink>
           </FooterColumn>
           <FooterColumn title="Kupci">
             <FooterLink href="/signup/kupac">Nalog kupca</FooterLink>
@@ -357,9 +357,8 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
 
 function DemoStoreLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
   return (
-    <Link href={href} target="_blank" rel="noreferrer" className={className}>
+    <Link href={href} className={className}>
       {children}
-      <span className="sr-only">, otvara se u novom tabu</span>
     </Link>
   );
 }

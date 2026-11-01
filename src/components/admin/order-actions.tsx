@@ -9,6 +9,7 @@ import { updateOrderStatusAction } from "@/lib/actions/orders";
 import { ORDER_STATUSES } from "@/lib/constants";
 import type { OrderStatus } from "@/lib/data/types";
 import { Button } from "@/components/ui/button";
+import { FileDropzone } from "@/components/ui/file-dropzone";
 import { Select } from "@/components/ui/fields";
 
 export function OrderStatusForm({ orderId, status }: { orderId: string; status: OrderStatus }) {
@@ -90,7 +91,6 @@ export function ProductActiveButton({ productId, active }: { productId: string; 
 export function CsvImport() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [fileName, setFileName] = useState("");
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -109,7 +109,6 @@ export function CsvImport() {
         variant="secondary"
         onClick={() => {
           setMessage("");
-          setFileName("");
           setOpen(true);
         }}
       >
@@ -160,17 +159,15 @@ export function CsvImport() {
                 reader.readAsText(file);
               }}
             >
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-input bg-card px-3 py-2 text-sm">
-                <input
-                  name="file"
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
-                />
-                <span className="shrink-0 rounded-md bg-zinc-100 px-2 py-1 font-medium">Izaberite CSV</span>
-                <span className="min-w-0 truncate text-muted-foreground">{fileName || "Fajl nije izabran"}</span>
-              </label>
+              <FileDropzone
+                id="csv-file"
+                name="file"
+                accept=".csv,text/csv"
+                heading="Prevucite CSV ovde"
+                releaseHeading="Pustite da dodate CSV"
+                hint="CSV fajl. Separator može biti zarez ili tačka-zarez."
+                typeError="Izaberite CSV fajl."
+              />
               {message ? <p className="text-sm">{message}</p> : null}
               <div className="flex gap-2">
                 <Button type="submit" disabled={pending}>

@@ -26,7 +26,7 @@ function Tab({ href, active, children }: { href: string; active: boolean; childr
       aria-selected={active}
       className={cn(
         "inline-flex h-9 items-center rounded-md px-3 text-sm",
-        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-zinc-100 hover:text-foreground",
+        active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-zinc-100",
       )}
     >
       {children}

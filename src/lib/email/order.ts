@@ -1,5 +1,6 @@
 import "server-only";
 
+import { orderConfirmationEmail } from "@/lib/buyer";
 import { getAppUrl } from "@/lib/config";
 import type { EmailDelivery, OrderDetail, Organization, PublicSupplier } from "@/lib/data/types";
 import { sendEmail } from "@/lib/email/send";
@@ -22,7 +23,7 @@ export async function deliverOrderEmails(
     .join("\n");
 
   const customer = await sendEmail({
-    to: order.customerSnapshot.email,
+    to: orderConfirmationEmail(order.customerSnapshot),
     subject: `Potvrda porudžbine ${order.number}`,
     text: [
       `Porudžbina ${order.number} je primljena.`,
@@ -32,6 +33,7 @@ export async function deliverOrderEmails(
       "",
       `Ukupno: ${formatRsd(order.totalPara)}`,
       order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
+      order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
       "",
       "Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.",
       `PDF: ${pdfUrl}`,
@@ -46,11 +48,15 @@ export async function deliverOrderEmails(
         text: [
           `${order.customerSnapshot.businessName} je poslala porudžbinu ${order.number}.`,
           `Kontakt: ${order.customerSnapshot.contactName}, ${order.customerSnapshot.phone}`,
+          order.customerSnapshot.mb ? `Matični broj: ${order.customerSnapshot.mb}` : "",
+          order.customerSnapshot.pib ? `PIB: ${order.customerSnapshot.pib}` : "",
+          order.customerSnapshot.postalCode ? `Poštanski broj: ${order.customerSnapshot.postalCode}` : "",
           "",
           lines,
           "",
           `Ukupno: ${formatRsd(order.totalPara)}`,
           order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
+          order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
           order.notes ? `Napomena: ${order.notes}` : "",
           "",
           adminUrl,
@@ -71,8 +77,12 @@ function customerHtml(order: OrderDetail, supplier: PublicSupplier, pdfUrl: stri
         `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(formatQuantity(item.quantity))} ${escapeHtml(unitLabel(item.unit).toLowerCase())}</td><td>${escapeHtml(formatRsd(item.lineTotalPara))}</td></tr>`,
     )
     .join("");
-  const payment = order.paymentMethod
-    ? `<p>Način plaćanja: ${escapeHtml(paymentLabel(order.paymentMethod))}</p>`
-    : "";
+  const payment = [
+    order.paymentMethod ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
+    order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
+  ]
+    .filter(Boolean)
+    .map((line) => `<p>${escapeHtml(line)}</p>`)
+    .join("");
   return `<div style="font-family:Arial,sans-serif;color:#18181b"><h1 style="font-size:20px">Potvrda porudžbine ${escapeHtml(order.number)}</h1><p>${escapeHtml(supplier.name)} je primio vašu porudžbinu.</p><table cellpadding="6">${rows}</table><p><strong>Ukupno: ${escapeHtml(formatRsd(order.totalPara))}</strong></p>${payment}<p>Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.</p><p><a href="${pdfUrl}">Preuzmite PDF</a></p></div>`;
 }

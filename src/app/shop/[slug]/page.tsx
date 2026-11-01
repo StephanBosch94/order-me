@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { ClosedStore } from "@/components/shop/closed-store";
 import { Shop } from "@/components/shop/shop";
 import { getSession } from "@/lib/auth";
-import { isCompanyBuyer } from "@/lib/buyer";
 import { getCommerce } from "@/lib/data";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -17,19 +17,20 @@ export default async function ShopPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ponovi?: string }>;
+  searchParams: Promise<{ ponovi?: string; nalog?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
   const catalog = await getCommerce().getPublicCatalog(slug);
   if (!catalog) notFound();
+  if (catalog.closedMessage) {
+    return <ClosedStore name={catalog.supplier.name} message={catalog.closedMessage} />;
+  }
   const session = await getSession();
   const buyer = session?.kind === "buyer" ? session : null;
-  const company = buyer && isCompanyBuyer(buyer) ? buyer : null;
-  const orders = company
-    ? (await getCommerce().listBuyerOrders(company.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
+  const orders = buyer
+    ? (await getCommerce().listBuyerOrders(buyer.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
     : [];
-
   return (
     <Shop
       catalog={catalog}
@@ -37,6 +38,7 @@ export default async function ShopPage({
       showAccount={session?.kind !== "supplier"}
       orders={orders}
       repeatOrderId={query.ponovi}
+      openAccount={query.nalog === "1"}
     />
   );
 }

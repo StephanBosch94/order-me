@@ -10,7 +10,8 @@ import { BusinessAccount } from "@/components/shop/business-account";
 import { AudienceSwitch } from "@/components/shop/audience-switch";
 import { BuyerKindChoice, PaymentMethodChoice, type BuyerKind } from "@/components/shop/checkout-kind";
 import { placeOrderAction, placeShopOrderAction } from "@/lib/actions/orders";
-import { DEMO_SLUGS, productPath, quantityStep, unitLabel } from "@/lib/constants";
+import { orderConfirmationEmail } from "@/lib/buyer";
+import { productPath, quantityStep, storePath, unitLabel } from "@/lib/constants";
 import type { BuyerAccount, BuyerOrder, Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
@@ -63,6 +64,19 @@ export function Storefront({
     .filter((line) => line.quantity > 0);
   const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
   const count = lines.length;
+  const catalogHref = storePath(catalog.supplier.slug);
+
+  function openCatalog(event: { preventDefault: () => void }) {
+    if (!buyer) return;
+    event.preventDefault();
+    setStep("browse");
+    setCartOpen(false);
+    setQuery("");
+    setCategoryId("all");
+    if (window.location.pathname === catalogHref && window.location.search) {
+      router.replace(catalogHref);
+    }
+  }
 
   function setQuantity(product: Product, quantity: number) {
     const next = { ...quantities };
@@ -128,27 +142,21 @@ export function Storefront({
 
   return (
     <div className="min-h-dvh bg-background pb-24 lg:pb-10" style={supplierTheme(catalog.supplier.brandColor)}>
-      {DEMO_SLUGS.has(catalog.supplier.slug) ? (
-        <div className="border-b border-border bg-zinc-50">
-          <div className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Nazad na sajt
-            </Link>
-          </div>
-        </div>
-      ) : null}
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-end justify-between gap-4 px-4 py-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href={catalogHref}
+            onClick={openCatalog}
+            className="flex min-w-0 items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <SupplierLogo name={catalog.supplier.name} logoUrl={catalog.supplier.logoUrl} className="size-12" />
             <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">Internet prodavnica</p>
             <h1 className="truncate text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
             <p className="text-sm text-muted-foreground">
               {[catalog.supplier.city, catalog.supplier.phone].filter(Boolean).join(" · ")}
             </p>
             </div>
-          </div>
+          </Link>
           <div className="flex flex-col items-end gap-2">
             <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} />
             <p className="hidden max-w-xs text-right text-sm text-muted-foreground sm:block">
@@ -545,12 +553,13 @@ function Checkout({
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
       <div>
-        <button type="button" className="cursor-pointer text-sm text-muted-foreground hover:text-foreground" onClick={onBack}>
+        <button type="button" className="inline-flex min-h-11 cursor-pointer items-center py-2 text-base font-medium text-foreground underline decoration-foreground/40 underline-offset-4 hover:decoration-foreground" onClick={onBack}>
           Nazad na proizvode
         </button>
         <h2 className="mt-2 text-lg font-semibold">Podaci za porudžbinu</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {buyer && who ? `Prijavljeni ste kao ${who}. ` : null}
+          {buyer ? `Potvrda porudžbine stiže na ${orderConfirmationEmail(buyer)}. ` : null}
           Ukupno {formatRsd(total)}. Cene važe u trenutku slanja.
         </p>
       </div>

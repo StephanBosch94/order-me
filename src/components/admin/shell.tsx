@@ -1,32 +1,42 @@
 "use client";
 
 import {
+  Building2,
   ClipboardList,
   LayoutDashboard,
   LogOut,
   Menu,
   Package,
+  Receipt,
   Settings,
   Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { SetupGuide } from "@/components/admin/setup-guide";
 import { logoutAction } from "@/lib/actions/auth";
+import { sellsToBusinesses } from "@/lib/constants";
 import type { AccountContext } from "@/lib/data/types";
 import { setupReady, type SetupStep } from "@/lib/setup";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 
-const items = [
+const items: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  business?: boolean;
+}[] = [
   { href: "/dashboard", label: "Pregled", icon: LayoutDashboard },
   { href: "/orders", label: "Porudžbine", icon: ClipboardList },
+  { href: "/orders/firme", label: "Porudžbine firmi", icon: Building2, business: true },
   { href: "/products", label: "Proizvodi", icon: Package },
   { href: "/customers", label: "Kupci", icon: Users },
+  { href: "/invoices", label: "Fakture", icon: Receipt },
   { href: "/settings", label: "Podešavanja", icon: Settings },
 ];
 
@@ -34,7 +44,7 @@ function PoweredBy() {
   return (
     <p className="flex items-center gap-1.5 px-2 pt-3 text-xs text-muted-foreground">
       powered by
-      <Link href="/" className="text-foreground">
+      <Link href="/dashboard" className="text-foreground">
         <Logo compact />
       </Link>
     </p>
@@ -43,6 +53,9 @@ function PoweredBy() {
 
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href;
+  if (href === "/orders") {
+    return pathname === "/orders" || (pathname.startsWith("/orders/") && !pathname.startsWith("/orders/firme"));
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -60,26 +73,33 @@ export function AdminShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const showGuide = !setupReady(setup);
+  const visibleItems = items.filter(
+    (item) => !item.business || sellsToBusinesses(session.organization.audience),
+  );
 
   const nav = (
     <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Glavna navigacija">
-      {items.map((item) => {
+      {visibleItems.map((item) => {
         const active = isActive(pathname, item.href);
         const Icon = item.icon;
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            onClick={() => setOpen(false)}
-            className={cn(
-              "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
-              active && "bg-accent font-medium text-accent-foreground",
-            )}
-          >
-            <Icon className="size-4" aria-hidden="true" />
-            {item.label}
-          </Link>
+          <Fragment key={item.href}>
+            {item.href === "/invoices" ? (
+              <hr className="mx-2.5 my-2 border-0 border-t border-border" />
+            ) : null}
+            <Link
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              onClick={() => setOpen(false)}
+              className={cn(
+                "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
+                active && "bg-accent font-medium text-accent-foreground",
+              )}
+            >
+              <Icon className="size-4" aria-hidden="true" />
+              {item.label}
+            </Link>
+          </Fragment>
         );
       })}
     </nav>
@@ -95,7 +115,7 @@ export function AdminShell({
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden h-full min-h-0 flex-col border-r border-border bg-sidebar lg:flex">
           <div className="px-5 py-5">
-            <div className="flex items-center gap-2.5">
+            <Link href="/dashboard" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <SupplierLogo name={session.organization.name} logoUrl={session.organization.logoUrl} />
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 truncate text-sm font-medium">
@@ -112,7 +132,7 @@ export function AdminShell({
                   Prodavnica
                 </p>
               </div>
-            </div>
+            </Link>
           </div>
           {nav}
           <div className="mt-auto border-t border-border p-3">
@@ -132,10 +152,10 @@ export function AdminShell({
         </aside>
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <header className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3 lg:hidden">
-            <div className="flex min-w-0 items-center gap-2">
+            <Link href="/dashboard" className="flex min-w-0 items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <SupplierLogo name={session.organization.name} logoUrl={session.organization.logoUrl} className="size-8" />
               <span className="truncate text-sm font-medium">{session.organization.name}</span>
-            </div>
+            </Link>
             <button
               type="button"
               className="inline-flex size-11 cursor-pointer items-center justify-center rounded-md border border-border"
@@ -163,6 +183,11 @@ export function AdminShell({
           <div className={cn("flex min-h-0 flex-1", open && "hidden lg:flex")}>
             <div className="min-w-0 flex-1 overflow-y-auto">
               <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+                {session.organization.active ? null : (
+                  <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                    Nalog je deaktiviran. Prodavnica ne prima nove porudžbine. Pregled, fakture i podešavanja ostaju dostupni.
+                  </div>
+                )}
                 {children}
                 {showGuide ? (
                   <div className="mt-6 lg:hidden">

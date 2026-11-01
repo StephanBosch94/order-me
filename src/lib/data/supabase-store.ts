@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import type { CsvProductRow } from "@/lib/csv";
-import { RESERVED_SLUGS, channelForAudience } from "@/lib/constants";
-import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput } from "@/lib/data/repository";
+import { isCompanyOrder } from "@/lib/company-order";
+import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
+import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
 import { priceOrderLines } from "@/lib/data/pricing";
 import type {
@@ -22,11 +23,14 @@ import type {
   OrderItem,
   OrderListItem,
   OrderListQuery,
+  OrderedQuantity,
   OrderStatus,
   OrderStatusEvent,
   Organization,
   OrganizationInput,
   Paginated,
+  PlatformInvoice,
+  PlatformSupplier,
   Product,
   ProductInput,
   PublicCatalog,
@@ -34,10 +38,14 @@ import type {
   PublicOrderView,
   PublicSupplier,
   SessionAccount,
+  Subscription,
+  SubscriptionPlan,
+  SubscriptionStatus,
   Unit,
 } from "@/lib/data/types";
+import { monthOrderUsage } from "@/lib/data/usage";
 import { DataError } from "@/lib/errors";
-import { belgradeDateKey, belgradeMonthKey, belgradeYear } from "@/lib/format";
+import { belgradeDateKey, belgradeMonthKey, belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { getServiceClient } from "@/lib/supabase/admin";
 import { fold, orderPrefixFromName } from "@/lib/text";
 
@@ -170,10 +178,19 @@ function mapOrder(row: Record<string, unknown>): Order {
     totalPara: Number(row.total_para),
     idempotencyKey: String(row.idempotency_key),
     confirmationToken: String(row.confirmation_token),
-    customerSnapshot: row.customer_snapshot as CustomerSnapshot,
+    customerSnapshot: {
+      ...(row.customer_snapshot as CustomerSnapshot),
+      bankAccount: String((row.customer_snapshot as CustomerSnapshot | null)?.bankAccount ?? ""),
+      mb: String((row.customer_snapshot as CustomerSnapshot | null)?.mb ?? ""),
+      postalCode: String((row.customer_snapshot as CustomerSnapshot | null)?.postalCode ?? ""),
+      confirmationEmail: String((row.customer_snapshot as CustomerSnapshot | null)?.confirmationEmail ?? "").trim(),
+    },
     customerEmailStatus: String(row.customer_email_status) as EmailDelivery,
     supplierEmailStatus: String(row.supplier_email_status) as EmailDelivery,
-    paymentMethod: row.payment_method === "pouzecem" || row.payment_method === "kartica" ? row.payment_method : null,
+    paymentMethod:
+      row.payment_method === "pouzecem" || row.payment_method === "kartica" || row.payment_method === "racun"
+        ? row.payment_method
+        : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -302,6 +319,7 @@ export const supabaseRepository: CommerceRepository = {
       role: "owner",
     });
     fail(member.error);
+    await assignDefaultSubscription(organization.id);
     return organization;
   },
 
@@ -316,8 +334,49 @@ export const supabaseRepository: CommerceRepository = {
       address: input.address,
       city: input.city,
       pib: input.pib,
+      mb: input.mb,
+      postal_code: input.postalCode,
+      bank_account: input.bankAccount,
+      confirmation_email: input.confirmationEmail.trim(),
     });
     fail(error);
+  },
+
+  async saveBuyerBankAccount(userId, bankAccount) {
+    const { error } = await db().from("profiles").update({ bank_account: bankAccount }).eq("id", userId).eq("kind", "buyer");
+    fail(error);
+  },
+
+  async saveBuyerCompanyDetails(userId, input: { mb: string; postalCode: string }) {
+    const { error } = await db()
+      .from("profiles")
+      .update({ mb: input.mb, postal_code: input.postalCode })
+      .eq("id", userId)
+      .eq("kind", "buyer");
+    fail(error);
+  },
+
+  async updateBuyerProfile(userId, input: UpdateBuyerInput) {
+    const { data, error } = await db()
+      .from("profiles")
+      .update({
+        name: input.name,
+        business_name: input.businessName,
+        phone: input.phone,
+        address: input.address,
+        city: input.city,
+        pib: input.pib,
+        mb: input.mb,
+        postal_code: input.postalCode,
+        bank_account: input.bankAccount,
+        confirmation_email: input.confirmationEmail.trim(),
+      })
+      .eq("id", userId)
+      .eq("kind", "buyer")
+      .select("id")
+      .maybeSingle();
+    fail(error);
+    if (!data) throw new DataError("Nalog nije pronađen.", "not_found");
   },
 
   async getOrganization(id) {
@@ -355,6 +414,14 @@ export const supabaseRepository: CommerceRepository = {
     fail(profile.error);
     if (!profile.data) return null;
     const row = profile.data as Record<string, unknown>;
+    if (row.kind === "platform") {
+      return {
+        kind: "platform",
+        userId,
+        name: String(row.name ?? ""),
+        email: String(row.email ?? ""),
+      };
+    }
     if (row.kind === "buyer") {
       return {
         kind: "buyer",
@@ -366,6 +433,10 @@ export const supabaseRepository: CommerceRepository = {
         address: String(row.address ?? ""),
         city: String(row.city ?? ""),
         pib: String(row.pib ?? ""),
+        mb: String(row.mb ?? ""),
+        postalCode: String(row.postal_code ?? ""),
+        bankAccount: String(row.bank_account ?? ""),
+        confirmationEmail: String(row.confirmation_email ?? "").trim(),
       };
     }
     const account = await this.getAccount(userId);
@@ -375,7 +446,7 @@ export const supabaseRepository: CommerceRepository = {
   async listBuyerOrders(userId): Promise<BuyerOrder[]> {
     const { data, error } = await db()
       .from("orders")
-      .select("id, number, status, total_para, created_at, confirmation_token, organizations(name, slug, channel, audience), order_items(product_id, name, quantity, unit)")
+      .select("id, number, status, total_para, created_at, confirmation_token, organizations(name, slug, channel, audience), order_items(product_id, name, quantity, unit, products(image_url, image_urls))")
       .eq("buyer_user_id", userId)
       .order("created_at", { ascending: false });
     fail(error);
@@ -401,11 +472,15 @@ export const supabaseRepository: CommerceRepository = {
         itemCount: items.length,
         items: items.map((item) => {
           const line = item as Record<string, unknown>;
+          const product = oneRecord(line.products);
+          const urls = Array.isArray(product?.image_urls) ? product.image_urls : [];
+          const first = urls.find((url) => typeof url === "string" && url);
           return {
             productId: line.product_id ? String(line.product_id) : null,
             name: String(line.name ?? ""),
             quantity: Number(line.quantity),
             unit: String(line.unit ?? "komad") as BuyerOrder["items"][number]["unit"],
+            imageUrl: typeof first === "string" ? first : product?.image_url ? String(product.image_url) : null,
           };
         }),
       };
@@ -649,6 +724,8 @@ export const supabaseRepository: CommerceRepository = {
       const to = query.to;
       rows = rows.filter((order) => belgradeDateKey(order.createdAt) <= to);
     }
+    if (query.company === true) rows = rows.filter((order) => isCompanyOrder(order));
+    if (query.company === false) rows = rows.filter((order) => !isCompanyOrder(order));
     const sort = query.sort ?? "newest";
     rows.sort((a, b) => {
       if (sort === "oldest") return a.createdAt.localeCompare(b.createdAt);
@@ -666,6 +743,34 @@ export const supabaseRepository: CommerceRepository = {
       pageSize,
     };
     return result;
+  },
+
+  async listOrderedQuantities(organizationId): Promise<OrderedQuantity[]> {
+    const { data, error } = await db()
+      .from("orders")
+      .select("created_at, status, order_items(product_id, name, quantity, unit, products(image_url, image_urls))")
+      .eq("organization_id", organizationId);
+    fail(error);
+    const lines: OrderedQuantity[] = [];
+    for (const row of (data ?? []) as Record<string, unknown>[]) {
+      const items = Array.isArray(row.order_items) ? row.order_items : [];
+      for (const item of items) {
+        const line = item as Record<string, unknown>;
+        const product = oneRecord(line.products);
+        const urls = Array.isArray(product?.image_urls) ? product.image_urls : [];
+        const first = urls.find((url) => typeof url === "string" && url);
+        lines.push({
+          createdAt: String(row.created_at),
+          status: String(row.status) as OrderStatus,
+          productId: line.product_id ? String(line.product_id) : null,
+          name: String(line.name ?? ""),
+          quantity: Number(line.quantity),
+          unit: String(line.unit ?? "komad") as OrderedQuantity["unit"],
+          imageUrl: typeof first === "string" ? first : product?.image_url ? String(product.image_url) : null,
+        });
+      }
+    }
+    return lines;
   },
 
   async getOrder(organizationId, orderId) {
@@ -693,10 +798,11 @@ export const supabaseRepository: CommerceRepository = {
 
   async createPublicOrder(input: PublicOrderInput, ip: string): Promise<CreateOrderResult> {
     const admin = db();
-    const orgResult = await admin.from("organizations").select("*").eq("slug", input.slug).eq("active", true).maybeSingle();
+    const orgResult = await admin.from("organizations").select("*").eq("slug", input.slug).maybeSingle();
     fail(orgResult.error);
     if (!orgResult.data) return { ok: false, message: "Dobavljač nije pronađen." };
     const organization = mapOrganization(orgResult.data as Record<string, unknown>);
+    if (!organization.active) return { ok: false, message: STORE_CLOSED_MESSAGE };
 
     const existing = await admin
       .from("orders")
@@ -781,8 +887,12 @@ export const supabaseRepository: CommerceRepository = {
       email: customer.email,
       phone: customer.phone,
       pib: customer.pib,
+      mb: input.mb ?? "",
       address: customer.address,
+      postalCode: input.postalCode ?? "",
       city: customer.city,
+      bankAccount: input.bankAccount ?? "",
+      confirmationEmail: input.confirmationEmail?.trim() ?? "",
     };
     const insertedOrder = await admin
       .from("orders")
@@ -905,15 +1015,18 @@ export const supabaseRepository: CommerceRepository = {
   },
 
   async getPublicCatalog(slug) {
-    const { data, error } = await db()
-      .from("organizations")
-      .select("*")
-      .eq("slug", slug)
-      .eq("active", true)
-      .maybeSingle();
+    const { data, error } = await db().from("organizations").select("*").eq("slug", slug).maybeSingle();
     fail(error);
     if (!data) return null;
     const organization = mapOrganization(data as Record<string, unknown>);
+    if (!organization.active) {
+      return {
+        supplier: toPublic(organization),
+        categories: [],
+        products: [],
+        closedMessage: STORE_CLOSED_MESSAGE,
+      };
+    }
     const [categories, products] = await Promise.all([
       this.listCategories(organization.id),
       this.listProducts(organization.id),
@@ -925,7 +1038,214 @@ export const supabaseRepository: CommerceRepository = {
     };
     return catalog;
   },
+
+  async listPlatformSuppliers() {
+    const admin = db();
+    const [organizations, plans, subscriptions, notes, products, orders] = await Promise.all([
+      admin.from("organizations").select("*"),
+      admin.from("subscription_plans").select("*"),
+      admin.from("subscriptions").select("*"),
+      admin.from("supplier_notes").select("*"),
+      admin.from("products").select("organization_id"),
+      admin.from("orders").select("organization_id, status, total_para, created_at"),
+    ]);
+    fail(organizations.error);
+    fail(plans.error);
+    fail(subscriptions.error);
+    fail(notes.error);
+    fail(products.error);
+    fail(orders.error);
+    const month = currentBelgradeMonthKey();
+    const planRows = ((plans.data ?? []) as Record<string, unknown>[]).map(mapPlan);
+    const subscriptionRows = ((subscriptions.data ?? []) as Record<string, unknown>[]).map(mapSubscription);
+    const noteRows = new Map(
+      ((notes.data ?? []) as Record<string, unknown>[]).map((row) => [String(row.organization_id), String(row.body ?? "")]),
+    );
+    const productCounts = new Map<string, number>();
+    for (const row of (products.data ?? []) as Record<string, unknown>[]) {
+      const id = String(row.organization_id);
+      productCounts.set(id, (productCounts.get(id) ?? 0) + 1);
+    }
+    const ordersByOrg = new Map<string, { status: OrderStatus; totalPara: number; createdAt: string }[]>();
+    for (const row of (orders.data ?? []) as Record<string, unknown>[]) {
+      const id = String(row.organization_id);
+      const list = ordersByOrg.get(id) ?? [];
+      list.push({
+        status: String(row.status) as OrderStatus,
+        totalPara: Number(row.total_para),
+        createdAt: String(row.created_at),
+      });
+      ordersByOrg.set(id, list);
+    }
+    const rows: PlatformSupplier[] = ((organizations.data ?? []) as Record<string, unknown>[])
+      .map(mapOrganization)
+      .sort((a, b) => a.name.localeCompare(b.name, "sr"))
+      .map((organization) => {
+        const subscription = subscriptionRows.find((item) => item.organizationId === organization.id) ?? null;
+        const plan = subscription ? planRows.find((item) => item.id === subscription.planId) ?? null : null;
+        const usage = monthOrderUsage(ordersByOrg.get(organization.id) ?? [], month);
+        return {
+          organization,
+          plan,
+          subscription,
+          note: noteRows.get(organization.id) ?? "",
+          productCount: productCounts.get(organization.id) ?? 0,
+          ordersThisMonth: usage.ordersThisMonth,
+          monthValuePara: usage.monthValuePara,
+        };
+      });
+    return rows;
+  },
+
+  async setOrganizationActive(organizationId, active) {
+    const existing = await db().from("organizations").select("id").eq("id", organizationId).maybeSingle();
+    fail(existing.error);
+    if (!existing.data) throw new DataError("Dobavljač nije pronađen.", "not_found");
+    const { error } = await db()
+      .from("organizations")
+      .update({ active, updated_at: new Date().toISOString() })
+      .eq("id", organizationId);
+    fail(error);
+  },
+
+  async listPlans() {
+    const { data, error } = await db().from("subscription_plans").select("*").order("monthly_price_para");
+    fail(error);
+    return ((data ?? []) as Record<string, unknown>[]).map(mapPlan);
+  },
+
+  async updatePlan(planId, input) {
+    const name = input.name.trim();
+    if (!name) throw new DataError("Unesite naziv paketa.", "validation");
+    if (!Number.isInteger(input.monthlyPricePara) || input.monthlyPricePara < 0) {
+      throw new DataError("Cena nije ispravna.", "validation");
+    }
+    const { data, error } = await db()
+      .from("subscription_plans")
+      .update({
+        name,
+        monthly_price_para: input.monthlyPricePara,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", planId)
+      .select("id")
+      .maybeSingle();
+    if (error?.code === "23505") throw new DataError("Paket sa ovim nazivom već postoji.", "conflict");
+    fail(error);
+    if (!data) throw new DataError("Paket nije pronađen.", "not_found");
+  },
+
+  async updateSubscription(organizationId, input) {
+    if (!SUBSCRIPTION_STATUSES.has(input.status)) {
+      throw new DataError("Status pretplate nije ispravan.", "validation");
+    }
+    const admin = db();
+    const organization = await admin.from("organizations").select("id").eq("id", organizationId).maybeSingle();
+    fail(organization.error);
+    if (!organization.data) throw new DataError("Dobavljač nije pronađen.", "not_found");
+    const plan = await admin.from("subscription_plans").select("id").eq("id", input.planId).maybeSingle();
+    fail(plan.error);
+    if (!plan.data) throw new DataError("Paket nije pronađen.", "not_found");
+    const now = new Date().toISOString();
+    const existing = await admin.from("subscriptions").select("id").eq("organization_id", organizationId).maybeSingle();
+    fail(existing.error);
+    if (!existing.data) {
+      const inserted = await admin.from("subscriptions").insert({
+        organization_id: organizationId,
+        plan_id: input.planId,
+        status: input.status,
+        period_start: now,
+      });
+      fail(inserted.error);
+      return;
+    }
+    const updated = await admin
+      .from("subscriptions")
+      .update({ plan_id: input.planId, status: input.status, updated_at: now })
+      .eq("organization_id", organizationId);
+    fail(updated.error);
+  },
+
+  async updateSupplierNote(organizationId, note) {
+    const body = note.trim();
+    if (body.length > 2000) throw new DataError("Beleška može imati najviše 2000 karaktera.", "validation");
+    const organization = await db().from("organizations").select("id").eq("id", organizationId).maybeSingle();
+    fail(organization.error);
+    if (!organization.data) throw new DataError("Dobavljač nije pronađen.", "not_found");
+    const { error } = await db().from("supplier_notes").upsert({
+      organization_id: organizationId,
+      body,
+      updated_at: new Date().toISOString(),
+    });
+    fail(error);
+  },
+
+  async listInvoices(organizationId) {
+    const { data, error } = await db()
+      .from("platform_invoices")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("issued_at", { ascending: false });
+    fail(error);
+    return ((data ?? []) as Record<string, unknown>[]).map(mapInvoice);
+  },
 };
+
+const SUBSCRIPTION_STATUSES = new Set<SubscriptionStatus>(["aktivna", "otkazana", "istekla"]);
+
+function mapPlan(row: Record<string, unknown>): SubscriptionPlan {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    monthlyPricePara: Number(row.monthly_price_para),
+    description: String(row.description ?? ""),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function mapSubscription(row: Record<string, unknown>): Subscription {
+  const status = String(row.status);
+  return {
+    id: String(row.id),
+    organizationId: String(row.organization_id),
+    planId: String(row.plan_id),
+    status: status === "otkazana" || status === "istekla" ? status : "aktivna",
+    periodStart: String(row.period_start),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function mapInvoice(row: Record<string, unknown>): PlatformInvoice {
+  return {
+    id: String(row.id),
+    organizationId: String(row.organization_id),
+    number: String(row.number),
+    periodStart: String(row.period_start),
+    periodEnd: String(row.period_end),
+    amountPara: Number(row.amount_para),
+    status: row.status === "placena" ? "placena" : "neplacena",
+    issuedAt: String(row.issued_at),
+  };
+}
+
+async function assignDefaultSubscription(organizationId: string) {
+  const admin = db();
+  const plans = await admin.from("subscription_plans").select("id, name").order("monthly_price_para");
+  fail(plans.error);
+  const rows = (plans.data ?? []) as Record<string, unknown>[];
+  const plan = rows.find((item) => item.name === "Osnovni") ?? rows[0];
+  if (!plan) return;
+  const inserted = await admin.from("subscriptions").insert({
+    organization_id: organizationId,
+    plan_id: String(plan.id),
+    status: "aktivna",
+    period_start: new Date().toISOString(),
+  });
+  if (inserted.error?.code === "23505") return;
+  fail(inserted.error);
+}
 
 async function loadOrders(organizationId: string) {
   const { data, error } = await db().from("orders").select("*").eq("organization_id", organizationId);

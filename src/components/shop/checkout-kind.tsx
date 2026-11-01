@@ -43,17 +43,41 @@ export function BuyerKindChoice({
   );
 }
 
-export function PaymentMethodChoice({ error }: { error?: string }) {
+export function PaymentMethodChoice({
+  error,
+  value,
+  onChange,
+}: {
+  error?: string;
+  value?: "" | "pouzecem" | "kartica";
+  onChange?: (value: "pouzecem" | "kartica") => void;
+}) {
   return (
     <fieldset>
       <legend className="text-sm font-medium">Način plaćanja</legend>
       <div className="mt-2 space-y-2">
         <label className="flex items-center gap-2 text-sm">
-          <input type="radio" name="paymentMethod" value="pouzecem" required className="size-4 accent-primary" />
+          <input
+            type="radio"
+            name="paymentMethod"
+            value="pouzecem"
+            required
+            className="size-4 accent-primary"
+            checked={onChange ? value === "pouzecem" : undefined}
+            onChange={() => onChange?.("pouzecem")}
+          />
           Plaćanje pouzećem
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input type="radio" name="paymentMethod" value="kartica" required className="size-4 accent-primary" />
+          <input
+            type="radio"
+            name="paymentMethod"
+            value="kartica"
+            required
+            className="size-4 accent-primary"
+            checked={onChange ? value === "kartica" : undefined}
+            onChange={() => onChange?.("kartica")}
+          />
           Karticom
         </label>
       </div>

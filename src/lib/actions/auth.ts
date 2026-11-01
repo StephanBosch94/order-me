@@ -8,6 +8,7 @@ import { getDataMode } from "@/lib/config";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import { safeNextPath, slugCandidate } from "@/lib/text";
+import { normalizeBankAccount, normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { fieldErrors, loginSchema, signupSchema } from "@/lib/validators";
 
 export type AuthState = {
@@ -34,7 +35,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
     if (!account) return { error: "Nalog nije završen. Završite registraciju." };
     const token = await getDemoIdentity().createSession(user.id);
     await setDemoSession(token);
-    redirect(landingPath(account, nextPath));
+    redirect(await landingPath(account, nextPath));
   }
 
   const { createSupabaseServer } = await import("@/lib/supabase/server");
@@ -48,7 +49,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   if (!data.user) return { error: "Prijava nije uspela." };
   const account = await getCommerce().resolveAccount(data.user.id);
   if (!account) return { error: "Nalog nije završen. Završite registraciju." };
-  redirect(landingPath(account, nextPath));
+  redirect(await landingPath(account, nextPath));
 }
 
 export async function signupAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -68,13 +69,17 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           address: formData.get("address") ?? "",
           city: formData.get("city") ?? "",
           pib: formData.get("pib") ?? "",
+          mb: formData.get("mb") ?? "",
+          postalCode: formData.get("postalCode") ?? "",
+          bankAccount: formData.get("bankAccount") ?? "",
+          confirmationEmail: formData.get("confirmationEmail") ?? "",
         }
       : {
           kind,
           name: formData.get("name"),
           email: formData.get("email"),
           password: formData.get("password"),
-          audience: "oba",
+          audience: formData.get("audience"),
           organizationName: formData.get("organizationName"),
           phone: formData.get("phone") ?? "",
         },
@@ -102,6 +107,10 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
         address: parsed.data.kind === "buyer" ? parsed.data.address : "",
         city: parsed.data.kind === "buyer" ? parsed.data.city : "",
         pib: parsed.data.kind === "buyer" ? parsed.data.pib : "",
+        mb: parsed.data.kind === "buyer" ? normalizeMb(parsed.data.mb) ?? "" : "",
+        postalCode: parsed.data.kind === "buyer" ? normalizePostalCode(parsed.data.postalCode) ?? "" : "",
+        bankAccount: parsed.data.kind === "buyer" ? normalizeBankAccount(parsed.data.bankAccount) ?? "" : "",
+        confirmationEmail: parsed.data.kind === "buyer" ? parsed.data.confirmationEmail : "",
       });
       if (parsed.data.kind === "supplier") {
         await getCommerce().createOrganization({
@@ -116,7 +125,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
       }
       const token = await getDemoIdentity().createSession(user.id);
       await setDemoSession(token);
-      redirect(parsed.data.kind === "buyer" ? buyerDestination(requestedNext) : "/dashboard");
+      redirect(parsed.data.kind === "buyer" ? await buyerDestination(requestedNext, user.id) : "/dashboard");
     }
 
     const { createSupabaseServer } = await import("@/lib/supabase/server");
@@ -139,6 +148,10 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
         address: parsed.data.address,
         city: parsed.data.city,
         pib: parsed.data.pib,
+        mb: normalizeMb(parsed.data.mb) ?? "",
+        postalCode: normalizePostalCode(parsed.data.postalCode) ?? "",
+        bankAccount: normalizeBankAccount(parsed.data.bankAccount) ?? "",
+        confirmationEmail: parsed.data.confirmationEmail,
       });
     } else {
       await getCommerce().createOrganization({
@@ -162,7 +175,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
         };
       }
     }
-    redirect(parsed.data.kind === "buyer" ? buyerDestination(requestedNext) : "/dashboard");
+    redirect(parsed.data.kind === "buyer" ? await buyerDestination(requestedNext, created.data.user.id) : "/dashboard");
   } catch (error) {
     if (error instanceof DataError) return { error: error.message };
     throw error;

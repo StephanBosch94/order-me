@@ -1,18 +1,22 @@
 "use client";
 
-import { Upload } from "lucide-react";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 
 import { updateSettingsAction, type FormState } from "@/lib/actions/catalog";
 import type { Organization } from "@/lib/data/types";
 import { slugify } from "@/lib/text";
-import { cn } from "@/lib/utils";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { AudienceChoice } from "@/components/supplier/audience-choice";
+import { Button } from "@/components/ui/button";
+import {
+  FileDropzone,
+  IMAGE_FILE_ACCEPT,
+  IMAGE_FILE_TYPES,
+  IMAGE_MAX_BYTES,
+  IMAGE_SIZE_ERROR,
+  IMAGE_TYPE_ERROR,
+} from "@/components/ui/file-dropzone";
 import { FieldError, Input, Label } from "@/components/ui/fields";
-
-const LOGO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
 const initial: FormState = {};
 
@@ -23,6 +27,11 @@ export function SettingsForm({ organization }: { organization: Organization }) {
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700">{state.message}</p> : null}
       <div className="grid gap-4 sm:grid-cols-2">
+        <AudienceChoice
+          className="sm:col-span-2"
+          defaultValue={organization.audience}
+          error={state.fieldErrors?.audience}
+        />
         <Setting name="name" label="Naziv firme" defaultValue={organization.name} error={state.fieldErrors?.name} />
         <SlugSetting
           key={organization.slug}
@@ -133,101 +142,25 @@ function BrandColorSetting({ initial, error }: { initial: string | null; error?:
 }
 
 function LogoField({ organization }: { organization: Organization }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const previewRef = useRef<string | null>(null);
-  const [over, setOver] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [reject, setReject] = useState<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
-    };
-  }, []);
-
-  function showPreview(next: string | null) {
-    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
-    previewRef.current = next;
-    setPreview(next);
-  }
-
-  function take(list: FileList | null) {
-    const file = list?.[0];
-    const input = inputRef.current;
-    if (!input || !file || file.size === 0) return;
-    if (!LOGO_TYPES.has(file.type) || file.size > LOGO_MAX_BYTES) {
-      input.value = "";
-      setFileName(null);
-      showPreview(null);
-      setReject(file.size > LOGO_MAX_BYTES ? "Slika može imati najviše 2 MB." : "Dozvoljeni formati slike su JPG, PNG i WebP.");
-      return;
-    }
-    if (input.files?.[0] !== file) {
-      const transfer = new DataTransfer();
-      transfer.items.add(file);
-      input.files = transfer.files;
-    }
-    setReject(null);
-    setFileName(file.name);
-    showPreview(URL.createObjectURL(file));
-  }
-
   return (
     <div className="sm:col-span-2">
       <Label htmlFor="logo">Logotip</Label>
-      <label
-        onDragEnter={(event) => {
-          event.preventDefault();
-          setOver(true);
-        }}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setOver(true);
-        }}
-        onDragLeave={(event) => {
-          if (event.currentTarget.contains(event.relatedTarget as Node)) return;
-          setOver(false);
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          setOver(false);
-          take(event.dataTransfer.files);
-        }}
-        className={cn(
-          "mt-2 flex cursor-pointer flex-col items-center rounded-lg border border-dashed border-border bg-card px-6 py-8 text-center transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25",
-          over && "border-primary bg-zinc-50",
-        )}
-      >
-        <input
-          ref={inputRef}
-          id="logo"
-          name="logo"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="sr-only"
-          onChange={(event) => take(event.target.files)}
-        />
-        {preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt="" className="size-12 rounded-md border border-border bg-white object-contain" />
-        ) : organization.logoUrl ? (
-          <SupplierLogo name={organization.name} logoUrl={organization.logoUrl} className="size-12" />
-        ) : (
-          <span className="flex size-12 items-center justify-center rounded-md border border-border bg-zinc-50 text-muted-foreground">
-            <Upload className="size-5" aria-hidden="true" />
-          </span>
-        )}
-        <p className="mt-3 text-sm font-medium">{over ? "Pustite da dodate logotip" : "Prevucite logotip ovde"}</p>
-        <span className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "pointer-events-none mt-3")}>Izaberite fajl</span>
-        {fileName ? <p className="mt-2 max-w-full truncate text-sm">{fileName}</p> : null}
-        <p className="mt-2 text-xs text-muted-foreground">JPG, PNG ili WebP, do 2 MB. Prikazuje se kupcima na stranici za poručivanje.</p>
-        {reject ? (
-          <p role="alert" className="mt-2 text-sm text-destructive">
-            {reject}
-          </p>
-        ) : null}
-      </label>
+      <FileDropzone
+        id="logo"
+        name="logo"
+        accept={IMAGE_FILE_ACCEPT}
+        allowedTypes={IMAGE_FILE_TYPES}
+        maxBytes={IMAGE_MAX_BYTES}
+        heading="Prevucite logotip ovde"
+        releaseHeading="Pustite da dodate logotip"
+        hint="JPG, PNG ili WebP, do 2 MB. Prikazuje se kupcima na stranici za poručivanje."
+        emptyVisual={
+          organization.logoUrl ? <SupplierLogo name={organization.name} logoUrl={organization.logoUrl} className="size-12" /> : undefined
+        }
+        showImagePreview
+        sizeError={IMAGE_SIZE_ERROR}
+        typeError={IMAGE_TYPE_ERROR}
+      />
       {organization.logoUrl ? (
         <label className="mt-2 flex items-center gap-2 text-sm">
           <input type="checkbox" name="removeLogo" className="size-4 accent-zinc-950" />

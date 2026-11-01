@@ -41,12 +41,16 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null,
   name text not null,
-  kind text not null default 'supplier' check (kind in ('supplier', 'buyer')),
+  kind text not null default 'supplier' check (kind in ('supplier', 'buyer', 'platform')),
   business_name text not null default '',
   phone text not null default '',
   address text not null default '',
   city text not null default '',
   pib text not null default '',
+  mb text not null default '',
+  postal_code text not null default '',
+  bank_account text not null default '',
+  confirmation_email text not null default '',
   created_at timestamptz not null default now()
 );
 
@@ -116,7 +120,7 @@ create table if not exists public.orders (
   customer_snapshot jsonb not null,
   customer_email_status text not null default 'pending',
   supplier_email_status text not null default 'pending',
-  payment_method text check (payment_method is null or payment_method in ('pouzecem', 'kartica')),
+  payment_method text check (payment_method is null or payment_method in ('pouzecem', 'kartica', 'racun')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (organization_id, number),
@@ -267,8 +271,12 @@ alter table public.profiles add column if not exists phone text not null default
 alter table public.profiles add column if not exists address text not null default '';
 alter table public.profiles add column if not exists city text not null default '';
 alter table public.profiles add column if not exists pib text not null default '';
+alter table public.profiles add column if not exists bank_account text not null default '';
+alter table public.profiles add column if not exists mb text not null default '';
+alter table public.profiles add column if not exists postal_code text not null default '';
+alter table public.profiles add column if not exists confirmation_email text not null default '';
 alter table public.profiles drop constraint if exists profiles_kind_check;
-alter table public.profiles add constraint profiles_kind_check check (kind in ('supplier', 'buyer'));
+alter table public.profiles add constraint profiles_kind_check check (kind in ('supplier', 'buyer', 'platform'));
 
 alter table public.products add column if not exists sale_price_para integer;
 alter table public.products drop constraint if exists products_sale_price_check;
@@ -280,7 +288,7 @@ alter table public.products add column if not exists image_urls text[] not null 
 alter table public.orders add column if not exists payment_method text;
 alter table public.orders drop constraint if exists orders_payment_method_check;
 alter table public.orders add constraint orders_payment_method_check
-  check (payment_method is null or payment_method in ('pouzecem', 'kartica'));
+  check (payment_method is null or payment_method in ('pouzecem', 'kartica', 'racun'));
 
 alter table public.orders add column if not exists buyer_user_id uuid references auth.users (id) on delete set null;
 create index if not exists orders_buyer_idx on public.orders (buyer_user_id);
@@ -288,3 +296,81 @@ create index if not exists orders_buyer_idx on public.orders (buyer_user_id);
 drop policy if exists orders_buyer_select on public.orders;
 create policy orders_buyer_select on public.orders
 for select using (buyer_user_id = auth.uid());
+
+create table if not exists public.subscription_plans (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  monthly_price_para integer not null check (monthly_price_para >= 0),
+  description text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null unique references public.organizations (id) on delete cascade,
+  plan_id uuid not null references public.subscription_plans (id),
+  status text not null check (status in ('aktivna', 'otkazana', 'istekla')),
+  period_start timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.supplier_notes (
+  organization_id uuid primary key references public.organizations (id) on delete cascade,
+  body text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.platform_invoices (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations (id) on delete cascade,
+  number text not null unique,
+  period_start timestamptz not null,
+  period_end timestamptz not null,
+  amount_para integer not null check (amount_para >= 0),
+  status text not null check (status in ('placena', 'neplacena')),
+  issued_at timestamptz not null default now()
+);
+
+create index if not exists platform_invoices_org_idx on public.platform_invoices (organization_id, issued_at desc);
+
+drop trigger if exists subscription_plans_updated_at on public.subscription_plans;
+create trigger subscription_plans_updated_at before update on public.subscription_plans
+for each row execute function public.set_updated_at();
+
+drop trigger if exists subscriptions_updated_at on public.subscriptions;
+create trigger subscriptions_updated_at before update on public.subscriptions
+for each row execute function public.set_updated_at();
+
+alter table public.subscription_plans enable row level security;
+alter table public.subscriptions enable row level security;
+alter table public.supplier_notes enable row level security;
+alter table public.platform_invoices enable row level security;
+
+drop policy if exists plans_authenticated_select on public.subscription_plans;
+create policy plans_authenticated_select on public.subscription_plans
+for select using (auth.role() = 'authenticated');
+
+drop policy if exists subscriptions_member_select on public.subscriptions;
+create policy subscriptions_member_select on public.subscriptions
+for select using (organization_id in (select public.user_organization_ids()));
+
+drop policy if exists invoices_member_select on public.platform_invoices;
+create policy invoices_member_select on public.platform_invoices
+for select using (organization_id in (select public.user_organization_ids()));
+
+insert into public.subscription_plans (name, monthly_price_para, description)
+values
+  ('Osnovni', 199000, 'Katalog, porudžbine i stranica prodavnice.'),
+  ('Poslovni', 499000, 'Veći katalog i prioritetna podrška.')
+on conflict (name) do nothing;
+
+insert into public.subscriptions (organization_id, plan_id, status, period_start)
+select o.id, p.id, 'aktivna', date_trunc('month', now())
+from public.organizations o
+join public.subscription_plans p
+  on p.name = case when o.slug = 'gastro-supply' then 'Poslovni' else 'Osnovni' end
+where not exists (
+  select 1 from public.subscriptions s where s.organization_id = o.id
+);

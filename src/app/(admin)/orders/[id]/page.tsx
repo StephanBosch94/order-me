@@ -89,16 +89,34 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <dt className="text-muted-foreground">Telefon</dt>
                 <dd>{customer.phone}</dd>
               </div>
+              {customer.mb ? (
+                <div>
+                  <dt className="text-muted-foreground">Matični broj</dt>
+                  <dd>{customer.mb}</dd>
+                </div>
+              ) : null}
               {customer.pib ? (
                 <div>
                   <dt className="text-muted-foreground">PIB</dt>
                   <dd>{customer.pib}</dd>
                 </div>
               ) : null}
+              {customer.postalCode ? (
+                <div>
+                  <dt className="text-muted-foreground">Poštanski broj</dt>
+                  <dd>{customer.postalCode}</dd>
+                </div>
+              ) : null}
               {order.paymentMethod ? (
                 <div>
                   <dt className="text-muted-foreground">Način plaćanja</dt>
                   <dd>{paymentLabel(order.paymentMethod)}</dd>
+                </div>
+              ) : null}
+              {customer.bankAccount ? (
+                <div>
+                  <dt className="text-muted-foreground">Račun</dt>
+                  <dd>{customer.bankAccount}</dd>
                 </div>
               ) : null}
               {customer.address || customer.city ? (

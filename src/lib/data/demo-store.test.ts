@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { orderConfirmationEmail } from "@/lib/buyer";
 import { DemoStore } from "@/lib/data/demo-store";
+import { DataError } from "@/lib/errors";
 
 async function withStore(run: (store: DemoStore) => Promise<void>) {
   const dir = await mkdtemp(path.join(tmpdir(), "poruci-"));
@@ -194,14 +196,201 @@ test("buyer account sees only orders placed with that account", async () => {
         notes: "",
         items: [{ productId: product.id, quantity: 1 }],
         buyerUserId: buyer.id,
+        confirmationEmail: "racuni@bistro.rs",
       },
       "127.0.0.1",
     );
     assert.equal(created.ok, true);
+    if (created.ok) {
+      assert.equal(created.order.customerSnapshot.email, "milan@bistro.rs");
+      assert.equal(created.order.customerSnapshot.confirmationEmail, "racuni@bistro.rs");
+      assert.equal(orderConfirmationEmail(created.order.customerSnapshot), "racuni@bistro.rs");
+    }
     const orders = await store.listBuyerOrders(buyer.id);
     assert.equal(orders.length, 1);
     assert.equal(orders[0]?.supplierName, "Gastro Supply");
     assert.deepEqual(await store.listBuyerOrders(seller.id), []);
     assert.equal(await store.getAccount(buyer.id), null);
+  });
+});
+
+test("listOrders separates company orders and keeps cancelled ones", async () => {
+  await withStore(async (store) => {
+    const seller = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    const organization = await store.createOrganization({
+      userId: seller.id,
+      userName: seller.name,
+      userEmail: seller.email,
+      name: "Gastro Supply",
+      slug: "gastro-supply",
+      phone: "",
+    });
+    const product = await store.createProduct(organization.id, {
+      name: "Salvete",
+      sku: "SV",
+      description: "",
+      categoryId: null,
+      newCategory: "",
+      unit: "paket",
+      pricePara: 10000,
+      salePricePara: null,
+      minQuantity: 1,
+      active: true,
+    });
+
+    async function place(input: {
+      email: string;
+      businessName: string;
+      pib: string;
+      paymentMethod?: "pouzecem" | "kartica" | "racun" | null;
+    }) {
+      const created = await store.createPublicOrder(
+        {
+          slug: "gastro-supply",
+          idempotencyKey: crypto.randomUUID(),
+          businessName: input.businessName,
+          contactName: "Kontakt",
+          email: input.email,
+          phone: "064111222",
+          pib: input.pib,
+          address: "Ulica 1",
+          city: "Beograd",
+          notes: "",
+          items: [{ productId: product.id, quantity: 1 }],
+          paymentMethod: input.paymentMethod,
+        },
+        "127.0.0.1",
+      );
+      assert.equal(created.ok, true);
+      if (!created.ok) throw new Error("Porudžbina nije sačuvana.");
+      return created.order;
+    }
+
+    const byPib = await place({ email: "marko@restorandunav.rs", businessName: "Restoran Dunav", pib: "108765432" });
+    const byInvoice = await place({
+      email: "racun@firma.rs",
+      businessName: "Firma bez PIB-a",
+      pib: "",
+      paymentMethod: "racun",
+    });
+    const personal = await place({
+      email: "jovana@example.rs",
+      businessName: "Jovana Ilić",
+      pib: "",
+      paymentMethod: "kartica",
+    });
+    const cancelled = await place({ email: "otkaz@firma.rs", businessName: "Pekara Zrno", pib: "106543210" });
+    const updated = await store.updateOrderStatus(organization.id, cancelled.id, "otkazana", "Ana Petrović");
+    assert.equal(updated?.status, "otkazana");
+
+    const companies = await store.listOrders(organization.id, { company: true, pageSize: 20 });
+    const others = await store.listOrders(organization.id, { company: false, pageSize: 20 });
+    const all = await store.listOrders(organization.id, { pageSize: 20 });
+
+    assert.deepEqual(
+      companies.items.map((order) => order.id).sort(),
+      [byPib.id, byInvoice.id, cancelled.id].sort(),
+    );
+    assert.equal(companies.items.find((order) => order.id === cancelled.id)?.status, "otkazana");
+    assert.deepEqual(others.items.map((order) => order.id), [personal.id]);
+    assert.equal(all.total, 4);
+  });
+});
+
+test("a buyer can update their own profile without changing the login email", async () => {
+  await withStore(async (store) => {
+    const company = await store.createUser({
+      name: "Marko Jović",
+      email: "marko@restorandunav.rs",
+      password: "lozinka123",
+      kind: "buyer",
+      businessName: "Restoran Dunav",
+      phone: "+381 63 111 2200",
+      address: "Bulevar kralja Aleksandra 142",
+      city: "Beograd",
+      pib: "108765432",
+      mb: "20123456",
+      postalCode: "11000",
+      bankAccount: "160-0000000011111-45",
+    });
+    await store.updateBuyerProfile(company.id, {
+      name: "Marko Jović",
+      businessName: "Restoran Dunav",
+      phone: "0639998877",
+      address: "Bulevar kralja Aleksandra 142",
+      city: "Beograd",
+      pib: "108765432",
+      mb: "20123456",
+      postalCode: "11000",
+      bankAccount: "160-0000000011111-45",
+      confirmationEmail: "Racuni@RestoranDunav.rs",
+    });
+    const updated = await store.resolveAccount(company.id);
+    assert.equal(updated?.kind, "buyer");
+    if (updated?.kind !== "buyer") return;
+    assert.equal(updated.email, "marko@restorandunav.rs");
+    assert.equal(updated.confirmationEmail, "Racuni@RestoranDunav.rs");
+    assert.equal(orderConfirmationEmail(updated), "Racuni@RestoranDunav.rs");
+    assert.equal(updated.phone, "0639998877");
+    assert.equal(updated.businessName, "Restoran Dunav");
+    assert.equal(updated.bankAccount, "160-0000000011111-45");
+    assert.equal(updated.mb, "20123456");
+
+    const person = await store.createUser({
+      name: "Jovana Ilić",
+      email: "jovana@butikvera.rs",
+      password: "lozinka123",
+      kind: "buyer",
+      phone: "+381 64 555 0199",
+      address: "Knez Mihailova 18",
+      city: "Beograd",
+    });
+    await store.updateBuyerProfile(person.id, {
+      name: "Jovana Ilić",
+      businessName: "",
+      phone: "+381 64 555 0199",
+      address: "Knez Mihailova 22",
+      city: "Novi Sad",
+      pib: "",
+      mb: "",
+      postalCode: "",
+      bankAccount: "",
+      confirmationEmail: "",
+    });
+    const personal = await store.resolveAccount(person.id);
+    assert.equal(personal?.kind, "buyer");
+    if (personal?.kind !== "buyer") return;
+    assert.equal(personal.email, "jovana@butikvera.rs");
+    assert.equal(personal.confirmationEmail, "");
+    assert.equal(orderConfirmationEmail(personal), "jovana@butikvera.rs");
+    assert.equal(personal.address, "Knez Mihailova 22");
+    assert.equal(personal.city, "Novi Sad");
+    assert.equal(personal.pib, "");
+
+    const seller = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    await assert.rejects(
+      () =>
+        store.updateBuyerProfile(seller.id, {
+          name: "Ana Petrović",
+          businessName: "",
+          phone: "064111222",
+          address: "Ulica 1",
+          city: "Beograd",
+          pib: "",
+          mb: "",
+          postalCode: "",
+          bankAccount: "",
+          confirmationEmail: "",
+        }),
+      (error: unknown) => error instanceof DataError && error.message === "Nalog nije pronađen.",
+    );
   });
 });

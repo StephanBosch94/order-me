@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CopyLink } from "@/components/admin/order-actions";
+import { OrderedMonth } from "@/components/admin/ordered-month";
 import { EmptyState, Metric, PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
-import { storePath } from "@/lib/constants";
+import { isBusinessStore, sellsToBusinesses, storePath } from "@/lib/constants";
 import { setupReady, storeSetup } from "@/lib/setup";
 import { formatDateTime, formatLongDate, formatRsd } from "@/lib/format";
 
@@ -16,6 +17,9 @@ export const metadata: Metadata = { title: "Pregled" };
 export default async function DashboardPage() {
   const session = await requireSession();
   const data = await getCommerce().getDashboard(session.organization.id);
+  const ordered = isBusinessStore(session.organization.audience)
+    ? await getCommerce().listOrderedQuantities(session.organization.id)
+    : [];
   const ready = setupReady(storeSetup(session.organization, data.activeProducts));
   const publicPath = storePath(session.organization.slug);
 
@@ -56,12 +60,25 @@ export default async function DashboardPage() {
         <Metric label="Vrednost ovog meseca" value={formatRsd(data.monthValuePara)} hint="Bez otkazanih porudžbina" />
       </div>
 
+      {isBusinessStore(session.organization.audience) ? (
+        <div className="mt-8">
+          <OrderedMonth lines={ordered} />
+        </div>
+      ) : null}
+
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Skorašnje porudžbine</h2>
-          <Link href="/orders" className="text-sm text-indigo-700 hover:underline">
-            Sve porudžbine
-          </Link>
+          <div className="flex gap-3">
+            {sellsToBusinesses(session.organization.audience) ? (
+              <Link href="/orders/firme" className="text-sm text-indigo-700 hover:underline">
+                Porudžbine firmi
+              </Link>
+            ) : null}
+            <Link href="/orders" className="text-sm text-indigo-700 hover:underline">
+              Sve porudžbine
+            </Link>
+          </div>
         </div>
         {data.recentOrders.length === 0 ? (
           <EmptyState title="Još nema porudžbina" body="Kada kupac pošalje prvu porudžbinu, pojaviće se u ovoj tabeli." />

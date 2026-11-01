@@ -4,8 +4,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getDataMode } from "@/lib/config";
+import { storePath } from "@/lib/constants";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
-import type { AccountContext, BuyerAccount, SessionAccount } from "@/lib/data/types";
+import type { AccountContext, BuyerAccount, PlatformAccount, SessionAccount } from "@/lib/data/types";
 
 export const SESSION_COOKIE = "poruci_session";
 
@@ -17,15 +18,36 @@ const cookieOptions = {
   maxAge: 60 * 60 * 24 * 14,
 };
 
-export function buyerDestination(nextPath: string) {
+export async function buyerHomePath(userId: string) {
+  const orders = await getCommerce().listBuyerOrders(userId);
+  const slugs = new Set(orders.map((order) => order.supplierSlug).filter((slug) => slug.length > 0));
+  if (slugs.size !== 1) return null;
+  return storePath([...slugs][0]);
+}
+
+export async function buyerDestination(nextPath: string, userId?: string) {
   if (nextPath.startsWith("/s/") || nextPath.startsWith("/shop/")) return nextPath;
+  if (userId) {
+    const home = await buyerHomePath(userId);
+    if (home) return home;
+  }
   return "/kupac";
 }
 
-export function landingPath(account: SessionAccount, nextPath: string) {
-  if (account.kind === "buyer") return buyerDestination(nextPath);
-  if (nextPath === "/kupac" || nextPath.startsWith("/kupac?")) return "/dashboard";
-  if (nextPath.startsWith("/shop/") || nextPath.startsWith("/s/")) return "/dashboard";
+export async function landingPath(account: SessionAccount, nextPath: string) {
+  if (account.kind === "buyer") return buyerDestination(nextPath, account.userId);
+  if (account.kind === "platform") {
+    return nextPath.startsWith("/platform") ? nextPath : "/platform";
+  }
+  if (
+    nextPath.startsWith("/platform") ||
+    nextPath === "/kupac" ||
+    nextPath.startsWith("/kupac?") ||
+    nextPath.startsWith("/shop/") ||
+    nextPath.startsWith("/s/")
+  ) {
+    return "/dashboard";
+  }
   return nextPath;
 }
 
@@ -48,14 +70,26 @@ export async function getSession(): Promise<SessionAccount | null> {
 export async function requireSession(): Promise<AccountContext> {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.kind === "buyer") redirect("/kupac");
+  if (session.kind === "buyer") redirect(await buyerDestination("", session.userId));
+  if (session.kind === "platform") redirect("/platform");
   return session;
 }
 
 export async function requireBuyerSession(): Promise<BuyerAccount> {
   const session = await getSession();
   if (!session) redirect("/login?next=/kupac");
-  if (session.kind === "supplier") redirect("/dashboard");
+  if (session.kind === "platform") redirect("/platform");
+  if (session.kind !== "buyer") redirect("/dashboard");
+  const home = await buyerHomePath(session.userId);
+  if (home) redirect(home);
+  return session;
+}
+
+export async function requirePlatformSession(): Promise<PlatformAccount> {
+  const session = await getSession();
+  if (!session) redirect("/login?next=/platform");
+  if (session.kind === "buyer") redirect(await buyerDestination("/kupac", session.userId));
+  if (session.kind !== "platform") redirect("/dashboard");
   return session;
 }
 

@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { openSupplierAction } from "@/lib/actions/buyer";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/fields";
 import { requireBuyerSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
 import { storePath } from "@/lib/constants";
@@ -20,14 +17,9 @@ function itemWord(count: number) {
   return "stavki";
 }
 
-export default async function BuyerHomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ nedostaje?: string }>;
-}) {
+export default async function BuyerHomePage() {
   const session = await requireBuyerSession();
   const orders = await getCommerce().listBuyerOrders(session.userId);
-  const params = await searchParams;
   const active = orders.filter((order) => order.status !== "otkazana");
   const spent = active.reduce((sum, order) => sum + order.totalPara, 0);
 
@@ -54,26 +46,6 @@ export default async function BuyerHomePage({
           <dd className="mt-1 text-lg font-semibold">{orders[0] ? formatDateTime(orders[0].createdAt) : "Nema"}</dd>
         </div>
       </dl>
-
-      <section className="mt-8 rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">Otvorite stranicu firme</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Unesite adresu sa stranice kod koje kupujete.</p>
-        <form action={openSupplierAction} className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <Input
-            name="slug"
-            aria-label="Adresa stranice"
-            placeholder="butik-vera"
-            className="h-10 min-w-0 flex-1"
-            required
-          />
-          <Button type="submit">Otvori</Button>
-        </form>
-        {params.nedostaje ? (
-          <p role="alert" className="mt-3 text-sm text-destructive">
-            Dobavljač sa tom adresom nije pronađen.
-          </p>
-        ) : null}
-      </section>
 
       <section className="mt-8">
         {orders.length === 0 ? (

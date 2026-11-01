@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { loginAction, signupAction, type AuthState } from "@/lib/actions/auth";
+import { AudienceChoice } from "@/components/supplier/audience-choice";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
 
@@ -29,7 +30,15 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
       </Button>
       {demo ? (
         <p className="rounded-md bg-zinc-50 px-3 py-2 text-xs leading-5 text-muted-foreground">
-          Demo nalog: ana@gastrosupply.rs / poruci-demo
+          Pravnim licima: ana@gastrosupply.rs / poruci-demo
+          <br />
+          Fizičkim licima i jednim i drugima: vera@butikvera.rs / poruci-demo
+          <br />
+          Kupac pravnog lica: marko@restorandunav.rs / poruci-demo
+          <br />
+          Kupac fizičkog lica: jovana@butikvera.rs / poruci-demo
+          <br />
+          Administracija: admin@prodora.rs / poruci-demo
         </p>
       ) : null}
     </form>
@@ -47,20 +56,40 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
       {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
       <Field name="name" label="Ime i prezime" autoComplete="name" error={state.fieldErrors?.name} />
       <Field name="email" label="Email" type="email" autoComplete="email" error={state.fieldErrors?.email} />
+      {supplier ? null : (
+        <>
+          <Field
+            name="confirmationEmail"
+            label="Email za potvrde"
+            type="email"
+            autoComplete="email"
+            required={false}
+            error={state.fieldErrors?.confirmationEmail}
+          />
+          <p className="text-sm text-muted-foreground">
+            Potvrde porudžbine stižu na ovu adresu. Može biti drugačija od emaila za prijavu. Ako je prazno, stižu na email za prijavu.
+          </p>
+        </>
+      )}
       <Field name="password" label="Lozinka" type="password" autoComplete="new-password" error={state.fieldErrors?.password} />
       {supplier ? (
         <>
           <Field name="organizationName" label="Naziv prodavnice" error={state.fieldErrors?.organizationName} />
           <p className="text-sm text-muted-foreground">Adresa stranice pravi se od naziva. Možete je promeniti u podešavanjima.</p>
+          <AudienceChoice defaultValue="oba" error={state.fieldErrors?.audience} />
           <Field name="phone" label="Telefon" autoComplete="tel" required={false} error={state.fieldErrors?.phone} />
         </>
       ) : (
         <>
           <Field name="businessName" label="Naziv firme" autoComplete="organization" error={state.fieldErrors?.businessName} />
           <Field name="phone" label="Telefon" autoComplete="tel" error={state.fieldErrors?.phone} />
-          <Field name="address" label="Adresa" autoComplete="street-address" required={false} error={state.fieldErrors?.address} />
-          <Field name="city" label="Grad" autoComplete="address-level2" required={false} error={state.fieldErrors?.city} />
+          <Field name="address" label="Adresa" autoComplete="street-address" error={state.fieldErrors?.address} />
+          <Field name="city" label="Grad" autoComplete="address-level2" error={state.fieldErrors?.city} />
           <Field name="pib" label="PIB" error={state.fieldErrors?.pib} />
+          <Field name="mb" label="Matični broj" error={state.fieldErrors?.mb} />
+          <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={state.fieldErrors?.postalCode} />
+          <Field name="bankAccount" label="Broj računa" autoComplete="off" error={state.fieldErrors?.bankAccount} />
+          <p className="text-sm text-muted-foreground">18 cifara. Račun ostaje na nalogu i svaka porudžbina ide na njega.</p>
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>

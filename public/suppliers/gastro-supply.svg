@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Pult">
-  <rect width="64" height="64" rx="14" fill="#14532d"/>
-  <path d="M18 28.5 32 20l14 8.5V46L32 54.5 18 46V28.5z" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/>
-  <path d="M18 28.5 32 37l14-8.5M32 37v17.5" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mala mesara Pajić">
+  <rect width="64" height="64" rx="14" fill="#7a1f2b"/>
+  <path fill="#ffffff" d="M14 16h20.4c1.9 0 3.2 1.5 3.2 3.3V36H14V16z"/>
+  <path fill="#f4e4c8" d="M37.6 22.4h12.2c2.3 0 4 1.6 4 3.6s-1.7 3.6-4 3.6H37.6v-7.2z"/>
+  <circle cx="23" cy="26" r="1.9" fill="#7a1f2b"/>
+  <path fill="#f4e4c8" d="M17.5 44.5c4.8-3.2 10.6-3.2 15.4 0 3.2 2.1 6.6 2 9.6.2 1.1-.7 2.3.6 1.4 1.7-4 2.6-8.2 2.8-12.6 0-5.4-3.2-11.2-3.1-16 .2-1.5 1-1.2-.4-1.8-1.9z"/>
 </svg>

@@ -3,14 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { SignupForm } from "@/components/auth/auth-forms";
-import { getSession } from "@/lib/auth";
+import { getSession, landingPath } from "@/lib/auth";
 import { AuthShell } from "@/app/login/page";
 
 export const metadata: Metadata = { title: "Nalog kupca" };
 
 export default async function BuyerSignupPage() {
   const session = await getSession();
-  if (session?.kind === "buyer") redirect("/kupac");
+  if (session?.kind === "buyer") redirect(await landingPath(session, ""));
   if (session) redirect("/dashboard");
   return (
     <AuthShell title="Nalog kupca" subtitle="Firma vidi svoje porudžbine, statistiku i može da naruči isto kao prošli put.">

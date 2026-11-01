@@ -137,7 +137,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
     pib: text(formData, "pib"),
     mb: text(formData, "mb"),
     brandColor: text(formData, "brandColor"),
-    audience: session.organization.audience,
+    audience: text(formData, "audience"),
   });
   if (!parsed.success) {
     return {

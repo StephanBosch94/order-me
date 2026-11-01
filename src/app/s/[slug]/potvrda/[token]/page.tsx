@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SupplierLogo } from "@/components/brand/supplier-logo";
+import { orderConfirmationEmail } from "@/lib/buyer";
 import { supplierTheme } from "@/lib/color";
 import { paymentLabel, storePath, unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
@@ -21,7 +22,7 @@ export default async function ConfirmationPage({
   const { order, supplier } = view;
   const emailNote =
     order.customerEmailStatus === "sent"
-      ? `Poslali smo potvrdu na ${order.customerSnapshot.email}.`
+      ? `Poslali smo potvrdu na ${orderConfirmationEmail(order.customerSnapshot)}.`
       : order.customerEmailStatus === "outbox"
         ? "Porudžbina je sačuvana. Email servis nije podešen, pa je poruka upisana lokalno."
         : order.customerEmailStatus === "failed"
@@ -60,6 +61,9 @@ export default async function ConfirmationPage({
         {order.paymentMethod ? (
           <p className="border-t border-border px-4 py-3 text-sm">
             Način plaćanja: {paymentLabel(order.paymentMethod)}
+            {order.customerSnapshot.bankAccount ? ` · ${order.customerSnapshot.bankAccount}` : ""}
+            {order.customerSnapshot.mb ? ` · Matični broj ${order.customerSnapshot.mb}` : ""}
+            {order.customerSnapshot.pib ? ` · PIB ${order.customerSnapshot.pib}` : ""}
           </p>
         ) : null}
       </section>

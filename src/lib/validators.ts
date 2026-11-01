@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { normalizeBankAccount, normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { RESERVED_SLUGS } from "@/lib/constants";
 import { normalizeQuantity } from "@/lib/data/pricing";
 import { ORDER_STATUS_VALUES, UNIT_VALUES, type ProductInput } from "@/lib/data/types";
@@ -18,6 +19,13 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Unesite lozinku."),
   next: z.string().optional(),
 });
+
+const confirmationEmailField = z
+  .string()
+  .trim()
+  .max(160, "Email je predugačak.")
+  .transform((value) => value.toLowerCase())
+  .refine((value) => value === "" || z.email().safeParse(value).success, "Unesite ispravnu email adresu.");
 
 const signupIdentity = {
   name: z.string().trim().min(2, "Unesite ime i prezime.").max(80),
@@ -38,11 +46,88 @@ export const signupSchema = z.discriminatedUnion("kind", [
     ...signupIdentity,
     businessName: z.string().trim().min(2, "Unesite naziv firme.").max(160),
     phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
-    address: z.string().trim().max(200),
-    city: z.string().trim().max(80),
+    address: z.string().trim().min(3, "Unesite adresu.").max(200),
+    city: z.string().trim().min(2, "Unesite grad.").max(80),
     pib: z.string().trim().regex(/^\d{9}$/, "PIB ima 9 cifara."),
+    mb: z.string().trim().refine((value) => normalizeMb(value) !== null, "Matični broj ima 8 cifara."),
+    postalCode: z.string().trim().refine((value) => normalizePostalCode(value) !== null, "Poštanski broj ima 5 cifara."),
+    bankAccount: z
+      .string()
+      .trim()
+      .refine((value) => normalizeBankAccount(value) !== null, "Unesite broj računa od 18 cifara."),
+    confirmationEmail: confirmationEmailField,
   }),
 ]);
+
+const buyerPhone = z.string().trim().min(6, "Unesite broj telefona.").max(30);
+const buyerName = z.string().trim().min(2, "Unesite ime i prezime.").max(80);
+const buyerAddress = z.string().trim().min(3, "Unesite adresu.").max(200);
+const buyerCity = z.string().trim().min(2, "Unesite grad.").max(80);
+
+function rejectShortPhone(
+  value: { phone: string },
+  ctx: { addIssue: (issue: { code: "custom"; path: (string | number)[]; message: string }) => void },
+) {
+  const digits = value.phone.replace(/\D/g, "");
+  if (digits.length < 6 || digits.length > 15) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["phone"],
+      message: "Unesite ispravan broj telefona.",
+    });
+  }
+}
+
+export const personBuyerProfileSchema = z
+  .object({
+    name: buyerName,
+    phone: buyerPhone,
+    address: buyerAddress,
+    city: buyerCity,
+    confirmationEmail: confirmationEmailField,
+  })
+  .superRefine(rejectShortPhone);
+
+export const companyBuyerProfileSchema = z
+  .object({
+    name: buyerName,
+    businessName: z.string().trim().min(2, "Unesite naziv firme.").max(160),
+    phone: buyerPhone,
+    address: buyerAddress,
+    city: buyerCity,
+    pib: z.string().trim(),
+    mb: z.string().trim(),
+    postalCode: z.string().trim(),
+    bankAccount: z
+      .string()
+      .trim()
+      .refine((value) => normalizeBankAccount(value) !== null, "Unesite broj računa od 18 cifara."),
+    confirmationEmail: confirmationEmailField,
+  })
+  .superRefine((value, ctx) => {
+    rejectShortPhone(value, ctx);
+    if (!normalizeMb(value.mb)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["mb"],
+        message: value.mb ? "Matični broj ima 8 cifara." : "Unesite matični broj.",
+      });
+    }
+    if (!normalizePostalCode(value.postalCode)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["postalCode"],
+        message: value.postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj.",
+      });
+    }
+    if (!/^\d{9}$/.test(value.pib)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["pib"],
+        message: value.pib ? "PIB ima 9 cifara." : "Unesite PIB.",
+      });
+    }
+  });
 
 export const organizationSchema = z.object({
   name: z.string().trim().min(2, "Unesite naziv firme.").max(120),
@@ -181,6 +266,31 @@ export const publicOrderSchema = z
         path: ["honeypot"],
         message: "Porudžbina nije prihvaćena.",
       });
+    }
+  });
+
+export const businessOrderSchema = z
+  .object({
+    slug: z.string().trim().min(1),
+    idempotencyKey: z.uuid("Neispravan identifikator kupovine."),
+    notes: z.string().trim().max(1000),
+    mb: z.string().trim().optional(),
+    postalCode: z.string().trim().optional(),
+    bankAccount: z.string().trim().optional(),
+    honeypot: z.string().optional(),
+    items: z
+      .array(
+        z.object({
+          productId: z.string().min(1),
+          quantity: z.number().positive("Količina mora biti veća od nule."),
+        }),
+      )
+      .min(1, "Korpa je prazna.")
+      .max(100, "Korpa može imati najviše 100 stavki."),
+  })
+  .superRefine((value, ctx) => {
+    if (value.honeypot) {
+      ctx.addIssue({ code: "custom", path: ["honeypot"], message: "Kupovina nije prihvaćena." });
     }
   });
 

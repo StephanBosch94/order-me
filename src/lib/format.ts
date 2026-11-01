@@ -104,6 +104,17 @@ export function belgradeMonthKey(iso: string) {
   return belgradeDateKey(iso).slice(0, 7);
 }
 
+export function currentBelgradeMonthKey(date = new Date()) {
+  return belgradeMonthKey(date.toISOString());
+}
+
+export function monthLabel(key: string) {
+  const [year, month] = key.split("-");
+  const name = MONTHS[Number(month) - 1] ?? "";
+  if (!name || !year) return key;
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${year}`;
+}
+
 export function parseRsdToPara(input: string): number | null {
   const raw = input.trim().replace(/\s/g, "").replace(/rsd/gi, "");
   if (!raw) return null;
