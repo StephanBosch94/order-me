@@ -73,10 +73,13 @@ export default async function ConfirmationPage({
         ) : null}
       </section>
       <p className="mt-4 text-sm text-muted-foreground">
+        {order.paymentMethod === "ips"
+          ? "Uplatu pošaljite IPS-om iz aplikacije banke. "
+          : null}
         Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <a href={`/api/confirmations/${order.confirmationToken}/pdf`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+        <a href={`/api/confirmations/${order.confirmationToken}/pdf`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[var(--primary-hover)]">
           Preuzmi potvrdu
         </a>
         <Link

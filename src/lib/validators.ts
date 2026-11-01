@@ -302,7 +302,7 @@ export const retailOrderSchema = z
     address: z.string().trim().min(3, "Unesite adresu isporuke.").max(200),
     city: z.string().trim().min(2, "Unesite grad.").max(80),
     notes: z.string().trim().max(1000),
-    paymentMethod: z.enum(["pouzecem", "kartica"], "Izaberite način plaćanja."),
+    paymentMethod: z.enum(["pouzecem", "ips"], "Izaberite način plaćanja."),
     honeypot: z.string().optional(),
     items: z
       .array(

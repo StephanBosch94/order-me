@@ -6,7 +6,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
-import { productPath, quantityStep, unitLabel } from "@/lib/constants";
+import { addCartQuantity, normalizeCartQuantity, productPath, subtractCartQuantity, unitLabel } from "@/lib/constants";
 import { salePricePara } from "@/lib/data/pricing";
 import type { Product } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
@@ -29,7 +29,8 @@ export function ProductDetail({
   const storageKey = business ? `poruci-cart:${slug}` : `poruci-shop:${slug}`;
   const storedCart = useSyncExternalStore(subscribeCart, () => readCartRaw(storageKey), () => "{}");
   const quantities = useMemo(() => parseCart(storedCart), [storedCart]);
-  const quantity = quantities[product.id] ?? 0;
+  const storedQuantity = quantities[product.id] ?? 0;
+  const quantity = normalizeCartQuantity(product.unit, storedQuantity, product.minQuantity);
   const sale = salePricePara(product);
   const photos = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : [];
 
@@ -42,16 +43,11 @@ export function ProductDetail({
   }
 
   function add() {
-    const next =
-      quantity === 0
-        ? product.minQuantity
-        : Math.min(9999, Math.round((quantity + quantityStep(product.unit)) * 1000) / 1000);
-    write(next);
+    write(addCartQuantity(product.unit, storedQuantity, product.minQuantity));
   }
 
   function subtract() {
-    const next = Math.round((quantity - quantityStep(product.unit)) * 1000) / 1000;
-    write(next < product.minQuantity ? 0 : next);
+    write(subtractCartQuantity(product.unit, storedQuantity, product.minQuantity));
   }
 
   return (

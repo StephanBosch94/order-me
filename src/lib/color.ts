@@ -15,11 +15,22 @@ export function contrastForeground(hex: string) {
   return luminance > 0.42 ? "#18181b" : "#fafafa";
 }
 
+export function darkenHex(value: string | null | undefined, ratio = 0.82) {
+  const hex = normalizeHex(value);
+  if (!hex) return null;
+  const channel = (start: number) =>
+    Math.round(parseInt(hex.slice(start, start + 2), 16) * ratio)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${channel(1)}${channel(3)}${channel(5)}`;
+}
+
 export function supplierTheme(color: string | null): CSSProperties {
   const hex = normalizeHex(color);
   if (!hex) return {};
   return {
     "--primary": hex,
+    "--primary-hover": darkenHex(hex),
     "--primary-foreground": contrastForeground(hex),
     "--ring": hex,
   } as CSSProperties;

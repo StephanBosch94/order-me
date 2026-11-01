@@ -120,7 +120,7 @@ create table if not exists public.orders (
   customer_snapshot jsonb not null,
   customer_email_status text not null default 'pending',
   supplier_email_status text not null default 'pending',
-  payment_method text check (payment_method is null or payment_method in ('pouzecem', 'kartica', 'racun')),
+  payment_method text check (payment_method is null or payment_method in ('pouzecem', 'ips', 'kartica', 'racun')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (organization_id, number),
@@ -288,7 +288,7 @@ alter table public.products add column if not exists image_urls text[] not null 
 alter table public.orders add column if not exists payment_method text;
 alter table public.orders drop constraint if exists orders_payment_method_check;
 alter table public.orders add constraint orders_payment_method_check
-  check (payment_method is null or payment_method in ('pouzecem', 'kartica', 'racun'));
+  check (payment_method is null or payment_method in ('pouzecem', 'ips', 'kartica', 'racun'));
 
 alter table public.orders add column if not exists buyer_user_id uuid references auth.users (id) on delete set null;
 create index if not exists orders_buyer_idx on public.orders (buyer_user_id);

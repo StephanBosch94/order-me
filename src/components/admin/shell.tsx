@@ -17,6 +17,7 @@ import { Fragment, useEffect, useState } from "react";
 
 import { SetupGuide } from "@/components/admin/setup-guide";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { storePath } from "@/lib/constants";
 import type { AccountContext } from "@/lib/data/types";
 import { setupReady, type SetupStep } from "@/lib/setup";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ export function AdminShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const brandMark = brandMarkColor(session.organization);
+  const shopPath = storePath(session.organization.slug);
   const contact = logoContact(session);
   const showGuide = !setupReady(setup);
 
@@ -146,7 +148,7 @@ export function AdminShell({
           <div className="mt-auto shrink-0 border-t border-border p-3">
             <p className="truncate px-2 text-sm font-medium">{session.name}</p>
             <p className="truncate px-2 text-xs text-muted-foreground">{session.email}</p>
-            <LogoutButton className="mt-2 flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 hover:bg-zinc-100" />
+            <LogoutButton shopPath={shopPath} className="mt-2 flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 hover:bg-zinc-100" />
             <PoweredBy />
           </div>
         </aside>
@@ -170,7 +172,7 @@ export function AdminShell({
             <div className="flex min-h-0 flex-1 flex-col border-b border-border bg-card px-2 py-3 lg:hidden">
               {renderNav()}
               <div className="mt-auto px-3 pb-1">
-                <LogoutButton className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm" />
+                <LogoutButton shopPath={shopPath} className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm" />
                 <PoweredBy />
               </div>
             </div>

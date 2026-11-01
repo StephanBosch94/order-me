@@ -17,6 +17,7 @@ export function BuyerMenu({
   accountHref,
   onRepeat,
   repeatBase,
+  shopPath,
 }: {
   buyer: BuyerAccount;
   orders?: BuyerOrder[];
@@ -24,6 +25,7 @@ export function BuyerMenu({
   accountHref?: string;
   onRepeat?: (items: BuyerOrder["items"]) => void;
   repeatBase?: string;
+  shopPath?: string;
 }) {
   const company = isCompanyBuyer(buyer);
   const label = company ? buyer.businessName : buyer.name;
@@ -153,6 +155,7 @@ export function BuyerMenu({
           <LogoutButton
             icon={false}
             role="menuitem"
+            shopPath={shopPath}
             className="flex w-full cursor-pointer border-t border-border px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50"
           />
         </div>

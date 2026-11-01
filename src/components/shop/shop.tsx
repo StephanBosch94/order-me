@@ -12,7 +12,16 @@ import { updateBuyerAccountAction, type BuyerAccountState } from "@/lib/actions/
 import { placeShopOrderAction } from "@/lib/actions/orders";
 import { isCompanyBuyer, orderConfirmationEmail } from "@/lib/buyer";
 import { supplierTheme } from "@/lib/color";
-import { confirmationPath, isBusinessStore, productPath, quantityStep, storePath, unitLabel } from "@/lib/constants";
+import {
+  addCartQuantity,
+  confirmationPath,
+  isBusinessStore,
+  normalizeCartQuantity,
+  productPath,
+  storePath,
+  subtractCartQuantity,
+  unitLabel,
+} from "@/lib/constants";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
 import type { BuyerAccount, BuyerOrder, OrderedQuantity, Product, PublicCatalog } from "@/lib/data/types";
 import { belgradeMonthKey, currentBelgradeMonthKey, formatDateTime, formatQuantity, formatRsd, monthLabel } from "@/lib/format";
@@ -62,7 +71,10 @@ export function Shop({
   );
   const offers = products.filter((product) => salePricePara(product));
   const lines = catalog.products
-    .map((product) => ({ product, quantity: quantities[product.id] ?? 0 }))
+    .map((product) => ({
+      product,
+      quantity: normalizeCartQuantity(product.unit, quantities[product.id] ?? 0, product.minQuantity),
+    }))
     .filter((line) => line.quantity > 0);
   const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
   const count = lines.length;
@@ -82,19 +94,16 @@ export function Shop({
 
   function setQuantity(product: Product, quantity: number) {
     const next = { ...quantities };
-    if (quantity <= 0) delete next[product.id];
-    else next[product.id] = quantity;
+    const stored = quantity <= 0 ? 0 : normalizeCartQuantity(product.unit, quantity, product.minQuantity);
+    if (stored <= 0) delete next[product.id];
+    else next[product.id] = stored;
     localStorage.setItem(storageKey, JSON.stringify(next));
     window.dispatchEvent(new Event("poruci-cart"));
   }
 
   function add(product: Product) {
     const current = quantities[product.id] ?? 0;
-    const next =
-      current === 0
-        ? product.minQuantity
-        : Math.min(9999, Math.round((current + quantityStep(product.unit)) * 1000) / 1000);
-    setQuantity(product, next);
+    setQuantity(product, addCartQuantity(product.unit, current, product.minQuantity));
   }
 
   function writeCart(next: Record<string, number>) {
@@ -109,7 +118,11 @@ export function Shop({
       if (!item.productId) continue;
       const product = catalog.products.find((entry) => entry.id === item.productId);
       if (!product) continue;
-      next[product.id] = Math.max(product.minQuantity, item.quantity);
+      next[product.id] = normalizeCartQuantity(
+        product.unit,
+        Math.max(product.minQuantity, item.quantity),
+        product.minQuantity,
+      );
     }
     writeCart(next);
   }
@@ -120,8 +133,12 @@ export function Shop({
       if (!item.productId) continue;
       const product = catalog.products.find((entry) => entry.id === item.productId);
       if (!product) continue;
-      const current = next[product.id] ?? 0;
-      const quantity = Math.max(product.minQuantity, item.quantity);
+      const current = normalizeCartQuantity(product.unit, next[product.id] ?? 0, product.minQuantity);
+      const quantity = normalizeCartQuantity(
+        product.unit,
+        Math.max(product.minQuantity, item.quantity),
+        product.minQuantity,
+      );
       next[product.id] =
         current === 0 ? quantity : Math.min(9999, Math.round((current + quantity) * 1000) / 1000);
     }
@@ -163,6 +180,7 @@ export function Shop({
               <BuyerMenu
                 buyer={buyer}
                 orders={companyBuyer ? [] : orders}
+                shopPath={catalogHref}
                 onAccount={() => {
                   setPane("account");
                   setStep("browse");
@@ -315,7 +333,7 @@ function ShopTab({
       role="tab"
       aria-selected={selected}
       onClick={onClick}
-      className={`h-9 cursor-pointer rounded-md px-3 text-sm font-medium ${selected ? "bg-primary text-primary-foreground" : "text-foreground"}`}
+      className={`h-9 cursor-pointer rounded-md px-3 text-sm font-medium ${selected ? "bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]" : "text-foreground"}`}
     >
       {children}
     </button>
@@ -667,7 +685,7 @@ function AccountPanel({
   );
 }
 
-function Cart({
+export function Cart({
   lines,
   total,
   onChange,
@@ -704,9 +722,7 @@ function Cart({
                   onClick={() =>
                     onChange(
                       line.product,
-                      line.quantity - quantityStep(line.product.unit) < line.product.minQuantity
-                        ? 0
-                        : Math.round((line.quantity - quantityStep(line.product.unit)) * 1000) / 1000,
+                      subtractCartQuantity(line.product.unit, line.quantity, line.product.minQuantity),
                     )
                   }
                 >
@@ -718,10 +734,7 @@ function Cart({
                   className="inline-flex size-9 items-center justify-center rounded-md border border-border"
                   aria-label={`Povećaj ${line.product.name}`}
                   onClick={() =>
-                    onChange(
-                      line.product,
-                      Math.min(9999, Math.round((line.quantity + quantityStep(line.product.unit)) * 1000) / 1000),
-                    )
+                    onChange(line.product, addCartQuantity(line.product.unit, line.quantity, line.product.minQuantity))
                   }
                 >
                   <Plus className="size-4" />
@@ -742,7 +755,7 @@ function Cart({
   );
 }
 
-function Checkout({
+export function Checkout({
   slug,
   business,
   buyer,
@@ -768,7 +781,7 @@ function Checkout({
   const [honeypot, setHoneypot] = useState("");
   const [notes, setNotes] = useState("");
   const [companyExtra, setCompanyExtra] = useState({ mb: "", postalCode: "" });
-  const [paymentMethod, setPaymentMethod] = useState<"" | "pouzecem" | "kartica">("");
+  const [paymentMethod, setPaymentMethod] = useState<"" | "pouzecem" | "ips">("");
   const [retail, setRetail] = useState({
     customerName: buyer?.name ?? "",
     email: buyer?.email ?? "",
@@ -840,7 +853,7 @@ function Checkout({
           Firma mora da otvori nalog. Plaćanje je na račun. Plaćanje pouzećem nije dostupno.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href={`/shop/${slug}/nalog`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+          <Link href={`/shop/${slug}/nalog`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[var(--primary-hover)]">
             Otvorite nalog
           </Link>
           <Link href={`/login?next=${encodeURIComponent(back)}`} className="inline-flex h-11 items-center rounded-md border border-border bg-card px-4 text-sm font-medium">
@@ -973,8 +986,8 @@ function Checkout({
       </button>
       <h2 className="text-lg font-semibold">Kasa</h2>
       <p className="text-sm text-muted-foreground">
-        {buyer ? `Prijavljeni ste kao ${buyer.name}. ` : null}
-        {buyer ? `Potvrda porudžbine stiže na ${orderConfirmationEmail(buyer)}. ` : null}
+        {buyer ? `Prijavljeni ste kao ${buyer.name}. ` : "Nalog nije potreban. "}
+        {buyer ? `Potvrda porudžbine stiže na ${orderConfirmationEmail(buyer)}. ` : "Potvrda stiže na email koji unesete. "}
         Ukupno {formatRsd(total)}. Isporuka na adresu koju unesete.
       </p>
       {message ? <Alert message={message} /> : null}
@@ -1136,7 +1149,7 @@ function CategoryButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`h-9 shrink-0 rounded-full px-3 text-sm ${active ? "bg-primary text-primary-foreground" : "bg-card text-foreground ring-1 ring-border"}`}
+      className={`h-9 shrink-0 rounded-full px-3 text-sm ${active ? "bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]" : "bg-card text-foreground ring-1 ring-border"}`}
     >
       {children}
     </button>

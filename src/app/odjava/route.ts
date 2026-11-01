@@ -11,7 +11,22 @@ async function endSession(request: Request) {
     const supabase = await createSupabaseServer();
     await supabase.auth.signOut();
   }
-  return NextResponse.redirect(new URL("/login", request.url), 303);
+  const login = new URL("/login", request.url);
+  const shop = shopPath(new URL(request.url).searchParams.get("next"));
+  if (shop) login.searchParams.set("next", shop);
+  return NextResponse.redirect(login, 303);
+}
+
+function shopPath(value: string | null) {
+  if (!value || !value.startsWith("/shop/")) return null;
+  let slug = value.slice("/shop/".length);
+  try {
+    slug = decodeURIComponent(slug);
+  } catch {
+    return null;
+  }
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(slug)) return null;
+  return `/shop/${slug}`;
 }
 
 export function GET(request: Request) {

@@ -23,7 +23,6 @@ import type {
   OrderItem,
   OrderListItem,
   OrderListQuery,
-  OrderedQuantity,
   OrderStatus,
   OrderStatusEvent,
   Organization,
@@ -189,7 +188,7 @@ function mapOrder(row: Record<string, unknown>): Order {
     customerEmailStatus: String(row.customer_email_status) as EmailDelivery,
     supplierEmailStatus: String(row.supplier_email_status) as EmailDelivery,
     paymentMethod:
-      row.payment_method === "pouzecem" || row.payment_method === "kartica" || row.payment_method === "racun"
+      row.payment_method === "pouzecem" || row.payment_method === "ips" || row.payment_method === "kartica" || row.payment_method === "racun"
         ? row.payment_method
         : null,
     createdAt: String(row.created_at),
@@ -754,34 +753,6 @@ export const supabaseRepository: CommerceRepository = {
       pageSize,
     };
     return result;
-  },
-
-  async listOrderedQuantities(organizationId): Promise<OrderedQuantity[]> {
-    const { data, error } = await db()
-      .from("orders")
-      .select("created_at, status, order_items(product_id, name, quantity, unit, products(image_url, image_urls))")
-      .eq("organization_id", organizationId);
-    fail(error);
-    const lines: OrderedQuantity[] = [];
-    for (const row of (data ?? []) as Record<string, unknown>[]) {
-      const items = Array.isArray(row.order_items) ? row.order_items : [];
-      for (const item of items) {
-        const line = item as Record<string, unknown>;
-        const product = oneRecord(line.products);
-        const urls = Array.isArray(product?.image_urls) ? product.image_urls : [];
-        const first = urls.find((url) => typeof url === "string" && url);
-        lines.push({
-          createdAt: String(row.created_at),
-          status: String(row.status) as OrderStatus,
-          productId: line.product_id ? String(line.product_id) : null,
-          name: String(line.name ?? ""),
-          quantity: Number(line.quantity),
-          unit: String(line.unit ?? "komad") as OrderedQuantity["unit"],
-          imageUrl: typeof first === "string" ? first : product?.image_url ? String(product.image_url) : null,
-        });
-      }
-    }
-    return lines;
   },
 
   async getOrder(organizationId, orderId) {

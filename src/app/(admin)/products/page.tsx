@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ProductFilters } from "@/components/admin/live-filters";
 import { CsvImport, ProductActiveButton } from "@/components/admin/order-actions";
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/fields";
 import { requireSession } from "@/lib/auth";
 import { unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
@@ -42,6 +42,7 @@ export default async function ProductsPage({
     <div>
       <PageHeader
         title="Proizvodi"
+        count={filtered.length}
         description="Katalog koji kupci vide na stranici za poručivanje."
         actions={
           <>
@@ -52,27 +53,7 @@ export default async function ProductsPage({
           </>
         }
       />
-      <form className="mb-4 grid gap-2 md:grid-cols-4" method="get">
-        <Input name="q" defaultValue={q} placeholder="Pretraži proizvode" aria-label="Pretraži proizvode" className="md:col-span-2" />
-        <Select name="category" defaultValue={category} aria-label="Kategorija">
-          <option value="">Sve kategorije</option>
-          {categories.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </Select>
-        <Select name="active" defaultValue={active} aria-label="Status proizvoda">
-          <option value="all">Svi</option>
-          <option value="active">Aktivni</option>
-          <option value="inactive">Neaktivni</option>
-        </Select>
-        <div className="md:col-span-4">
-          <Button type="submit" variant="secondary">
-            Primeni
-          </Button>
-        </div>
-      </form>
+      <ProductFilters q={q} category={category} active={active} categories={categories} />
       {products.length === 0 ? (
         <EmptyState
           title="Katalog je prazan"

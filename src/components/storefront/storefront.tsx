@@ -11,7 +11,7 @@ import { AudienceSwitch } from "@/components/shop/audience-switch";
 import { BuyerKindChoice, PaymentMethodChoice, type BuyerKind } from "@/components/shop/checkout-kind";
 import { placeOrderAction, placeShopOrderAction } from "@/lib/actions/orders";
 import { orderConfirmationEmail } from "@/lib/buyer";
-import { productPath, quantityStep, storePath, unitLabel } from "@/lib/constants";
+import { addCartQuantity, normalizeCartQuantity, productPath, storePath, subtractCartQuantity, unitLabel } from "@/lib/constants";
 import type { BuyerAccount, BuyerOrder, Product, PublicCatalog } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
@@ -60,7 +60,10 @@ export function Storefront({
   }, [catalog.products, categoryId, query]);
 
   const lines = catalog.products
-    .map((product) => ({ product, quantity: quantities[product.id] ?? 0 }))
+    .map((product) => ({
+      product,
+      quantity: normalizeCartQuantity(product.unit, quantities[product.id] ?? 0, product.minQuantity),
+    }))
     .filter((line) => line.quantity > 0);
   const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
   const count = lines.length;
@@ -80,8 +83,9 @@ export function Storefront({
 
   function setQuantity(product: Product, quantity: number) {
     const next = { ...quantities };
-    if (quantity <= 0) delete next[product.id];
-    else next[product.id] = quantity;
+    const stored = quantity <= 0 ? 0 : normalizeCartQuantity(product.unit, quantity, product.minQuantity);
+    if (stored <= 0) delete next[product.id];
+    else next[product.id] = stored;
     localStorage.setItem(storageKey, JSON.stringify(next));
     window.dispatchEvent(new Event("poruci-cart"));
   }
@@ -92,7 +96,11 @@ export function Storefront({
       if (!item.productId) continue;
       const product = catalog.products.find((entry) => entry.id === item.productId);
       if (!product) continue;
-      next[product.id] = Math.max(product.minQuantity, item.quantity);
+      next[product.id] = normalizeCartQuantity(
+        product.unit,
+        Math.max(product.minQuantity, item.quantity),
+        product.minQuantity,
+      );
     }
     localStorage.setItem(storageKey, JSON.stringify(next));
     window.dispatchEvent(new Event("poruci-cart"));
@@ -114,18 +122,12 @@ export function Storefront({
 
   function increment(product: Product) {
     const current = quantities[product.id] ?? 0;
-    if (current === 0) {
-      setQuantity(product, product.minQuantity);
-      return;
-    }
-    const next = Math.min(9999, Math.round((current + quantityStep(product.unit)) * 1000) / 1000);
-    setQuantity(product, next);
+    setQuantity(product, addCartQuantity(product.unit, current, product.minQuantity));
   }
 
   function decrement(product: Product) {
     const current = quantities[product.id] ?? 0;
-    const next = Math.round((current - quantityStep(product.unit)) * 1000) / 1000;
-    setQuantity(product, next < product.minQuantity ? 0 : next);
+    setQuantity(product, subtractCartQuantity(product.unit, current, product.minQuantity));
   }
 
   const cart = (
@@ -251,7 +253,7 @@ export function Storefront({
                       </div>
                       <QuantityControl
                         product={product}
-                        quantity={quantities[product.id] ?? 0}
+                        quantity={normalizeCartQuantity(product.unit, quantities[product.id] ?? 0, product.minQuantity)}
                         onIncrement={() => increment(product)}
                         onDecrement={() => decrement(product)}
                         onCommit={(quantity) => setQuantity(product, quantity)}
@@ -286,7 +288,7 @@ export function Storefront({
         <div className="fixed inset-x-0 bottom-0 border-t border-border bg-card p-3 lg:hidden">
           <button
             type="button"
-            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[var(--primary-hover)] disabled:opacity-50"
             disabled={count === 0}
             onClick={() => setCartOpen(true)}
           >
@@ -327,7 +329,7 @@ function CategoryButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`h-9 shrink-0 cursor-pointer rounded-full px-3 text-sm ${active ? "bg-primary text-primary-foreground" : "border border-border bg-card text-foreground"}`}
+      className={`h-9 shrink-0 cursor-pointer rounded-full px-3 text-sm ${active ? "bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]" : "border border-border bg-card text-foreground"}`}
     >
       {children}
     </button>

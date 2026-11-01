@@ -13,7 +13,7 @@ export type Unit = (typeof UNIT_VALUES)[number];
 export type MemberRole = "owner" | "staff";
 export type StoreChannel = "b2c" | "b2b";
 export type Audience = "fizicka" | "pravna" | "oba";
-export type PaymentMethod = "pouzecem" | "kartica" | "racun";
+export type PaymentMethod = "pouzecem" | "ips" | "kartica" | "racun";
 
 export type AccountContext = {
   userId: string;

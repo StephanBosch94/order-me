@@ -34,7 +34,6 @@ import type {
   OrderItem,
   OrderListItem,
   OrderListQuery,
-  OrderedQuantity,
   OrderStatus,
   Organization,
   OrganizationInput,
@@ -710,28 +709,6 @@ export class DemoStore implements CommerceRepository {
     return pageResult;
   }
 
-  async listOrderedQuantities(organizationId: string): Promise<OrderedQuantity[]> {
-    const db = await this.read();
-    const lines: OrderedQuantity[] = [];
-    for (const order of db.orders) {
-      if (order.organizationId !== organizationId) continue;
-      for (const item of db.orderItems) {
-        if (item.orderId !== order.id) continue;
-        const product = item.productId ? db.products.find((entry) => entry.id === item.productId) : undefined;
-        lines.push({
-          createdAt: order.createdAt,
-          status: order.status,
-          productId: item.productId,
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          imageUrl: product?.imageUrls[0] ?? product?.imageUrl ?? null,
-        });
-      }
-    }
-    return lines;
-  }
-
   async getOrder(organizationId: string, orderId: string) {
     const db = await this.read();
     const order = db.orders.find(
@@ -1133,7 +1110,7 @@ function normalizeDatabase(db: DemoDatabase) {
   }
   for (const order of db.orders) {
     if (!order.buyerUserId) order.buyerUserId = null;
-    if (order.paymentMethod !== "pouzecem" && order.paymentMethod !== "kartica" && order.paymentMethod !== "racun") {
+    if (order.paymentMethod !== "pouzecem" && order.paymentMethod !== "ips" && order.paymentMethod !== "kartica" && order.paymentMethod !== "racun") {
       order.paymentMethod = null;
     }
     order.customerSnapshot.bankAccount ??= "";

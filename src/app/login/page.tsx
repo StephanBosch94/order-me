@@ -6,6 +6,7 @@ import { LoginForm } from "@/components/auth/auth-forms";
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { getSession, landingPath } from "@/lib/auth";
+import { supplierTheme } from "@/lib/color";
 import { isDemoMode } from "@/lib/config";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
@@ -46,6 +47,7 @@ function accountHref(nextPath: string) {
 export type AuthStore = {
   name: string;
   logoUrl: string | null;
+  brandColor: string | null;
   href: string;
 };
 
@@ -59,6 +61,7 @@ export async function storeFromPath(nextPath: string): Promise<AuthStore | null>
   return {
     name: catalog.supplier.name,
     logoUrl: catalog.supplier.logoUrl,
+    brandColor: catalog.supplier.brandColor,
     href: storePath(catalog.supplier.slug),
   };
 }
@@ -75,7 +78,10 @@ export function AuthShell({
   store?: AuthStore | null;
 }) {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-12">
+    <main
+      className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4 py-12"
+      style={supplierTheme(store?.brandColor ?? null)}
+    >
       <Link href={store?.href ?? "/"} className="w-fit rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
         {store ? "Nazad u prodavnicu" : "Početna"}
       </Link>

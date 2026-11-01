@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { SupplierLogo } from "@/components/brand/supplier-logo";
-import { StoreAccountLinks } from "@/components/shop/account-links";
-import { BuyerMenu } from "@/components/shop/buyer-menu";
 import { ClosedStore } from "@/components/shop/closed-store";
 import { ProductDetail } from "@/components/shop/product-detail";
+import { ProductFrame } from "@/components/shop/product-frame";
 import { getSession } from "@/lib/auth";
-import { supplierTheme } from "@/lib/color";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import type { Product } from "@/lib/data/types";
@@ -54,30 +50,17 @@ export default async function ProductPage({
   const category = catalog.categories.find((item) => item.id === product.categoryId);
 
   return (
-    <div className="min-h-dvh bg-background" style={supplierTheme(catalog.supplier.brandColor)}>
-      <header className="sticky top-0 z-30 border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href={backHref} className="flex min-w-0 items-center gap-3">
-            <SupplierLogo name={catalog.supplier.name} logoUrl={catalog.supplier.logoUrl} className="size-10" />
-            <span className="truncate text-sm font-semibold">{catalog.supplier.name}</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <StoreAccountLinks
-              slug={catalog.supplier.slug}
-              buyer={buyer}
-              showAccount={session?.kind !== "supplier"}
-            />
-            {buyer ? (
-              <BuyerMenu
-                buyer={buyer}
-                orders={orders}
-                accountHref={`${backHref}?nalog=1`}
-                repeatBase={backHref}
-              />
-            ) : null}
-          </div>
-        </div>
-      </header>
+    <ProductFrame
+      slug={catalog.supplier.slug}
+      name={catalog.supplier.name}
+      logoUrl={catalog.supplier.logoUrl}
+      brandColor={catalog.supplier.brandColor}
+      audience={catalog.supplier.audience}
+      buyer={buyer}
+      showAccount={session?.kind !== "supplier"}
+      orders={orders}
+      products={catalog.products}
+    >
       <ProductDetail
         key={product.id}
         slug={catalog.supplier.slug}
@@ -87,6 +70,6 @@ export default async function ProductPage({
         backHref={backHref}
         others={otherProducts(catalog.products, product)}
       />
-    </div>
+    </ProductFrame>
   );
 }

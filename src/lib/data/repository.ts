@@ -14,7 +14,6 @@ import type {
   OrderDetail,
   OrderListItem,
   OrderListQuery,
-  OrderedQuantity,
   OrderStatus,
   Organization,
   OrganizationInput,
@@ -108,7 +107,6 @@ export interface CommerceRepository {
     input: CustomerInput,
   ): Promise<Customer | null>;
   listOrders(organizationId: string, query: OrderListQuery): Promise<Paginated<OrderListItem>>;
-  listOrderedQuantities(organizationId: string): Promise<OrderedQuantity[]>;
   getOrder(organizationId: string, orderId: string): Promise<OrderDetail | null>;
   getOrderByToken(token: string): Promise<PublicOrderView | null>;
   createPublicOrder(input: PublicOrderInput, ip: string): Promise<CreateOrderResult>;

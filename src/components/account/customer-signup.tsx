@@ -15,6 +15,7 @@ export function CustomerSignup({ catalog }: { catalog: PublicCatalog }) {
       store={{
         name: catalog.supplier.name,
         logoUrl: catalog.supplier.logoUrl,
+        brandColor: catalog.supplier.brandColor,
         href: back,
       }}
     >

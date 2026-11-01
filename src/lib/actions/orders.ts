@@ -126,7 +126,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
       items: parsed.data.items,
       buyerUserId: session?.kind === "buyer" ? session.userId : null,
       paymentMethod: parsed.data.paymentMethod,
-      confirmationEmail: session?.kind === "buyer" ? orderConfirmationEmail(session) : "",
+      confirmationEmail: session?.kind === "buyer" ? orderConfirmationEmail(session) : parsed.data.email,
     },
     ip,
   );

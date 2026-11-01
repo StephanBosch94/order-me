@@ -49,8 +49,8 @@ export function PaymentMethodChoice({
   onChange,
 }: {
   error?: string;
-  value?: "" | "pouzecem" | "kartica";
-  onChange?: (value: "pouzecem" | "kartica") => void;
+  value?: "" | "pouzecem" | "ips";
+  onChange?: (value: "pouzecem" | "ips") => void;
 }) {
   return (
     <fieldset>
@@ -72,13 +72,13 @@ export function PaymentMethodChoice({
           <input
             type="radio"
             name="paymentMethod"
-            value="kartica"
+            value="ips"
             required
             className="size-4 accent-primary"
-            checked={onChange ? value === "kartica" : undefined}
-            onChange={() => onChange?.("kartica")}
+            checked={onChange ? value === "ips" : undefined}
+            onChange={() => onChange?.("ips")}
           />
-          Karticom
+          Plaćanje IPS-om
         </label>
       </div>
       <FieldError message={error} />

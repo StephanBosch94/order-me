@@ -1,16 +1,23 @@
 export function PageHeader({
   title,
+  count,
   description,
   actions,
 }: {
   title: string;
+  count?: number;
   description?: string;
   actions?: React.ReactNode;
 }) {
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="flex items-baseline gap-2 text-xl font-semibold tracking-tight">
+          {title}
+          {typeof count === "number" ? (
+            <span className="text-base font-normal tabular-nums text-muted-foreground">{count}</span>
+          ) : null}
+        </h1>
         {description ? <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}

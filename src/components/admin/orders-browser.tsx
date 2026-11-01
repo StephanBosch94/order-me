@@ -1,10 +1,10 @@
 import Link from "next/link";
 
+import { OrderFilters } from "@/components/admin/live-filters";
 import { ConfirmOrderButton } from "@/components/admin/order-actions";
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/fields";
 import { isCompanyOrder } from "@/lib/company-order";
 import { ORDER_STATUSES } from "@/lib/constants";
 import type { OrderListItem, OrderStatus, Paginated } from "@/lib/data/types";
@@ -66,29 +66,8 @@ export function OrdersBrowser({
 
   return (
     <div>
-      <PageHeader title={title} description={description} />
-      <form className="mb-4 grid gap-2 rounded-lg border border-border bg-card p-3 md:grid-cols-6" method="get">
-        <Input name="q" defaultValue={q} placeholder="Broj ili kupac" aria-label="Pretraga porudžbina" className="md:col-span-2" />
-        <Select name="status" defaultValue={status} aria-label="Status">
-          <option value="all">Svi statusi</option>
-          {ORDER_STATUSES.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </Select>
-        <Input name="from" type="date" defaultValue={from} aria-label="Datum od" />
-        <Input name="to" type="date" defaultValue={to} aria-label="Datum do" />
-        <Select name="sort" defaultValue={sort} aria-label="Sortiranje">
-          <option value="newest">Najnovije</option>
-          <option value="oldest">Najstarije</option>
-          <option value="total_desc">Najveći iznos</option>
-          <option value="total_asc">Najmanji iznos</option>
-        </Select>
-        <div className="md:col-span-6">
-          <Button type="submit">Primeni</Button>
-        </div>
-      </form>
+      <PageHeader title={title} count={result.total} description={description} />
+      <OrderFilters q={q} status={status} from={from} to={to} sort={sort} page={filters.page} />
 
       {result.total === 0 ? (
         <EmptyState
