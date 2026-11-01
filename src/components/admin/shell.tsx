@@ -32,8 +32,8 @@ const items: {
   { href: "/orders", label: "Porudžbine", icon: ClipboardList },
   { href: "/products", label: "Proizvodi", icon: Package },
   { href: "/customers", label: "Kupci", icon: Users },
-  { href: "/invoices", label: "Fakture", icon: Receipt },
   { href: "/zaposleni", label: "Zaposleni", icon: UserPlus },
+  { href: "/invoices", label: "Fakture", icon: Receipt },
   { href: "/settings", label: "Podešavanja", icon: Settings },
 ];
 

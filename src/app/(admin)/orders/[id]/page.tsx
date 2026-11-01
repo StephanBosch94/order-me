@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { OrderStatusForm } from "@/components/admin/order-actions";
+import { OrderStatusMenu } from "@/components/admin/order-actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireSession } from "@/lib/auth";
 import { paymentLabel, unitLabel } from "@/lib/constants";
@@ -31,9 +31,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
         </div>
-        <a href={`/api/orders/${order.id}/pdf`} className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium">
-          Preuzmi potvrdu
-        </a>
+        <div className="flex flex-wrap items-center gap-2">
+          <OrderStatusMenu orderId={order.id} status={order.status} />
+          <a href={`/api/orders/${order.id}/pdf`} className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-zinc-50">
+            Preuzmi potvrdu
+          </a>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -126,12 +129,6 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 </div>
               ) : null}
             </dl>
-          </section>
-          <section className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-sm font-semibold">Status</h2>
-            <div className="mt-3">
-              <OrderStatusForm orderId={order.id} status={order.status} />
-            </div>
           </section>
           <section className="rounded-lg border border-border bg-card p-4">
             <h2 className="text-sm font-semibold">Napomena</h2>

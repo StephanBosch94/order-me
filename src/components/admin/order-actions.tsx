@@ -1,31 +1,62 @@
 "use client";
 
+import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { toast } from "sonner";
 
 import { importProductsAction, setProductActiveAction } from "@/lib/actions/catalog";
 import { updateOrderStatusAction } from "@/lib/actions/orders";
-import { ORDER_STATUSES } from "@/lib/constants";
+import { ORDER_STATUSES, statusLabel } from "@/lib/constants";
 import type { OrderStatus } from "@/lib/data/types";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FileDropzone } from "@/components/ui/file-dropzone";
-import { Select } from "@/components/ui/fields";
 
-export function OrderStatusForm({ orderId, status }: { orderId: string; status: OrderStatus }) {
+export function OrderStatusMenu({ orderId, status }: { orderId: string; status: OrderStatus }) {
   const router = useRouter();
-  const [value, setValue] = useState(status);
-  const [confirming, setConfirming] = useState(false);
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const currentIndex = Math.max(
+    0,
+    ORDER_STATUSES.findIndex((item) => item.value === status),
+  );
 
-  function save() {
-    if (value === "otkazana" && status !== "otkazana" && !confirming) {
-      setConfirming(true);
-      return;
+  useEffect(() => {
+    if (!open) return;
+    itemRefs.current[currentIndex]?.focus();
+
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, currentIndex]);
+
+  function closeMenu(focusButton = false) {
+    setOpen(false);
+    if (focusButton) buttonRef.current?.focus();
+  }
+
+  function choose(next: OrderStatus) {
+    closeMenu(true);
+    if (next === status || pending) return;
     startTransition(async () => {
-      const result = await updateOrderStatusAction(orderId, value);
-      setConfirming(false);
+      const result = await updateOrderStatusAction(orderId, next);
       if (!result.ok) {
         toast.error(result.message ?? "Status nije sačuvan.");
         return;
@@ -35,50 +66,79 @@ export function OrderStatusForm({ orderId, status }: { orderId: string; status: 
     });
   }
 
+  function onMenuKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    const items = itemRefs.current.filter((item): item is HTMLButtonElement => item !== null);
+    const index = items.findIndex((item) => item === document.activeElement);
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      items[(index + 1) % items.length]?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      items[(index - 1 + items.length) % items.length]?.focus();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      items[0]?.focus();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      items[items.length - 1]?.focus();
+    } else if (event.key === "Tab") {
+      setOpen(false);
+    }
+  }
+
   return (
-    <div className="space-y-3">
-      <Select value={value} onChange={(event) => setValue(event.target.value as OrderStatus)} aria-label="Status porudžbine">
-        {ORDER_STATUSES.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </Select>
-      {confirming ? (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          Otkazati porudžbinu? Promena se beleži u istoriji statusa.
-        </p>
+    <div ref={rootRef} className="relative">
+      <Button
+        ref={buttonRef}
+        variant="secondary"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        aria-label={`Status porudžbine: ${statusLabel(status)}`}
+        disabled={pending}
+        onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
+      >
+        {pending ? "Čuvanje…" : statusLabel(status)}
+        <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden />
+      </Button>
+      {open ? (
+        <div
+          id={menuId}
+          role="menu"
+          aria-label="Statusi porudžbine"
+          className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-md border border-border bg-card py-1 shadow-lg"
+          onKeyDown={onMenuKeyDown}
+        >
+          {ORDER_STATUSES.map((item, index) => {
+            const current = item.value === status;
+            return (
+              <button
+                key={item.value}
+                ref={(node) => {
+                  itemRefs.current[index] = node;
+                }}
+                type="button"
+                role="menuitemradio"
+                aria-checked={current}
+                className={cn(
+                  "flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none",
+                  current && "font-medium",
+                )}
+                onClick={() => choose(item.value)}
+              >
+                {item.label}
+                {current ? <Check className="size-4 shrink-0" aria-hidden /> : <span className="size-4 shrink-0" aria-hidden />}
+              </button>
+            );
+          })}
+        </div>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        {status === "nova" ? (
-          <Button
-            disabled={pending}
-            onClick={() => {
-              setValue("potvrdjena");
-              startTransition(async () => {
-                const result = await updateOrderStatusAction(orderId, "potvrdjena");
-                setConfirming(false);
-                if (!result.ok) {
-                  toast.error(result.message ?? "Porudžbina nije potvrđena.");
-                  return;
-                }
-                toast.success("Porudžbina je potvrđena.");
-                router.refresh();
-              });
-            }}
-          >
-            {pending ? "Potvrda…" : "Potvrdi porudžbinu"}
-          </Button>
-        ) : null}
-        <Button onClick={save} disabled={pending || value === status} variant={status === "nova" ? "secondary" : "default"}>
-          {pending ? "Čuvanje…" : confirming ? "Potvrdi otkazivanje" : "Sačuvaj status"}
-        </Button>
-        {confirming ? (
-          <Button variant="secondary" onClick={() => setConfirming(false)}>
-            Otkaži
-          </Button>
-        ) : null}
-      </div>
     </div>
   );
 }
