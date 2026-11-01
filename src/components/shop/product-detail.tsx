@@ -64,7 +64,7 @@ export function ProductDetail({
         <div className="mt-4 flex items-end gap-3">
           {sale ? <p className="text-sm text-muted-foreground line-through tabular-nums">{formatRsd(product.pricePara)}</p> : null}
           <p className="text-2xl font-semibold tabular-nums">{formatRsd(sale ?? product.pricePara)}</p>
-          {sale ? <span className="mb-1 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">Akcija</span> : null}
+          {sale ? <span className="mb-1 rounded-full bg-red-600 px-2 py-0.5 text-xs font-medium text-white">Akcija</span> : null}
         </div>
         <dl className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
           <div>
@@ -134,7 +134,14 @@ export function ProductDetail({
                   href={productPath(slug, item.id, business)}
                   className="block overflow-hidden rounded-2xl bg-card ring-1 ring-black/5"
                 >
-                  <ProductImage src={item.imageUrl} alt="" className="aspect-[3/2] h-auto w-full rounded-none border-0" />
+                  <span className="relative block">
+                    <ProductImage src={item.imageUrl} alt="" className="aspect-[3/2] h-auto w-full rounded-none border-0" />
+                    {itemSale ? (
+                      <span className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-medium text-white">
+                        Akcija
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="block p-3">
                     <span className="line-clamp-2 text-sm font-semibold">{item.name}</span>
                     {itemSale ? (

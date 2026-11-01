@@ -120,7 +120,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
       pib: "",
       mb: "",
       address: parsed.data.address,
-      postalCode: "",
+      postalCode: normalizePostalCode(parsed.data.postalCode) ?? "",
       city: parsed.data.city,
       notes: parsed.data.notes,
       items: parsed.data.items,

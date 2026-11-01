@@ -86,9 +86,19 @@ export const personBuyerProfileSchema = z
     phone: buyerPhone,
     address: buyerAddress,
     city: buyerCity,
+    postalCode: z.string().trim(),
     confirmationEmail: confirmationEmailField,
   })
-  .superRefine(rejectShortPhone);
+  .superRefine((value, ctx) => {
+    rejectShortPhone(value, ctx);
+    if (!normalizePostalCode(value.postalCode)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["postalCode"],
+        message: value.postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj.",
+      });
+    }
+  });
 
 export const companyBuyerProfileSchema = z
   .object({
@@ -300,6 +310,7 @@ export const retailOrderSchema = z
     email: z.email("Unesite ispravnu email adresu."),
     phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
     address: z.string().trim().min(3, "Unesite adresu isporuke.").max(200),
+    postalCode: z.string().trim(),
     city: z.string().trim().min(2, "Unesite grad.").max(80),
     notes: z.string().trim().max(1000),
     paymentMethod: z.enum(["pouzecem", "ips"], "Izaberite način plaćanja."),
@@ -318,6 +329,13 @@ export const retailOrderSchema = z
     const digits = value.phone.replace(/\D/g, "");
     if (digits.length < 6 || digits.length > 15) {
       ctx.addIssue({ code: "custom", path: ["phone"], message: "Unesite ispravan broj telefona." });
+    }
+    if (!normalizePostalCode(value.postalCode)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["postalCode"],
+        message: value.postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj.",
+      });
     }
     if (value.honeypot) {
       ctx.addIssue({ code: "custom", path: ["honeypot"], message: "Kupovina nije prihvaćena." });

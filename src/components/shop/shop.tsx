@@ -41,6 +41,7 @@ export function Shop({
   orders = [],
   repeatOrderId,
   openAccount = false,
+  openOrders = false,
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
@@ -48,6 +49,7 @@ export function Shop({
   orders?: BuyerOrder[];
   repeatOrderId?: string;
   openAccount?: boolean;
+  openOrders?: boolean;
 }) {
   const router = useRouter();
   const [savedBuyer, setSavedBuyer] = useState<BuyerAccount | null>(null);
@@ -61,7 +63,9 @@ export function Shop({
   const storageKey = `poruci-shop:${catalog.supplier.slug}`;
   const idempotencyStorage = `poruci-shop-idem:${catalog.supplier.slug}`;
   const [step, setStep] = useState<Step>("browse");
-  const [pane, setPane] = useState<"catalog" | "orders" | "account">(openAccount ? "account" : "catalog");
+  const [pane, setPane] = useState<"catalog" | "orders" | "account">(
+    openAccount ? "account" : openOrders ? "orders" : "catalog",
+  );
   const [categoryId, setCategoryId] = useState("all");
   const storedCart = useSyncExternalStore(subscribeCart, () => readCartRaw(storageKey), () => "{}");
   const quantities = useMemo(() => parseCart(storedCart), [storedCart]);
@@ -69,7 +73,6 @@ export function Shop({
   const products = catalog.products.filter(
     (product) => categoryId === "all" || product.categoryId === categoryId,
   );
-  const offers = products.filter((product) => salePricePara(product));
   const lines = catalog.products
     .map((product) => ({
       product,
@@ -179,13 +182,15 @@ export function Shop({
             {buyer ? (
               <BuyerMenu
                 buyer={buyer}
-                orders={companyBuyer ? [] : orders}
                 shopPath={catalogHref}
+                onOrders={() => {
+                  setPane("orders");
+                  setStep("browse");
+                }}
                 onAccount={() => {
                   setPane("account");
                   setStep("browse");
                 }}
-                onRepeat={repeatOrder}
               />
             ) : null}
           </div>
@@ -237,8 +242,23 @@ export function Shop({
             />
           </div>
         ) : null}
-        {step === "browse" && pane === "orders" && companyBuyer ? (
-          <CompanyOrders orders={orders} onRepeat={repeatOrder} />
+        {step === "browse" && pane === "orders" && buyer ? (
+          <div>
+            {companyBuyer ? null : (
+              <button
+                type="button"
+                className="mb-3 inline-flex min-h-11 cursor-pointer items-center py-2 text-base font-medium text-foreground underline decoration-foreground/40 underline-offset-4 hover:decoration-foreground"
+                onClick={() => setPane("catalog")}
+              >
+                Nazad na proizvode
+              </button>
+            )}
+            {companyBuyer ? (
+              <CompanyOrders orders={orders} onRepeat={repeatOrder} />
+            ) : (
+              <OrderList orders={orders} onRepeat={repeatOrder} />
+            )}
+          </div>
         ) : null}
         {step === "browse" && pane === "catalog" ? (
           <>
@@ -257,25 +277,12 @@ export function Shop({
                 </CategoryButton>
               ))}
             </div>
-            {offers.length > 0 ? (
-              <section className="mt-6" aria-labelledby="akcije-naslov">
-                <h2 id="akcije-naslov" className="text-lg font-semibold">
-                  Akcije
-                </h2>
-                <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {offers.map((product) => (
-                    <ProductCard key={product.id} product={product} href={productPath(catalog.supplier.slug, product.id)} onAdd={() => add(product)} />
-                  ))}
-                </ul>
-              </section>
-            ) : null}
             {products.length === 0 ? (
               <p className="mt-6 rounded-lg border border-dashed border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
                 Trenutno nema proizvoda.
               </p>
             ) : (
-              <section className={offers.length > 0 ? "mt-8" : "mt-4"}>
-                {offers.length > 0 ? <h2 className="mb-3 text-lg font-semibold">Svi proizvodi</h2> : null}
+              <section className="mt-4">
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {products.map((product) => (
                     <ProductCard key={product.id} product={product} href={productPath(catalog.supplier.slug, product.id)} onAdd={() => add(product)} />
@@ -647,16 +654,14 @@ function AccountPanel({
           error={state.fieldErrors?.address}
           required={false}
         />
-        {company ? (
-          <Field
-            name="postalCode"
-            label="Poštanski broj"
-            autoComplete="postal-code"
-            defaultValue={shown.postalCode}
-            error={state.fieldErrors?.postalCode}
-            required={false}
-          />
-        ) : null}
+        <Field
+          name="postalCode"
+          label="Poštanski broj"
+          autoComplete="postal-code"
+          defaultValue={shown.postalCode}
+          error={state.fieldErrors?.postalCode}
+          required={false}
+        />
         <Field
           name="city"
           label="Grad"
@@ -787,6 +792,7 @@ export function Checkout({
     email: buyer?.email ?? "",
     phone: buyer?.phone ?? "",
     address: buyer?.address ?? "",
+    postalCode: buyer?.postalCode ?? "",
     city: buyer?.city ?? "",
   });
 
@@ -798,6 +804,7 @@ export function Checkout({
       email: String(form.get("email") ?? ""),
       phone: String(form.get("phone") ?? ""),
       address: String(form.get("address") ?? ""),
+      postalCode: String(form.get("postalCode") ?? ""),
       city: String(form.get("city") ?? ""),
     });
     setNotes(String(form.get("notes") ?? ""));
@@ -825,6 +832,7 @@ export function Checkout({
           email: retail.email,
           phone: retail.phone,
           address: retail.address,
+          postalCode: retail.postalCode,
           city: retail.city,
           notes,
           paymentMethod,
@@ -976,7 +984,14 @@ export function Checkout({
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        rememberRetail(new FormData(event.currentTarget));
+        const form = new FormData(event.currentTarget);
+        const postalCode = String(form.get("postalCode") ?? "").trim();
+        if (!/^\d{5}$/.test(postalCode)) {
+          setErrors({ postalCode: postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj." });
+          return;
+        }
+        setErrors({});
+        rememberRetail(form);
         setPhase("payment");
       }}
       className="mx-auto max-w-xl space-y-4"
@@ -995,6 +1010,7 @@ export function Checkout({
       <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={retail.email} />
       <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={retail.phone} />
       <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} defaultValue={retail.address} />
+      <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={errors.postalCode} defaultValue={retail.postalCode} />
       <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} defaultValue={retail.city} />
       <div>
         <Label htmlFor="notes">Napomena</Label>
@@ -1063,7 +1079,7 @@ function ProductCard({ product, href, onAdd }: { product: Product; href: string;
       <div className="relative">
         <ProductPhotos photos={photos} name={product.name} href={href} />
         {sale ? (
-          <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+          <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-medium text-white">
             Akcija
           </span>
         ) : null}

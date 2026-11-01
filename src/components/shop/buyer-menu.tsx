@@ -4,27 +4,22 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { isCompanyBuyer } from "@/lib/buyer";
-import { confirmationPath } from "@/lib/constants";
-import type { BuyerAccount, BuyerOrder } from "@/lib/data/types";
-import { formatRsd } from "@/lib/format";
+import type { BuyerAccount } from "@/lib/data/types";
 
 export function BuyerMenu({
   buyer,
-  orders = [],
   onAccount,
   accountHref,
-  onRepeat,
-  repeatBase,
+  onOrders,
+  ordersHref,
   shopPath,
 }: {
   buyer: BuyerAccount;
-  orders?: BuyerOrder[];
   onAccount?: () => void;
   accountHref?: string;
-  onRepeat?: (items: BuyerOrder["items"]) => void;
-  repeatBase?: string;
+  onOrders?: () => void;
+  ordersHref?: string;
   shopPath?: string;
 }) {
   const company = isCompanyBuyer(buyer);
@@ -54,6 +49,8 @@ export function BuyerMenu({
     setOpen(false);
   }
 
+  const itemClass = "flex w-full cursor-pointer px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50";
+
   return (
     <div ref={rootRef} className="relative">
       <button
@@ -71,70 +68,30 @@ export function BuyerMenu({
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 z-30 mt-2 w-72 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+          className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
         >
-          {company ? null : (
-            <div className="max-h-64 overflow-y-auto border-b border-border">
-              {orders.length === 0 ? (
-                <p className="px-3 py-3 text-sm text-muted-foreground">Još nema porudžbina.</p>
-              ) : (
-                <ul>
-                  {orders.map((order) => {
-                    const href = confirmationPath(order.supplierSlug, order.confirmationToken);
-                    const summary = (
-                      <>
-                        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-sm font-medium underline-offset-2 group-hover:underline">{order.number}</span>
-                          <StatusBadge status={order.status} />
-                        </span>
-                        <span className="shrink-0 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</span>
-                      </>
-                    );
-                    return (
-                      <li key={order.id} className="border-b border-border last:border-b-0">
-                        {href ? (
-                          <Link
-                            href={href}
-                            className="group flex items-start justify-between gap-3 px-3 py-2.5 outline-none hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                            onClick={close}
-                          >
-                            {summary}
-                          </Link>
-                        ) : (
-                          <div className="flex items-start justify-between gap-3 px-3 py-2.5">{summary}</div>
-                        )}
-                        {onRepeat ? (
-                          <button
-                            type="button"
-                            className="cursor-pointer px-3 pb-2.5 text-sm font-medium text-primary hover:underline"
-                            onClick={() => {
-                              close();
-                              onRepeat(order.items);
-                            }}
-                          >
-                            Naruči isto
-                          </button>
-                        ) : repeatBase ? (
-                          <Link
-                            href={`${repeatBase}?ponovi=${order.id}`}
-                            className="inline-block px-3 pb-2.5 text-sm font-medium text-primary hover:underline"
-                            onClick={close}
-                          >
-                            Naruči isto
-                          </Link>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          )}
+          {onOrders ? (
+            <button
+              type="button"
+              role="menuitem"
+              className={itemClass}
+              onClick={() => {
+                close();
+                onOrders();
+              }}
+            >
+              Porudžbine
+            </button>
+          ) : ordersHref ? (
+            <Link href={ordersHref} role="menuitem" className={itemClass} onClick={close}>
+              Porudžbine
+            </Link>
+          ) : null}
           {onAccount ? (
             <button
               type="button"
               role="menuitem"
-              className="flex w-full cursor-pointer px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50"
+              className={itemClass}
               onClick={() => {
                 close();
                 onAccount();
@@ -143,12 +100,7 @@ export function BuyerMenu({
               Moj nalog
             </button>
           ) : accountHref ? (
-            <Link
-              href={accountHref}
-              role="menuitem"
-              className="flex w-full px-3 py-2.5 text-sm font-medium hover:bg-zinc-50"
-              onClick={close}
-            >
+            <Link href={accountHref} role="menuitem" className={itemClass} onClick={close}>
               Moj nalog
             </Link>
           ) : null}

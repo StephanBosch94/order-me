@@ -42,11 +42,9 @@ const moveButtonClass =
 export function ProductForm({
   product,
   categories,
-  shop = true,
 }: {
   product?: Product;
   categories: Category[];
-  shop?: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -190,9 +188,7 @@ export function ProductForm({
             placeholder="Opciono"
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            {shop
-              ? "Ako je niža od redovne, proizvod ide u sekciju Akcije."
-              : "Ako je niža od redovne, kupac plaća ovu cenu."}
+            Ako je niža od redovne, kupac vidi crvenu oznaku Akcija i plaća ovu cenu.
           </p>
           <FieldError message={errors.salePrice} />
         </div>

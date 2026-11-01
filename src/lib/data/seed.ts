@@ -1188,6 +1188,7 @@ async function ensureDemoBuyers(db: DemoDatabase) {
     phone: "+381 64 555 0199",
     address: "Knez Mihailova 18",
     city: "Beograd",
+    postalCode: "11000",
     pib: "",
     bankAccount: "",
     createdAt: now,
@@ -1297,6 +1298,10 @@ function ensureRetailBuyerOrders(db: DemoDatabase, user: DemoUser) {
         existing.buyerUserId = user.id;
         changed = true;
       }
+      if (!existing.customerSnapshot.postalCode && user.postalCode) {
+        existing.customerSnapshot.postalCode = user.postalCode;
+        changed = true;
+      }
       continue;
     }
     const product = db.products.find((item) => item.organizationId === organization.id && item.sku === spec.sku);
@@ -1337,7 +1342,7 @@ function ensureRetailBuyerOrders(db: DemoDatabase, user: DemoUser) {
         pib: "",
         mb: "",
         address: user.address,
-        postalCode: "",
+        postalCode: user.postalCode,
         city: user.city,
         bankAccount: "",
       },

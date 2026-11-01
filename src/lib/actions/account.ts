@@ -76,12 +76,20 @@ export async function updateBuyerAccountAction(
       phone: text(formData, "phone"),
       address: text(formData, "address"),
       city: text(formData, "city"),
+      postalCode: text(formData, "postalCode"),
       confirmationEmail: text(formData, "confirmationEmail"),
     });
     if (!parsed.success) {
       return {
         error: parsed.error.issues[0]?.message ?? "Proverite unete podatke.",
         fieldErrors: fieldErrors(parsed.error),
+      };
+    }
+    const postalCode = normalizePostalCode(parsed.data.postalCode);
+    if (!postalCode) {
+      return {
+        error: "Poštanski broj ima 5 cifara.",
+        fieldErrors: { postalCode: parsed.data.postalCode.trim() ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj." },
       };
     }
     next = {
@@ -92,7 +100,7 @@ export async function updateBuyerAccountAction(
       city: parsed.data.city,
       pib: session.pib,
       mb: session.mb,
-      postalCode: session.postalCode,
+      postalCode,
       bankAccount: session.bankAccount,
       confirmationEmail: parsed.data.confirmationEmail,
     };

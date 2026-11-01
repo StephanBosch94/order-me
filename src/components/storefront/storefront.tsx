@@ -532,6 +532,7 @@ function Checkout({
             ...shared,
             customerName: form.get("customerName"),
             address: form.get("address"),
+            postalCode: form.get("postalCode"),
             city: form.get("city"),
             paymentMethod: form.get("paymentMethod"),
           })
@@ -589,6 +590,7 @@ function Checkout({
           <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} required defaultValue={buyer?.name} />
           <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} required defaultValue={buyer?.email} />
           <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} required defaultValue={buyer?.phone} />
+          <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={errors.postalCode} required defaultValue={buyer?.postalCode} />
           <Field name="city" label="Grad" autoComplete="address-level2" error={errors.city} required defaultValue={buyer?.city} />
           <div className="sm:col-span-2">
             <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} required defaultValue={buyer?.address} />

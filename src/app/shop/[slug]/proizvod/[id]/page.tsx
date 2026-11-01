@@ -43,9 +43,6 @@ export default async function ProductPage({
 
   const session = await getSession();
   const buyer = session?.kind === "buyer" ? session : null;
-  const orders = buyer
-    ? (await getCommerce().listBuyerOrders(buyer.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
-    : [];
   const backHref = storePath(catalog.supplier.slug);
   const category = catalog.categories.find((item) => item.id === product.categoryId);
 
@@ -58,7 +55,6 @@ export default async function ProductPage({
       audience={catalog.supplier.audience}
       buyer={buyer}
       showAccount={session?.kind !== "supplier"}
-      orders={orders}
       products={catalog.products}
     >
       <ProductDetail

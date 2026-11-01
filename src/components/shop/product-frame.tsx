@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { supplierTheme } from "@/lib/color";
 import { isBusinessStore, normalizeCartQuantity, storePath } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara } from "@/lib/data/pricing";
-import type { Audience, BuyerAccount, BuyerOrder, Product } from "@/lib/data/types";
+import type { Audience, BuyerAccount, Product } from "@/lib/data/types";
 
 type Panel = "product" | "cart" | "checkout";
 
@@ -25,7 +25,6 @@ export function ProductFrame({
   audience,
   buyer,
   showAccount,
-  orders,
   products,
   children,
 }: {
@@ -36,7 +35,6 @@ export function ProductFrame({
   audience: Audience;
   buyer: BuyerAccount | null;
   showAccount: boolean;
-  orders: BuyerOrder[];
   products: Product[];
   children: ReactNode;
 }) {
@@ -81,7 +79,12 @@ export function ProductFrame({
               <span className="tabular-nums">{count}</span>
             </Button>
             {buyer ? (
-              <BuyerMenu buyer={buyer} orders={orders} accountHref={`${backHref}?nalog=1`} repeatBase={backHref} shopPath={backHref} />
+              <BuyerMenu
+                buyer={buyer}
+                accountHref={`${backHref}?nalog=1`}
+                ordersHref={`${backHref}?porudzbine=1`}
+                shopPath={backHref}
+              />
             ) : null}
           </div>
         </div>

@@ -17,7 +17,7 @@ export default async function ShopPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ponovi?: string; nalog?: string }>;
+  searchParams: Promise<{ ponovi?: string; nalog?: string; porudzbine?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
@@ -39,6 +39,7 @@ export default async function ShopPage({
       orders={orders}
       repeatOrderId={query.ponovi}
       openAccount={query.nalog === "1"}
+      openOrders={query.porudzbine === "1"}
     />
   );
 }
