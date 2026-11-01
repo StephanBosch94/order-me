@@ -110,6 +110,10 @@ export function storePath(slug: string) {
   return `/shop/${slug}`;
 }
 
+export function ordersPath(slug: string) {
+  return `/shop/${slug}/porudzbine`;
+}
+
 const LEGACY_SHOP_SLUGS: Record<string, string> = {
   "gastro-supply": "mesara-pajic",
   "butik-vera": "mercis-atelier",

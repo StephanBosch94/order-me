@@ -11,7 +11,7 @@ import { BuyerMenu } from "@/components/shop/buyer-menu";
 import { Cart, Checkout } from "@/components/shop/shop";
 import { Button } from "@/components/ui/button";
 import { supplierTheme } from "@/lib/color";
-import { isBusinessStore, normalizeCartQuantity, storePath } from "@/lib/constants";
+import { isBusinessStore, normalizeCartQuantity, ordersPath, storePath } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara } from "@/lib/data/pricing";
 import type { Audience, BuyerAccount, Product } from "@/lib/data/types";
 
@@ -82,7 +82,7 @@ export function ProductFrame({
               <BuyerMenu
                 buyer={buyer}
                 accountHref={`${backHref}?nalog=1`}
-                ordersHref={`${backHref}?porudzbine=1`}
+                ordersHref={ordersPath(slug)}
                 shopPath={backHref}
               />
             ) : null}

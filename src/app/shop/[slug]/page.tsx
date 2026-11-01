@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ClosedStore } from "@/components/shop/closed-store";
 import { Shop } from "@/components/shop/shop";
 import { getSession } from "@/lib/auth";
+import { ordersPath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -22,6 +23,7 @@ export default async function ShopPage({
   const { slug } = await params;
   const query = await searchParams;
   const catalog = await getCommerce().getPublicCatalog(slug);
+  if (catalog && query.porudzbine === "1") redirect(ordersPath(catalog.supplier.slug));
   if (!catalog) notFound();
   if (catalog.closedMessage) {
     return <ClosedStore name={catalog.supplier.name} message={catalog.closedMessage} />;
@@ -39,7 +41,6 @@ export default async function ShopPage({
       orders={orders}
       repeatOrderId={query.ponovi}
       openAccount={query.nalog === "1"}
-      openOrders={query.porudzbine === "1"}
     />
   );
 }

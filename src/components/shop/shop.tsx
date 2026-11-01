@@ -17,6 +17,7 @@ import {
   confirmationPath,
   isBusinessStore,
   normalizeCartQuantity,
+  ordersPath,
   productPath,
   storePath,
   subtractCartQuantity,
@@ -41,7 +42,6 @@ export function Shop({
   orders = [],
   repeatOrderId,
   openAccount = false,
-  openOrders = false,
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
@@ -49,7 +49,6 @@ export function Shop({
   orders?: BuyerOrder[];
   repeatOrderId?: string;
   openAccount?: boolean;
-  openOrders?: boolean;
 }) {
   const router = useRouter();
   const [savedBuyer, setSavedBuyer] = useState<BuyerAccount | null>(null);
@@ -63,16 +62,16 @@ export function Shop({
   const storageKey = `poruci-shop:${catalog.supplier.slug}`;
   const idempotencyStorage = `poruci-shop-idem:${catalog.supplier.slug}`;
   const [step, setStep] = useState<Step>("browse");
-  const [pane, setPane] = useState<"catalog" | "orders" | "account">(
-    openAccount ? "account" : openOrders ? "orders" : "catalog",
-  );
+  const [pane, setPane] = useState<"catalog" | "account">(openAccount ? "account" : "catalog");
   const [categoryId, setCategoryId] = useState("all");
   const storedCart = useSyncExternalStore(subscribeCart, () => readCartRaw(storageKey), () => "{}");
   const quantities = useMemo(() => parseCart(storedCart), [storedCart]);
 
-  const products = catalog.products.filter(
-    (product) => categoryId === "all" || product.categoryId === categoryId,
-  );
+  const hasSales = catalog.products.some((product) => salePricePara(product));
+  const products = catalog.products.filter((product) => {
+    if (categoryId === "sale") return Boolean(salePricePara(product));
+    return categoryId === "all" || product.categoryId === categoryId;
+  });
   const lines = catalog.products
     .map((product) => ({
       product,
@@ -183,10 +182,7 @@ export function Shop({
               <BuyerMenu
                 buyer={buyer}
                 shopPath={catalogHref}
-                onOrders={() => {
-                  setPane("orders");
-                  setStep("browse");
-                }}
+                ordersHref={ordersPath(catalog.supplier.slug)}
                 onAccount={() => {
                   setPane("account");
                   setStep("browse");
@@ -221,9 +217,12 @@ export function Shop({
             <ShopTab selected={pane === "catalog"} onClick={() => setPane("catalog")}>
               Prodavnica
             </ShopTab>
-            <ShopTab selected={pane === "orders"} onClick={() => setPane("orders")}>
+            <Link
+              href={ordersPath(catalog.supplier.slug)}
+              className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-foreground"
+            >
               Porudžbine
-            </ShopTab>
+            </Link>
           </div>
         ) : null}
         {step === "browse" && pane === "account" && buyer ? (
@@ -242,24 +241,6 @@ export function Shop({
             />
           </div>
         ) : null}
-        {step === "browse" && pane === "orders" && buyer ? (
-          <div>
-            {companyBuyer ? null : (
-              <button
-                type="button"
-                className="mb-3 inline-flex min-h-11 cursor-pointer items-center py-2 text-base font-medium text-foreground underline decoration-foreground/40 underline-offset-4 hover:decoration-foreground"
-                onClick={() => setPane("catalog")}
-              >
-                Nazad na proizvode
-              </button>
-            )}
-            {companyBuyer ? (
-              <CompanyOrders orders={orders} onRepeat={repeatOrder} />
-            ) : (
-              <OrderList orders={orders} onRepeat={repeatOrder} />
-            )}
-          </div>
-        ) : null}
         {step === "browse" && pane === "catalog" ? (
           <>
             {companyBuyer ? <LastOrder order={latestOrder(orders)} onRepeat={addOrderToCart} /> : null}
@@ -267,6 +248,11 @@ export function Shop({
               <CategoryButton active={categoryId === "all"} onClick={() => setCategoryId("all")}>
                 Sve
               </CategoryButton>
+              {hasSales ? (
+                <CategoryButton active={categoryId === "sale"} onClick={() => setCategoryId("sale")}>
+                  Akcija
+                </CategoryButton>
+              ) : null}
               {catalog.categories.map((category) => (
                 <CategoryButton
                   key={category.id}
@@ -365,12 +351,14 @@ function orderLines(orders: BuyerOrder[]): OrderedQuantity[] {
   );
 }
 
-function CompanyOrders({
+export function CompanyOrders({
   orders,
   onRepeat,
+  repeatBase,
 }: {
   orders: BuyerOrder[];
-  onRepeat: (items: BuyerOrder["items"]) => void;
+  onRepeat?: (items: BuyerOrder["items"]) => void;
+  repeatBase?: string;
 }) {
   const active = orders.filter((order) => order.status !== "otkazana");
   const spent = active.reduce((sum, order) => sum + order.totalPara, 0);
@@ -427,7 +415,7 @@ function CompanyOrders({
           </ul>
         )}
       </section>
-      <OrderList orders={orders} onRepeat={onRepeat} />
+      <OrderList orders={orders} onRepeat={onRepeat} repeatBase={repeatBase} />
     </div>
   );
 }
@@ -490,12 +478,14 @@ function LastOrder({
   );
 }
 
-function OrderList({
+export function OrderList({
   orders,
   onRepeat,
+  repeatBase,
 }: {
   orders: BuyerOrder[];
-  onRepeat: (items: BuyerOrder["items"]) => void;
+  onRepeat?: (items: BuyerOrder["items"]) => void;
+  repeatBase?: string;
 }) {
   return (
     <section aria-labelledby="porudzbine-naslov">
@@ -535,13 +525,19 @@ function OrderList({
                   </div>
                 )}
                 <div className="flex items-center px-4 pb-3 sm:py-3 sm:pl-0">
-                  <button
-                    type="button"
-                    className="cursor-pointer text-sm font-medium text-primary hover:underline"
-                    onClick={() => onRepeat(order.items)}
-                  >
-                    Naruči isto
-                  </button>
+                  {repeatBase ? (
+                    <Link href={`${repeatBase}?ponovi=${order.id}`} className="text-sm font-medium text-primary hover:underline">
+                      Naruči isto
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className="cursor-pointer text-sm font-medium text-primary hover:underline"
+                      onClick={() => onRepeat?.(order.items)}
+                    >
+                      Naruči isto
+                    </button>
+                  )}
                 </div>
               </li>
             );
