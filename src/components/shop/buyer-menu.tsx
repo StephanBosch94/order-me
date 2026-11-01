@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { logoutAction } from "@/lib/actions/auth";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { isCompanyBuyer } from "@/lib/buyer";
 import { statusLabel } from "@/lib/constants";
 import type { BuyerAccount, BuyerOrder } from "@/lib/data/types";
@@ -133,15 +133,11 @@ export function BuyerMenu({
               Moj nalog
             </Link>
           ) : null}
-          <form action={logoutAction} className="border-t border-border">
-            <button
-              type="submit"
-              role="menuitem"
-              className="flex w-full cursor-pointer px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50"
-            >
-              Odjava
-            </button>
-          </form>
+          <LogoutButton
+            icon={false}
+            role="menuitem"
+            className="flex w-full cursor-pointer border-t border-border px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50"
+          />
         </div>
       ) : null}
     </div>

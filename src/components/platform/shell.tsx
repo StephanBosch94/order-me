@@ -1,12 +1,12 @@
 "use client";
 
-import { BarChart3, CreditCard, LifeBuoy, LogOut, Menu, Store, Tags, X } from "lucide-react";
+import { BarChart3, CreditCard, LifeBuoy, Menu, Store, Tags, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Logo } from "@/components/brand/logo";
-import { logoutAction } from "@/lib/actions/auth";
+import { LogoutButton } from "@/components/auth/logout-button";
 import type { PlatformAccount } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
@@ -35,29 +35,34 @@ export function PlatformShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const nav = (
-    <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Administracija">
-      {items.map((item) => {
-        const active = isActive(pathname, item.href);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            onClick={() => setOpen(false)}
-            className={cn(
-              "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
-              active && "bg-accent font-medium text-accent-foreground",
-            )}
-          >
-            <Icon className="size-4" aria-hidden="true" />
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  function renderNav() {
+    return (
+      <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Administracija">
+        {items.map((item) => {
+          const active = isActive(pathname, item.href);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
+                active && "bg-accent font-medium text-accent-foreground",
+              )}
+            >
+              <Icon className="size-4" aria-hidden="true" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -75,19 +80,11 @@ export function PlatformShell({
             <p className="mt-3 text-sm font-medium">Administracija</p>
             <p className="text-xs text-muted-foreground">Platforma</p>
           </div>
-          {nav}
+          {renderNav()}
           <div className="mt-auto border-t border-border p-3">
             <p className="truncate px-2 text-sm font-medium">{session.name}</p>
             <p className="truncate px-2 text-xs text-muted-foreground">{session.email}</p>
-            <form action={logoutAction} className="mt-2">
-              <button
-                type="submit"
-                className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 hover:bg-zinc-100"
-              >
-                <LogOut className="size-4" aria-hidden="true" />
-                Odjava
-              </button>
-            </form>
+            <LogoutButton className="mt-2 flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 hover:bg-zinc-100" />
           </div>
         </aside>
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
@@ -107,13 +104,8 @@ export function PlatformShell({
           </header>
           {open ? (
             <div className="flex min-h-0 flex-1 flex-col border-b border-border bg-card px-2 py-3 lg:hidden">
-              {nav}
-              <form action={logoutAction} className="mt-auto px-3">
-                <button type="submit" className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm">
-                  <LogOut className="size-4" />
-                  Odjava
-                </button>
-              </form>
+              {renderNav()}
+              <LogoutButton className="mt-auto flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-3 text-sm" />
             </div>
           ) : null}
           <div className={cn("min-h-0 flex-1 overflow-y-auto", open && "hidden lg:block")}>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { logoutAction } from "@/lib/actions/auth";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { Logo } from "@/components/brand/logo";
 import { requireBuyerSession } from "@/lib/auth";
 
@@ -20,14 +20,10 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
               <p className="truncate text-sm font-medium">{session.businessName}</p>
               <p className="truncate text-xs text-muted-foreground">{session.email}</p>
             </div>
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="h-9 cursor-pointer rounded-md px-3 text-sm text-zinc-700 hover:bg-zinc-100"
-              >
-                Odjava
-              </button>
-            </form>
+            <LogoutButton
+              icon={false}
+              className="h-9 cursor-pointer rounded-md px-3 text-sm text-zinc-700 hover:bg-zinc-100"
+            />
           </div>
         </div>
       </header>

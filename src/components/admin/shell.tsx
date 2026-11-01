@@ -4,7 +4,6 @@ import {
   Building2,
   ClipboardList,
   LayoutDashboard,
-  LogOut,
   Menu,
   Package,
   Receipt,
@@ -14,10 +13,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { SetupGuide } from "@/components/admin/setup-guide";
-import { logoutAction } from "@/lib/actions/auth";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { sellsToBusinesses } from "@/lib/constants";
 import type { AccountContext } from "@/lib/data/types";
 import { setupReady, type SetupStep } from "@/lib/setup";
@@ -77,33 +76,38 @@ export function AdminShell({
     (item) => !item.business || sellsToBusinesses(session.organization.audience),
   );
 
-  const nav = (
-    <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Glavna navigacija">
-      {visibleItems.map((item) => {
-        const active = isActive(pathname, item.href);
-        const Icon = item.icon;
-        return (
-          <Fragment key={item.href}>
-            {item.href === "/invoices" ? (
-              <hr className="mx-2.5 my-2 border-0 border-t border-border" />
-            ) : null}
-            <Link
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              onClick={() => setOpen(false)}
-              className={cn(
-                "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
-                active && "bg-accent font-medium text-accent-foreground",
-              )}
-            >
-              <Icon className="size-4" aria-hidden="true" />
-              {item.label}
-            </Link>
-          </Fragment>
-        );
-      })}
-    </nav>
-  );
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  function renderNav() {
+    return (
+      <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Glavna navigacija">
+        {visibleItems.map((item) => {
+          const active = isActive(pathname, item.href);
+          const Icon = item.icon;
+          return (
+            <Fragment key={item.href}>
+              {item.href === "/invoices" ? (
+                <hr className="mx-2.5 my-2 border-0 border-t border-border" />
+              ) : null}
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
+                  active && "bg-accent font-medium text-accent-foreground",
+                )}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                {item.label}
+              </Link>
+            </Fragment>
+          );
+        })}
+      </nav>
+    );
+  }
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -134,19 +138,11 @@ export function AdminShell({
               </div>
             </Link>
           </div>
-          {nav}
+          {renderNav()}
           <div className="mt-auto border-t border-border p-3">
             <p className="truncate px-2 text-sm font-medium">{session.name}</p>
             <p className="truncate px-2 text-xs text-muted-foreground">{session.email}</p>
-            <form action={logoutAction} className="mt-2">
-              <button
-                type="submit"
-                className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 hover:bg-zinc-100"
-              >
-                <LogOut className="size-4" aria-hidden="true" />
-                Odjava
-              </button>
-            </form>
+            <LogoutButton className="mt-2 flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 hover:bg-zinc-100" />
             <PoweredBy />
           </div>
         </aside>
@@ -168,14 +164,9 @@ export function AdminShell({
           </header>
           {open ? (
             <div className="flex min-h-0 flex-1 flex-col border-b border-border bg-card px-2 py-3 lg:hidden">
-              {nav}
+              {renderNav()}
               <div className="mt-auto px-3 pb-1">
-                <form action={logoutAction}>
-                  <button type="submit" className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm">
-                    <LogOut className="size-4" />
-                    Odjava
-                  </button>
-                </form>
+                <LogoutButton className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm" />
                 <PoweredBy />
               </div>
             </div>
