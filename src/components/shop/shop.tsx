@@ -173,16 +173,16 @@ export function Shop({
           </div>
         </div>
       </header>
-      {catalog.supplier.slug === "butik-vera" ? (
-        <div className="relative h-56 overflow-hidden sm:h-72">
-          <img src="/marketing/butik.jpg" alt="" className="size-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
+      {catalog.supplier.slug === "mercis-atelier" ? (
+        <div className="relative h-56 overflow-hidden bg-[#1c1917] sm:h-72">
+          <img src="/products/ma-ogrlica.svg" alt="" className="size-full object-contain p-8" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent" />
           <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
-            Odeća i nakit za svaki dan.
+            Ručno rađen nakit iz ateljea u Beogradu.
           </p>
         </div>
       ) : null}
-      {catalog.supplier.slug === "gastro-supply" ? (
+      {catalog.supplier.slug === "mesara-pajic" ? (
         <div className="relative h-56 overflow-hidden sm:h-72">
           <img src="/products/mp-suvo.jpg" alt="" className="size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />

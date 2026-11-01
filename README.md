@@ -1,6 +1,6 @@
 # Prodora
 
-Prodora is a multi-tenant B2B ordering app for suppliers in Serbia. Each supplier gets a private admin and a public ordering page, such as `/s/gastro-supply`. Business customers browse the catalog, enter quantities, and submit an order without creating an account.
+Prodora is a multi-tenant ordering app for suppliers in Serbia. Each supplier gets a private admin and a public ordering page, such as `/shop/mesara-pajic`. Customers browse the catalog, enter quantities, and submit an order.
 
 The interface is in Serbian Latin. Money is shown in RSD and dates use the Europe/Belgrade time zone.
 
@@ -47,11 +47,10 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Demo mode starts automatically when the Supabase variables are empty. The seeded supplier is Gastro Supply.
+Demo mode starts automatically when the Supabase variables are empty. The seeded suppliers are Mala mesara Pajić and Mercis Atelier.
 
-- Email: `ana@gastrosupply.rs`
-- Password: `poruci-demo`
-- Public page: `/s/gastro-supply`
+- Mesara: `ana@mesarapajic.rs` / `poruci-demo`, shop `/shop/mesara-pajic`
+- Nakit: `vera@mercisatelier.rs` / `poruci-demo`, shop `/shop/mercis-atelier`
 
 The first launch writes `.data/demo-db.json`.
 

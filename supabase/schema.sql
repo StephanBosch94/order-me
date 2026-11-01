@@ -370,7 +370,7 @@ insert into public.subscriptions (organization_id, plan_id, status, period_start
 select o.id, p.id, 'aktivna', date_trunc('month', now())
 from public.organizations o
 join public.subscription_plans p
-  on p.name = case when o.slug = 'gastro-supply' then 'Poslovni' else 'Osnovni' end
+  on p.name = case when o.slug in ('mesara-pajic', 'gastro-supply') then 'Poslovni' else 'Osnovni' end
 where not exists (
   select 1 from public.subscriptions s where s.organization_id = o.id
 );

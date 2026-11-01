@@ -30,13 +30,13 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
       </Button>
       {demo ? (
         <p className="rounded-md bg-zinc-50 px-3 py-2 text-xs leading-5 text-muted-foreground">
-          Mala mesara Pajić, pravna lica: ana@gastrosupply.rs / poruci-demo
+          Mala mesara Pajić, pravna lica: ana@mesarapajic.rs / poruci-demo
           <br />
-          Fizičkim licima i jednim i drugima: vera@butikvera.rs / poruci-demo
+          Mercis Atelier, fizička lica: vera@mercisatelier.rs / poruci-demo
           <br />
           Kupac pravnog lica: marko@restorandunav.rs / poruci-demo
           <br />
-          Kupac fizičkog lica: jovana@butikvera.rs / poruci-demo
+          Kupac fizičkog lica: jovana@mercisatelier.rs / poruci-demo
           <br />
           Administracija: admin@prodora.rs / poruci-demo
         </p>

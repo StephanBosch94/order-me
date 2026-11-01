@@ -166,7 +166,7 @@ export function Storefront({
         </div>
       </header>
       {showSwitch ? <AudienceSwitch slug={catalog.supplier.slug} mode="pravna" /> : null}
-      {catalog.supplier.slug === "gastro-supply" ? (
+      {catalog.supplier.slug === "mesara-pajic" ? (
         <div className="relative h-52 overflow-hidden sm:h-64">
           <img src="/products/mp-suvo.jpg" alt="" className="size-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />

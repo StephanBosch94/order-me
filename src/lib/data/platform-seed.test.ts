@@ -17,9 +17,9 @@ test("seed and ensure create the platform admin, plans, subscriptions, and scope
   assert.equal(SEED_GENERATION, 2);
   const db = await createSeedDatabase();
   const admin = db.users.find((user) => user.email === PLATFORM_ADMIN_EMAIL);
-  const pult = db.organizations.find((item) => item.slug === "gastro-supply");
-  const vera = db.organizations.find((item) => item.slug === "butik-vera");
-  const dressId = db.products.find((product) => product.sku === "BV-HALJ")?.id;
+  const pult = db.organizations.find((item) => item.slug === "mesara-pajic");
+  const vera = db.organizations.find((item) => item.slug === "mercis-atelier");
+  const dressId = db.products.find((product) => product.sku === "MA-ALK")?.id;
   assert.equal(admin?.kind, "platform");
   assert.equal(db.members.some((member) => member.userId === admin?.id), false);
   assert.ok(db.plans.length >= 2);
@@ -47,7 +47,7 @@ test("seed and ensure create the platform admin, plans, subscriptions, and scope
   assert.equal(await ensurePlatformAdmin(db), false);
   assert.equal(db.users.find((user) => user.email === PLATFORM_ADMIN_EMAIL)?.kind, "platform");
   assert.equal(db.members.some((member) => member.userId === admin?.id), false);
-  assert.equal(db.products.find((product) => product.sku === "BV-HALJ")?.id, dressId);
+  assert.equal(db.products.find((product) => product.sku === "MA-ALK")?.id, dressId);
 
   const dir = await mkdtemp(path.join(tmpdir(), "poruci-platform-"));
   try {
@@ -62,7 +62,7 @@ test("seed and ensure create the platform admin, plans, subscriptions, and scope
     assert.equal(invoices.every((item) => item.organizationId === pult.id), true);
     const suppliers = await store.listPlatformSuppliers();
     assert.equal(suppliers.some((item) => item.organization.name === "Mala mesara Pajić"), true);
-    assert.equal(suppliers.some((item) => item.organization.name === "Butik Vera"), true);
+    assert.equal(suppliers.some((item) => item.organization.name === "Mercis Atelier"), true);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

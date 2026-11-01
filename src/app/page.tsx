@@ -5,12 +5,12 @@ import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
 const gallery = [
-  { src: "/products/bv-kaput.jpg", name: "Kaput", href: "/shop/butik-vera" },
-  { src: "/products/bv-haljina.jpg", name: "Crvena haljina", href: "/shop/butik-vera" },
-  { src: "/products/bv-kosulja.jpg", name: "Bela košulja", href: "/shop/butik-vera" },
-  { src: "/products/mp-suvo.jpg", name: "Petrovački kulen", href: "/shop/gastro-supply" },
-  { src: "/products/mp-kobasica.jpg", name: "Petrovačka kobasica", href: "/shop/gastro-supply" },
-  { src: "/products/mp-cvarci.jpg", name: "Čvarci", href: "/shop/gastro-supply" },
+  { src: "/products/ma-mindjuse.svg", name: "Minđuše alke", href: "/shop/mercis-atelier" },
+  { src: "/products/ma-ogrlica.svg", name: "Ogrlica Love", href: "/shop/mercis-atelier" },
+  { src: "/products/ma-prsten.svg", name: "Prsten sa inicijalom", href: "/shop/mercis-atelier" },
+  { src: "/products/mp-suvo.jpg", name: "Petrovački kulen", href: "/shop/mesara-pajic" },
+  { src: "/products/mp-kobasica.jpg", name: "Petrovačka kobasica", href: "/shop/mesara-pajic" },
+  { src: "/products/mp-cvarci.jpg", name: "Čvarci", href: "/shop/mesara-pajic" },
 ];
 
 export const metadata: Metadata = {
@@ -118,7 +118,7 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <DemoStoreLink href="/shop/butik-vera" className="block">
+            <DemoStoreLink href="/shop/mercis-atelier" className="block">
               <ShopPreview />
             </DemoStoreLink>
           </div>
@@ -128,10 +128,10 @@ export default function HomePage() {
           <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-sm text-[#425466]">Pogledajte demo pre registracije</p>
             <div className="flex flex-wrap gap-x-8 gap-y-2 text-lg font-semibold tracking-tight">
-              <DemoStoreLink href="/shop/butik-vera" className="hover:text-[#635bff]">
-                Butik Vera
+              <DemoStoreLink href="/shop/mercis-atelier" className="hover:text-[#635bff]">
+                Mercis Atelier
               </DemoStoreLink>
-              <DemoStoreLink href="/shop/gastro-supply" className="hover:text-[#635bff]">
+              <DemoStoreLink href="/shop/mesara-pajic" className="hover:text-[#635bff]">
                 Mala mesara Pajić
               </DemoStoreLink>
             </div>
@@ -158,12 +158,12 @@ export default function HomePage() {
 
         <section id="prodavnica" className="scroll-mt-20 border-t border-[#e6ebf1]">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2">
-            <img src="/products/bv-haljina.jpg" alt="Crvena haljina" className="aspect-[4/3] w-full rounded-2xl border border-[#e6ebf1] object-cover" />
+            <img src="/products/ma-mindjuse.svg" alt="Minđuše alke" className="aspect-[4/3] w-full rounded-2xl border border-[#e6ebf1] bg-[#f6f1ea] object-contain p-10" />
             <div>
               <p className="text-sm font-medium text-[#635bff]">Prodavnica</p>
               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-balance">Manje „imate li ovu?“</h2>
               <p className="mt-4 text-base leading-7 text-[#425466]">
-                Kupac vidi haljinu, kaput ili minđuše, cenu i sliku, pa sam stavlja u korpu i ostavlja adresu.
+                Kupac vidi minđuše, ogrlicu ili prsten, cenu i sliku, pa sam stavlja u korpu i ostavlja adresu.
                 Vi ne šaljete cenu komad po komad.
               </p>
               <BenefitList items={shopBenefits} />
@@ -171,8 +171,8 @@ export default function HomePage() {
                 <Link href="/signup" className={primaryButton}>
                   Otvorite prodavnicu
                 </Link>
-                <DemoStoreLink href="/shop/butik-vera" className={secondaryButton}>
-                  Pogledajte Butik Vera
+                <DemoStoreLink href="/shop/mercis-atelier" className={secondaryButton}>
+                  Pogledajte Mercis Atelier
                 </DemoStoreLink>
               </div>
             </div>
@@ -192,7 +192,7 @@ export default function HomePage() {
                 <Link href="/signup" className={primaryButton}>
                   Otvorite prodavnicu
                 </Link>
-                <DemoStoreLink href="/shop/gastro-supply" className={secondaryButton}>
+                <DemoStoreLink href="/shop/mesara-pajic" className={secondaryButton}>
                   Pogledajte Malu mesaru Pajić
                 </DemoStoreLink>
               </div>
@@ -266,8 +266,8 @@ export default function HomePage() {
           <Logo />
           <FooterColumn title="Prodavnica">
             <FooterLink href="/signup">Otvorite prodavnicu</FooterLink>
-            <FooterLink href="/shop/butik-vera">Butik Vera</FooterLink>
-            <FooterLink href="/shop/gastro-supply">Mala mesara Pajić</FooterLink>
+            <FooterLink href="/shop/mercis-atelier">Mercis Atelier</FooterLink>
+            <FooterLink href="/shop/mesara-pajic">Mala mesara Pajić</FooterLink>
           </FooterColumn>
           <FooterColumn title="Kupci">
             <FooterLink href="/signup/kupac">Nalog kupca</FooterLink>
@@ -304,12 +304,12 @@ function ShopPreview() {
         <span className="size-2.5 rounded-full bg-[#ff5f57]" aria-hidden="true" />
         <span className="size-2.5 rounded-full bg-[#febc2e]" aria-hidden="true" />
         <span className="size-2.5 rounded-full bg-[#28c840]" aria-hidden="true" />
-        <span className="ml-2 truncate text-xs text-[#425466]">Butik Vera</span>
+        <span className="ml-2 truncate text-xs text-[#425466]">Mercis Atelier</span>
       </div>
       <img
-        src="/marketing/butik-shop.jpg"
-        alt="Butik Vera: internet prodavnica sa haljinama, kaputom i cenama u dinarima"
-        className="aspect-[4/5] w-full object-cover object-top sm:aspect-[5/4] lg:aspect-auto lg:max-h-[560px]"
+        src="/products/ma-ogrlica.svg"
+        alt="Mercis Atelier: ručno rađen nakit, cene u dinarima"
+        className="aspect-[4/5] w-full bg-[#f6f1ea] object-contain p-10 sm:aspect-[5/4] lg:aspect-auto lg:max-h-[560px]"
       />
     </div>
   );
