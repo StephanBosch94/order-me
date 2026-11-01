@@ -1,8 +1,8 @@
 "use client";
 
-import { X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { saveProductAction } from "@/lib/actions/catalog";
@@ -23,19 +23,21 @@ import {
 } from "@/components/ui/file-dropzone";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fields";
 
-function useFilePreviews(files: File[]) {
-  const [urls, setUrls] = useState<string[]>([]);
+type GallerySlot =
+  | { id: string; kind: "kept"; url: string }
+  | { id: string; kind: "new"; file: File; preview: string };
 
-  useEffect(() => {
-    const next = files.map((file) => URL.createObjectURL(file));
-    setUrls(next);
-    return () => {
-      for (const url of next) URL.revokeObjectURL(url);
-    };
-  }, [files]);
-
-  return urls.length === files.length ? urls : [];
+function initialSlots(product?: Product): GallerySlot[] {
+  const urls = product?.imageUrls?.length ? product.imageUrls : product?.imageUrl ? [product.imageUrl] : [];
+  return urls.map((url, index) => ({
+    id: `kept-${index}-${url}`,
+    kind: "kept" as const,
+    url,
+  }));
 }
+
+const moveButtonClass =
+  "inline-flex h-7 flex-1 items-center justify-center rounded-md border border-border bg-card text-foreground transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40";
 
 export function ProductForm({
   product,
@@ -50,9 +52,63 @@ export function ProductForm({
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
-  const [keptImages, setKeptImages] = useState(product?.imageUrls ?? []);
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const pendingPreviews = useFilePreviews(pendingFiles);
+  const [slots, setSlots] = useState<GallerySlot[]>(() => initialSlots(product));
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
+
+  useEffect(() => {
+    return () => {
+      for (const slot of slotsRef.current) {
+        if (slot.kind === "new") URL.revokeObjectURL(slot.preview);
+      }
+    };
+  }, []);
+
+  const pendingFiles = useMemo(
+    () => slots.flatMap((slot) => (slot.kind === "new" ? [slot.file] : [])),
+    [slots],
+  );
+  const keptCount = slots.reduce((count, slot) => count + (slot.kind === "kept" ? 1 : 0), 0);
+
+  function onFilesChange(files: File[]) {
+    const current = slotsRef.current;
+    const known = new Set(current.flatMap((slot) => (slot.kind === "new" ? [slot.file] : [])));
+    const room = Math.max(0, MAX_PRODUCT_IMAGES - current.length);
+    const created = files
+      .filter((file) => !known.has(file))
+      .slice(0, room)
+      .map((file) => ({
+        id: `new-${crypto.randomUUID()}`,
+        kind: "new" as const,
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+    if (created.length === 0) return;
+    setSlots((existing) => {
+      const existingFiles = new Set(existing.flatMap((slot) => (slot.kind === "new" ? [slot.file] : [])));
+      const fresh = created
+        .filter((slot) => !existingFiles.has(slot.file))
+        .slice(0, Math.max(0, MAX_PRODUCT_IMAGES - existing.length));
+      return fresh.length === 0 ? existing : [...existing, ...fresh];
+    });
+  }
+
+  function moveSlot(index: number, direction: -1 | 1) {
+    setSlots((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.length) return current;
+      const next = current.slice();
+      const [item] = next.splice(index, 1);
+      next.splice(target, 0, item);
+      return next;
+    });
+  }
+
+  function removeSlot(id: string) {
+    const slot = slotsRef.current.find((item) => item.id === id);
+    if (slot?.kind === "new") URL.revokeObjectURL(slot.preview);
+    setSlots((current) => current.filter((item) => item.id !== id));
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,21 +145,6 @@ export function ProductForm({
     router.push("/products");
     router.refresh();
   }
-
-  const imageTiles = [
-    ...keptImages.map((url, index) => ({
-      key: `kept-${index}-${url}`,
-      src: url,
-      keptUrl: url,
-      remove: () => setKeptImages((current) => current.filter((_, itemIndex) => itemIndex !== index)),
-    })),
-    ...pendingPreviews.map((url, index) => ({
-      key: `new-${index}-${pendingFiles[index]?.name ?? ""}-${pendingFiles[index]?.lastModified ?? 0}`,
-      src: url,
-      keptUrl: null,
-      remove: () => setPendingFiles((current) => current.filter((_, itemIndex) => itemIndex !== index)),
-    })),
-  ];
 
   return (
     <form onSubmit={onSubmit} className="max-w-2xl space-y-5" noValidate>
@@ -181,25 +222,50 @@ export function ProductForm({
         </div>
         <div className="sm:col-span-2">
           <Label htmlFor="images">Slike</Label>
-          {imageTiles.length ? (
-            <ul className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
-              {imageTiles.map((tile, index) => (
-                <li key={tile.key} className="relative">
-                  <ProductImage src={tile.src} alt="" className="aspect-[3/2] h-auto w-full" />
-                  {tile.keptUrl ? <input type="hidden" name="keepImage" value={tile.keptUrl} /> : null}
-                  {index === 0 ? (
-                    <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-zinc-950/85 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white">
-                      Naslovna
-                    </span>
-                  ) : null}
-                  <button
-                    type="button"
-                    aria-label={index === 0 ? "Ukloni naslovnu" : "Ukloni"}
-                    onClick={tile.remove}
-                    className="absolute top-1 right-1 inline-flex size-6 items-center justify-center rounded-full bg-zinc-950/85 text-white shadow-sm transition-colors hover:bg-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-                  >
-                    <X className="size-3.5" aria-hidden="true" />
-                  </button>
+          {slots.length ? (
+            <ul className="mt-2 grid grid-cols-3 gap-3" aria-label="Slike proizvoda">
+              {slots.map((slot, index) => (
+                <li key={slot.id} className="min-w-0">
+                  <div className="relative">
+                    <ProductImage src={slot.kind === "kept" ? slot.url : slot.preview} alt="" className="aspect-[3/2] h-auto w-full" />
+                    {index === 0 ? (
+                      <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-zinc-950/85 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white">
+                        Naslovna
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      aria-label={index === 0 ? "Ukloni naslovnu" : "Ukloni"}
+                      onClick={() => removeSlot(slot.id)}
+                      className="absolute top-1 right-1 inline-flex size-6 items-center justify-center rounded-full bg-zinc-950/85 text-white shadow-sm transition-colors hover:bg-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                    >
+                      <X className="size-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="mt-1 flex gap-1">
+                    <button
+                      type="button"
+                      aria-label="Pomeri napred"
+                      title="Pomeri napred"
+                      disabled={index === 0}
+                      onClick={() => moveSlot(index, -1)}
+                      className={moveButtonClass}
+                    >
+                      <ChevronLeft className="size-3.5" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Pomeri nazad"
+                      title="Pomeri nazad"
+                      disabled={index === slots.length - 1}
+                      onClick={() => moveSlot(index, 1)}
+                      className={moveButtonClass}
+                    >
+                      <ChevronRight className="size-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
+                  {slot.kind === "kept" ? <input type="hidden" name="keepImage" value={slot.url} /> : null}
+                  <input type="hidden" name="imageOrder" value={slot.kind === "kept" ? `keep:${slot.url}` : "new"} />
                 </li>
               ))}
             </ul>
@@ -211,13 +277,13 @@ export function ProductForm({
             accept={IMAGE_FILE_ACCEPT}
             allowedTypes={IMAGE_FILE_TYPES}
             maxBytes={IMAGE_MAX_BYTES}
-            maxFiles={Math.max(0, MAX_PRODUCT_IMAGES - keptImages.length)}
+            maxFiles={Math.max(0, MAX_PRODUCT_IMAGES - keptCount)}
             files={pendingFiles}
-            onFilesChange={setPendingFiles}
+            onFilesChange={onFilesChange}
             showFileName={false}
             heading="Prevucite slike ovde"
             releaseHeading="Pustite da dodate slike"
-            hint="Do 6 slika. Prva je naslovna. JPG, PNG ili WebP, do 2 MB."
+            hint="Do 6 slika. Prva je naslovna. Pomerite slike da promenite redosled. JPG, PNG ili WebP, do 2 MB."
             sizeError={IMAGE_SIZE_ERROR}
             typeError={IMAGE_TYPE_ERROR}
             limitError="Proizvod može imati najviše 6 slika."
