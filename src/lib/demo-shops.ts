@@ -16,7 +16,7 @@ export function demoShopSlugFromPath(path: string) {
   return slug && demoShopRole(slug) ? slug : null;
 }
 
-const demoAccountEmails = new Set(
+const demoAccountEmails = new Set<string>(
   Object.values(DEMO_SHOP_ROLES).flatMap((roles) => [roles.prodavac, roles.kupac]),
 );
 
