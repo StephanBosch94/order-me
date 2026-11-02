@@ -8,6 +8,7 @@ import { slugify } from "@/lib/text";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { AudienceChoice } from "@/components/supplier/audience-choice";
 import { Button } from "@/components/ui/button";
+import { useUnchangedForm } from "@/components/ui/use-unchanged-form";
 import {
   FileDropzone,
   IMAGE_FILE_ACCEPT,
@@ -30,6 +31,11 @@ export function SettingsForm({
 }) {
   const [state, action, pending] = useActionState(updateSettingsAction, initial);
   const [tab, setTab] = useState<SettingsTab>("podaci");
+  const changes = useUnchangedForm();
+
+  useEffect(() => {
+    if (state.ok) changes.markClean();
+  }, [state, changes.markClean]);
 
   useEffect(() => {
     const errors = state.fieldErrors;
@@ -40,7 +46,7 @@ export function SettingsForm({
   }, [state]);
 
   return (
-    <form action={action} className="max-w-2xl space-y-4">
+    <form ref={changes.ref} action={action} className="max-w-2xl space-y-4" onInput={changes.onInput} onChange={changes.onChange}>
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700">{state.message}</p> : null}
       <div className="inline-flex rounded-lg border border-border bg-card p-1" role="tablist" aria-label="Podešavanja">
@@ -167,7 +173,7 @@ export function SettingsForm({
           error={state.fieldErrors?.brandColor}
         />
       </div>
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || changes.unchanged}>
         {pending ? "Čuvanje…" : "Sačuvaj izmene"}
       </Button>
     </form>

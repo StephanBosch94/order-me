@@ -36,6 +36,13 @@ export function StaffOrderForm({
   );
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([{ key: "line-1", productId: "", quantity: "1" }]);
+  const initialCustomer = customers.some((customer) => customer.id === customerId) ? customerId ?? "" : "";
+  const unchanged =
+    selectedCustomer === initialCustomer &&
+    notes === "" &&
+    lines.length === 1 &&
+    lines[0]?.productId === "" &&
+    lines[0]?.quantity === "1";
 
   const total = useMemo(
     () =>
@@ -166,7 +173,7 @@ export function StaffOrderForm({
         <Label htmlFor="notes">Napomena</Label>
         <Textarea id="notes" value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1.5" />
       </div>
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || unchanged}>
         {pending ? "Čuvanje…" : "Sačuvaj porudžbinu"}
       </Button>
     </form>

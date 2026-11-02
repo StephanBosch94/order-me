@@ -8,6 +8,7 @@ import { updateCustomerAction } from "@/lib/actions/orders";
 import { documentKind, type CustomerParty } from "@/lib/customers";
 import type { Customer } from "@/lib/data/types";
 import { Button } from "@/components/ui/button";
+import { useUnchangedForm } from "@/components/ui/use-unchanged-form";
 import { Input, Label, Textarea } from "@/components/ui/fields";
 
 export function CustomerForm({ customer }: { customer: Customer }) {
@@ -16,10 +17,14 @@ export function CustomerForm({ customer }: { customer: Customer }) {
   const [error, setError] = useState("");
   const [party, setParty] = useState<CustomerParty>(customer.party === "fizicka" ? "fizicka" : "pravna");
   const [days, setDays] = useState(String(customer.paymentTermDays ?? 15));
+  const changes = useUnchangedForm();
 
   return (
     <form
+      ref={changes.ref}
       className="space-y-4"
+      onInput={changes.onInput}
+      onChange={changes.onChange}
       onSubmit={async (event) => {
         event.preventDefault();
         setPending(true);
@@ -30,6 +35,7 @@ export function CustomerForm({ customer }: { customer: Customer }) {
           return;
         }
         setError("");
+        changes.markClean();
         toast.success(result.message ?? "Podaci o kupcu su sačuvani.");
         router.refresh();
       }}
@@ -105,7 +111,7 @@ export function CustomerForm({ customer }: { customer: Customer }) {
           </p>
         </div>
       ) : null}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || changes.unchanged}>
         {pending ? "Čuvanje…" : "Sačuvaj izmene"}
       </Button>
       <p className="text-sm text-muted-foreground">

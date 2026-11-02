@@ -38,6 +38,7 @@ import { purchaseMonths, purchasesForMonth } from "@/lib/purchases";
 import { fold } from "@/lib/text";
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
+import { useUnchangedForm } from "@/components/ui/use-unchanged-form";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
 
@@ -563,6 +564,7 @@ function AccountPanel({
   const [formKey, setFormKey] = useState(0);
   const [state, action, pending] = useActionState(updateBuyerAccountAction, {} as BuyerAccountState);
   const shown = state.buyer ?? buyer;
+  const changes = useUnchangedForm();
 
   useEffect(() => {
     if (!state.ok || !state.buyer) return;
@@ -578,7 +580,14 @@ function AccountPanel({
         Moj nalog
       </h2>
       {notice ? <p className="mt-3 text-sm text-emerald-700">{notice}</p> : null}
-      <form key={formKey} action={action} className="mt-4 max-w-xl space-y-4">
+      <form
+        key={formKey}
+        ref={changes.ref}
+        action={action}
+        onInput={changes.onInput}
+        onChange={changes.onChange}
+        className="mt-4 max-w-xl space-y-4"
+      >
         <input type="hidden" name="slug" value={slug} />
         {state.error ? (
           <p role="alert" className="text-sm text-destructive">
@@ -652,7 +661,7 @@ function AccountPanel({
           required={false}
         />
         <div className="flex gap-2">
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending || changes.unchanged}>
             {pending ? "Čuvanje…" : "Sačuvaj"}
           </Button>
           <Button

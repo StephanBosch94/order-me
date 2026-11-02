@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useUnchangedForm } from "@/components/ui/use-unchanged-form";
 import { Input, Select, Textarea } from "@/components/ui/fields";
 import {
   setOrganizationActiveAction,
@@ -15,6 +16,14 @@ import type { SubscriptionPlan, SubscriptionStatus } from "@/lib/data/types";
 import { SUBSCRIPTION_STATUS_OPTIONS } from "@/components/platform/copy";
 
 const initial: PlatformState = { error: "" };
+
+function useSavedClean(pending: boolean, error: string, markClean: () => void) {
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !pending && !error) markClean();
+    wasPending.current = pending;
+  }, [pending, error, markClean]);
+}
 
 export function ActiveToggle({
   organizationId,
@@ -41,8 +50,10 @@ export function ActiveToggle({
 
 export function PlanForm({ plan, price }: { plan: SubscriptionPlan; price: string }) {
   const [state, action, pending] = useActionState(updatePlanAction, initial);
+  const changes = useUnchangedForm();
+  useSavedClean(pending, state.error, changes.markClean);
   return (
-    <form action={action} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
+    <form ref={changes.ref} action={action} onInput={changes.onInput} onChange={changes.onChange} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
       <input type="hidden" name="planId" value={plan.id} />
       <div>
         <label className="text-xs text-muted-foreground" htmlFor={`name-${plan.id}`}>
@@ -56,7 +67,7 @@ export function PlanForm({ plan, price }: { plan: SubscriptionPlan; price: strin
         </label>
         <Input id={`price-${plan.id}`} name="monthlyPrice" defaultValue={price} inputMode="decimal" required className="mt-1" />
       </div>
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="sm" disabled={pending || changes.unchanged}>
         Sačuvaj
       </Button>
       {state.error ? <FormError message={state.error} /> : null}
@@ -76,8 +87,10 @@ export function SubscriptionForm({
   plans: { id: string; name: string }[];
 }) {
   const [state, action, pending] = useActionState(updateSubscriptionAction, initial);
+  const changes = useUnchangedForm();
+  useSavedClean(pending, state.error, changes.markClean);
   return (
-    <form action={action} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_auto] sm:items-end">
+    <form ref={changes.ref} action={action} onInput={changes.onInput} onChange={changes.onChange} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_auto] sm:items-end">
       <input type="hidden" name="organizationId" value={organizationId} />
       <Select name="planId" defaultValue={planId} aria-label="Paket">
         {plans.map((plan) => (
@@ -93,7 +106,7 @@ export function SubscriptionForm({
           </option>
         ))}
       </Select>
-      <Button type="submit" size="sm" disabled={pending}>
+      <Button type="submit" size="sm" disabled={pending || changes.unchanged}>
         Sačuvaj
       </Button>
       {state.error ? <FormError message={state.error} /> : null}
@@ -103,11 +116,13 @@ export function SubscriptionForm({
 
 export function NoteForm({ organizationId, note }: { organizationId: string; note: string }) {
   const [state, action, pending] = useActionState(updateSupplierNoteAction, initial);
+  const changes = useUnchangedForm();
+  useSavedClean(pending, state.error, changes.markClean);
   return (
-    <form action={action} className="space-y-2">
+    <form ref={changes.ref} action={action} onInput={changes.onInput} onChange={changes.onChange} className="space-y-2">
       <input type="hidden" name="organizationId" value={organizationId} />
       <Textarea name="note" defaultValue={note} aria-label="Interna beleška" maxLength={2000} />
-      <Button type="submit" size="sm" variant="secondary" disabled={pending}>
+      <Button type="submit" size="sm" variant="secondary" disabled={pending || changes.unchanged}>
         Sačuvaj belešku
       </Button>
       {state.error ? <FormError message={state.error} /> : null}

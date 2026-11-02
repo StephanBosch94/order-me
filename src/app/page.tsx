@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { DemoPicker } from "@/components/marketing/demo-picker";
-import { distributionDemoLabel, showOnlineStore } from "@/lib/marketing";
+import { distributionDemo, distributionDemoLabel, showOnlineStore } from "@/lib/marketing";
 import { cn } from "@/lib/utils";
 
 const retailDescription = "Kupac vidi katalog i poručuje. Manje poziva i poruka „imate li ovu?“.";
@@ -116,7 +116,7 @@ export default function HomePage() {
                 <DemoPicker className={outlineButtonLg} />
               </div>
             </div>
-            <DemoStoreLink href="/shop/mesara-pajic" className="block">
+            <DemoStoreLink href={distributionDemo.href} className="block">
               <ShopPreview />
             </DemoStoreLink>
           </div>
@@ -285,17 +285,19 @@ function Arrow() {
 function ShopPreview() {
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-[0_30px_70px_rgba(50,50,93,0.16)] ring-1 ring-[#e6ebf1]">
-      <div className="flex items-center gap-2 border-b border-[#e6ebf1] bg-[#f6f9fc] px-4 py-2.5">
-        <span className="size-2.5 rounded-full bg-[#ff5f57]" aria-hidden="true" />
-        <span className="size-2.5 rounded-full bg-[#febc2e]" aria-hidden="true" />
-        <span className="size-2.5 rounded-full bg-[#28c840]" aria-hidden="true" />
-        <span className="ml-2 truncate text-xs text-[#425466]">Mesara Pajić</span>
+      <div className="flex items-center gap-3 border-b border-[#e6ebf1] bg-white px-4 py-3">
+        <img
+          src={distributionDemo.logoUrl}
+          alt=""
+          className="size-12 shrink-0 rounded-md border border-[#e6ebf1] bg-white object-contain"
+        />
+        <span className="min-w-0 truncate text-xl font-semibold tracking-tight">{distributionDemo.name}</span>
       </div>
-      <img
-        src="/products/mp-sveze.jpg"
-        alt="Mesara Pajić: sveže meso"
-        className="aspect-[4/5] w-full object-cover sm:aspect-[5/4] lg:aspect-auto lg:max-h-[560px]"
-      />
+      <div className="relative h-72 overflow-hidden bg-zinc-900 sm:h-80">
+        <img src={distributionDemo.coverUrl} alt="" className="size-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
+        <p className="absolute right-4 bottom-5 left-4 text-sm text-white">{distributionDemo.description}</p>
+      </div>
     </div>
   );
 }

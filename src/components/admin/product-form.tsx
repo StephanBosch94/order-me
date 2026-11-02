@@ -13,6 +13,7 @@ import { formatPriceInput } from "@/lib/format";
 import { fieldErrors, productFormSchema } from "@/lib/validators";
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
+import { useUnchangedForm } from "@/components/ui/use-unchanged-form";
 import {
   FileDropzone,
   IMAGE_FILE_ACCEPT,
@@ -53,6 +54,7 @@ export function ProductForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
   const [slots, setSlots] = useState<GallerySlot[]>(() => initialSlots(product));
+  const changes = useUnchangedForm();
   const slotsRef = useRef(slots);
   slotsRef.current = slots;
 
@@ -148,7 +150,14 @@ export function ProductForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-2xl space-y-5" noValidate>
+    <form
+      ref={changes.ref}
+      onSubmit={onSubmit}
+      onInput={changes.onInput}
+      onChange={changes.onChange}
+      className="max-w-2xl space-y-5"
+      noValidate
+    >
       {formError ? (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {formError}
@@ -309,7 +318,7 @@ export function ProductForm({
         </label>
       </div>
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || changes.unchanged}>
           {pending ? "Čuvanje…" : "Sačuvaj izmene"}
         </Button>
         <Button type="button" variant="secondary" onClick={() => router.push("/products")}>
