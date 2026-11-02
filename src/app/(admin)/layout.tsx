@@ -2,6 +2,7 @@ import { AdminShell } from "@/components/admin/shell";
 import { requireSession } from "@/lib/auth";
 import { isDemoMode } from "@/lib/config";
 import { getCommerce } from "@/lib/data";
+import { demoShopRole } from "@/lib/demo-shops";
 import { storeSetup } from "@/lib/setup";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     products.filter((product) => product.active).length,
   );
   return (
-    <AdminShell session={session} demo={isDemoMode()} setup={setup}>
+    <AdminShell
+      session={session}
+      demoShop={isDemoMode() && demoShopRole(session.organization.slug) ? session.organization.slug : null}
+      setup={setup}
+    >
       {children}
     </AdminShell>
   );

@@ -1342,7 +1342,7 @@ function ensureRetailBuyerOrders(db: DemoDatabase, user: DemoUser) {
         pib: "",
         mb: "",
         address: user.address,
-        postalCode: user.postalCode,
+        postalCode: user.postalCode ?? "",
         city: user.city,
         bankAccount: "",
       },

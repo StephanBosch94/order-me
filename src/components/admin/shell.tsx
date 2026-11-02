@@ -16,13 +16,14 @@ import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
 import { SetupGuide } from "@/components/admin/setup-guide";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { BuyerMenu } from "@/components/shop/buyer-menu";
+import { StoreHeader } from "@/components/shop/store-header";
+import { supplierTheme } from "@/lib/color";
 import { storePath } from "@/lib/constants";
 import type { AccountContext } from "@/lib/data/types";
 import { setupReady, type SetupStep } from "@/lib/setup";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
-import { SupplierLogo } from "@/components/brand/supplier-logo";
 
 const items: {
   href: string;
@@ -34,8 +35,8 @@ const items: {
   { href: "/products", label: "Proizvodi", icon: Package },
   { href: "/customers", label: "Kupci", icon: Users },
   { href: "/zaposleni", label: "Zaposleni", icon: UserPlus },
-  { href: "/invoices", label: "Fakture", icon: Receipt },
   { href: "/settings", label: "Podešavanja", icon: Settings },
+  { href: "/invoices", label: "Fakture", icon: Receipt },
 ];
 
 function PoweredBy() {
@@ -49,18 +50,6 @@ function PoweredBy() {
   );
 }
 
-function brandMarkColor(organization: { slug: string; name: string; brandColor: string | null }) {
-  if (!organization.brandColor) return null;
-  if (organization.slug === "mercis-atelier" || organization.name === "Mercis Atelier") return null;
-  return organization.brandColor;
-}
-
-function logoContact(session: AccountContext) {
-  const email = session.email.trim();
-  const phone = session.organization.phone.trim();
-  return [email, phone].filter(Boolean).join(" · ");
-}
-
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -68,20 +57,18 @@ function isActive(pathname: string, href: string) {
 
 export function AdminShell({
   session,
-  demo,
+  demoShop = null,
   setup,
   children,
 }: {
   session: AccountContext;
-  demo: boolean;
+  demoShop?: string | null;
   setup: SetupStep[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const brandMark = brandMarkColor(session.organization);
   const shopPath = storePath(session.organization.slug);
-  const contact = logoContact(session);
   const showGuide = !setupReady(setup);
 
   useEffect(() => {
@@ -90,7 +77,7 @@ export function AdminShell({
 
   function renderNav() {
     return (
-      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3" aria-label="Glavna navigacija">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pt-3" aria-label="Glavna navigacija">
         {items.map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
@@ -118,61 +105,38 @@ export function AdminShell({
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-background">
-      {demo ? (
-        <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-950">
-          Demo režim. Podaci se čuvaju lokalno u .data i nisu produkcijska baza.
-        </div>
-      ) : null}
+    <div className="flex h-dvh flex-col overflow-hidden bg-background" style={supplierTheme(session.organization.brandColor)}>
+      <StoreHeader
+        href="/dashboard"
+        name={session.organization.name}
+        logoUrl={session.organization.logoUrl}
+        brandColor={session.organization.brandColor}
+        alignMenu
+        role={demoShop ? { slug: demoShop, active: "prodavac" } : null}
+      >
+        <button
+          type="button"
+          className="inline-flex size-11 cursor-pointer items-center justify-center rounded-md border border-border lg:hidden"
+          aria-label={open ? "Zatvori meni" : "Otvori meni"}
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          {open ? <X className="size-5" /> : <Menu className="size-5" />}
+        </button>
+        <BuyerMenu name={session.name} ordersHref="/orders" accountHref="/settings" shopPath={shopPath} />
+      </StoreHeader>
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden h-full min-h-0 flex-col border-r border-border bg-sidebar lg:flex">
-          <div className="px-5 py-5">
-            <Link href="/dashboard" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <SupplierLogo name={session.organization.name} logoUrl={session.organization.logoUrl} />
-              <div className="min-w-0">
-                <p className="flex items-center gap-1.5 truncate text-sm font-medium">
-                  {brandMark ? (
-                    <span
-                      aria-hidden="true"
-                      className="size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: brandMark }}
-                    />
-                  ) : null}
-                  <span className="truncate">{session.organization.name}</span>
-                </p>
-                {contact ? <p className="truncate text-xs text-muted-foreground">{contact}</p> : null}
-              </div>
-            </Link>
-          </div>
           {renderNav()}
           <div className="mt-auto shrink-0 border-t border-border p-3">
-            <p className="truncate px-2 text-sm font-medium">{session.name}</p>
-            <p className="truncate px-2 text-xs text-muted-foreground">{session.email}</p>
-            <LogoutButton shopPath={shopPath} className="mt-2 flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm text-zinc-700 hover:bg-zinc-100" />
             <PoweredBy />
           </div>
         </aside>
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-          <header className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3 lg:hidden">
-            <Link href="/dashboard" className="flex min-w-0 items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <SupplierLogo name={session.organization.name} logoUrl={session.organization.logoUrl} className="size-8" />
-              <span className="truncate text-sm font-medium">{session.organization.name}</span>
-            </Link>
-            <button
-              type="button"
-              className="inline-flex size-11 cursor-pointer items-center justify-center rounded-md border border-border"
-              aria-label={open ? "Zatvori meni" : "Otvori meni"}
-              aria-expanded={open}
-              onClick={() => setOpen((value) => !value)}
-            >
-              {open ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
-          </header>
           {open ? (
             <div className="flex min-h-0 flex-1 flex-col border-b border-border bg-card px-2 py-3 lg:hidden">
               {renderNav()}
               <div className="mt-auto px-3 pb-1">
-                <LogoutButton shopPath={shopPath} className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-sm" />
                 <PoweredBy />
               </div>
             </div>

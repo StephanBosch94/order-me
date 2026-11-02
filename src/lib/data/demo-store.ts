@@ -54,8 +54,9 @@ import type {
 import { monthOrderUsage } from "@/lib/data/usage";
 import { DataError } from "@/lib/errors";
 import { belgradeDateKey, belgradeMonthKey, belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
+import { loadDatabase, saveDatabase } from "@/lib/db/postgres-state";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { getLocalDataDir } from "@/lib/config";
+import { getDataMode, getLocalDataDir } from "@/lib/config";
 import { fold, orderPrefixFromName } from "@/lib/text";
 
 const RATE_LIMIT = 20;
@@ -126,7 +127,7 @@ export class DemoStore implements CommerceRepository {
 
   constructor(
     private readonly filePath: string,
-    private readonly options: { seed?: boolean } = { seed: true },
+    private readonly options: { seed?: boolean; postgres?: boolean } = { seed: true },
   ) {}
 
   async emailExists(email: string) {
@@ -1044,6 +1045,7 @@ export class DemoStore implements CommerceRepository {
   }
 
   private async read(): Promise<DemoDatabase> {
+    if (this.options.postgres) return this.readPostgres();
     await mkdir(path.dirname(this.filePath), { recursive: true });
     try {
       const raw = await readFile(this.filePath, "utf8");
@@ -1069,7 +1071,47 @@ export class DemoStore implements CommerceRepository {
     }
   }
 
+  private async readPostgres(): Promise<DemoDatabase> {
+    let loaded: DemoDatabase | null;
+    try {
+      loaded = await loadDatabase();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      throw new Error(
+        message.includes("ECONNREFUSED") || message.includes("connect")
+          ? "PostgreSQL nije pokrenut. U drugom terminalu pokrenite npm run db."
+          : `PostgreSQL nije dostupan. ${message}`,
+      );
+    }
+    if (!loaded) {
+      const imported = await readOptionalJson(this.filePath);
+      const db = imported ?? (this.options.seed === false ? emptyDatabase() : await createSeedDatabase());
+      const normalized = normalizeDatabase(db);
+      if (this.options.seed !== false) {
+        await ensureRetailDemo(normalized);
+        applyDemoPhotos(normalized);
+        applyDemoGalleries(normalized);
+      }
+      await saveDatabase(normalized);
+      return normalized;
+    }
+    let changed = false;
+    if (this.options.seed !== false) {
+      const retail = await ensureRetailDemo(loaded);
+      const photos = applyDemoPhotos(loaded);
+      const galleries = applyDemoGalleries(loaded);
+      changed = retail || photos || galleries;
+    }
+    const db = normalizeDatabase(loaded);
+    if (changed) await saveDatabase(db);
+    return db;
+  }
+
   private async persist(db: DemoDatabase) {
+    if (this.options.postgres) {
+      await saveDatabase(db);
+      return;
+    }
     await mkdir(path.dirname(this.filePath), { recursive: true });
     const temporary = `${this.filePath}.${process.pid}.tmp`;
     await writeFile(temporary, JSON.stringify(db, null, 2));
@@ -1238,7 +1280,22 @@ let singleton: DemoStore | null = null;
 
 export function getDemoStore() {
   if (!singleton) {
-    singleton = new DemoStore(path.join(getLocalDataDir(), "demo-db.json"), { seed: true });
+    singleton = new DemoStore(path.join(getLocalDataDir(), "demo-db.json"), {
+      seed: true,
+      postgres: getDataMode() === "demo" && Boolean(process.env.DATABASE_URL?.trim()),
+    });
   }
   return singleton;
+}
+
+async function readOptionalJson(filePath: string) {
+  try {
+    const raw = await readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw) as DemoDatabase;
+    if (parsed.version !== 1) return null;
+    return parsed;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
 }

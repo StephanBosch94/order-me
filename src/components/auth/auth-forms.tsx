@@ -30,15 +30,7 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
       </Button>
       {demo ? (
         <p className="rounded-md bg-zinc-50 px-3 py-2 text-xs leading-5 text-muted-foreground">
-          Mesara Pajić, pravna lica: ana@mesarapajic.rs / poruci-demo
-          <br />
-          Mercis Atelier, fizička lica: vera@mercisatelier.rs / poruci-demo
-          <br />
-          Kupac pravnog lica: marko@restorandunav.rs / poruci-demo
-          <br />
-          Kupac fizičkog lica: jovana@mercisatelier.rs / poruci-demo
-          <br />
-          Administracija: admin@prodora.rs / poruci-demo
+          Mercis Atelier i Mesara Pajić otvaraju se bez prijave. Na prodavnici izaberite Kupac ili Prodavac.
         </p>
       ) : null}
     </form>

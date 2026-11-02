@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "db": "tsx scripts/postgres-server.ts",
     "test": "node --import tsx --test src/lib/format.test.ts src/lib/csv.test.ts src/lib/setup.test.ts src/lib/buyer.test.ts src/lib/purchases.test.ts src/lib/validators.signup.test.ts src/lib/session-token.test.ts src/lib/data/pricing.test.ts src/lib/data/demo-store.test.ts src/lib/data/seed.test.ts src/lib/data/platform-seed.test.ts"
   },
   "dependencies": {
@@ -17,9 +18,11 @@
     "@supabase/supabase-js": "2.118.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "embedded-postgres": "^18.6.0-beta.19",
     "lucide-react": "^1.63.0",
     "next": "16.4.3",
     "pdf-lib": "^1.17.1",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.91.0",
@@ -31,6 +34,7 @@
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

@@ -10,6 +10,7 @@ import { supplierTheme } from "@/lib/color";
 import { isDemoMode } from "@/lib/config";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
+import { demoShopSlugFromPath, isDemoShopAccount } from "@/lib/demo-shops";
 import { safeNextPath } from "@/lib/text";
 
 export const metadata: Metadata = { title: "Prijava" };
@@ -22,7 +23,10 @@ export default async function LoginPage({
   const params = await searchParams;
   const nextPath = safeNextPath(params.next);
   const session = await getSession();
-  if (session) redirect(await landingPath(session, nextPath));
+  const demoAccount = Boolean(session && isDemoShopAccount(session.email));
+  if (session && !demoAccount) redirect(await landingPath(session, nextPath));
+  const demoSlug = isDemoMode() && !session ? demoShopSlugFromPath(nextPath) : null;
+  if (demoSlug) redirect(`/demo/ulaz?slug=${encodeURIComponent(demoSlug)}&role=prodavac`);
   const store = await storeFromPath(nextPath);
   return (
     <AuthShell title="Prijava" subtitle="Prijavite se na nalog prodavca ili kupca." store={store} showStoreBack={false}>

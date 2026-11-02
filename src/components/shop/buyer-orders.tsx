@@ -1,16 +1,15 @@
 "use client";
 
-import { ShoppingBag } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 
-import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { StoreAccountLinks } from "@/components/shop/account-links";
 import { BuyerMenu } from "@/components/shop/buyer-menu";
+import { CartButton } from "@/components/shop/cart-button";
+import { StoreHeader } from "@/components/shop/store-header";
 import { Cart, Checkout } from "@/components/shop/shop";
-import { Button } from "@/components/ui/button";
 import { supplierTheme } from "@/lib/color";
+import type { DemoRole } from "@/lib/demo-shops";
 import { isBusinessStore, normalizeCartQuantity, ordersPath, storePath } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara } from "@/lib/data/pricing";
 import type { Audience, BuyerAccount, Product } from "@/lib/data/types";
@@ -26,6 +25,7 @@ export function BuyerOrdersFrame({
   buyer,
   showAccount,
   products,
+  demoRole = null,
   children,
 }: {
   slug: string;
@@ -36,6 +36,7 @@ export function BuyerOrdersFrame({
   buyer: BuyerAccount;
   showAccount: boolean;
   products: Product[];
+  demoRole?: DemoRole | null;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -64,28 +65,21 @@ export function BuyerOrdersFrame({
 
   return (
     <div className="min-h-dvh bg-background" style={supplierTheme(brandColor)}>
-      <header className="sticky top-0 z-30 border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href={shopHref} className="flex min-w-0 items-center gap-3">
-            <SupplierLogo name={name} logoUrl={logoUrl} className="size-10" />
-            <span className="truncate text-sm font-semibold">{name}</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <StoreAccountLinks slug={slug} buyer={buyer} showAccount={showAccount} />
-            <Button variant="secondary" onClick={() => setPanel((value) => (value === "orders" ? "cart" : "orders"))}>
-              <ShoppingBag className="size-4" aria-hidden="true" />
-              Korpa
-              <span className="tabular-nums">{lines.length}</span>
-            </Button>
+      <StoreHeader
+        href={shopHref}
+        name={name}
+        logoUrl={logoUrl}
+        role={demoRole ? { slug, active: demoRole } : null}
+      >
+        <StoreAccountLinks slug={slug} buyer={buyer} showAccount={showAccount} />
+            <CartButton count={lines.length} onClick={() => setPanel((value) => (value === "orders" ? "cart" : "orders"))} />
             <BuyerMenu
               buyer={buyer}
               accountHref={`${shopHref}?nalog=1`}
               ordersHref={ordersPath(slug)}
               shopPath={shopHref}
             />
-          </div>
-        </div>
-      </header>
+      </StoreHeader>
       {panel === "cart" ? (
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
           <Cart

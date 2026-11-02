@@ -25,11 +25,9 @@ function isActive(pathname: string, href: string) {
 
 export function PlatformShell({
   session,
-  demo,
   children,
 }: {
   session: PlatformAccount;
-  demo: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -65,12 +63,7 @@ export function PlatformShell({
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-background">
-      {demo ? (
-        <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-950">
-          Demo režim. Podaci se čuvaju lokalno u .data i nisu produkcijska baza.
-        </div>
-      ) : null}
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden h-full min-h-0 flex-col border-r border-border bg-sidebar lg:flex">
           <div className="px-5 py-5">

@@ -49,10 +49,23 @@ test("the guide is finished when the store can take orders", () => {
       address: "Gospodar Jevremova 28",
       city: "Beograd",
       pib: "123456789",
+      mb: "21456789",
     }),
     2,
   );
   assert.equal(setupReady(steps), true);
-  assert.equal(steps.find((step) => step.id === "address")?.detail, "Gospodar Jevremova 28, Beograd");
+  assert.equal(steps.find((step) => step.id === "address")?.detail, "Gospodar Jevremova 28, Beograd · PIB 123456789 · MB 21456789");
+  assert.equal(
+    storeSetup(
+      organization({
+        phone: "+381 11 555 0188",
+        address: "Gospodar Jevremova 28",
+        city: "Beograd",
+        pib: "123456789",
+      }),
+      2,
+    ).find((step) => step.id === "address")?.done,
+    false,
+  );
   assert.equal(steps.find((step) => step.id === "product")?.detail, "2 aktivna proizvoda");
 });

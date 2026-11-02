@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -9,21 +9,24 @@ import type { BuyerAccount } from "@/lib/data/types";
 
 export function BuyerMenu({
   buyer,
+  name,
   onAccount,
   accountHref,
   onOrders,
   ordersHref,
   shopPath,
 }: {
-  buyer: BuyerAccount;
+  buyer?: BuyerAccount;
+  name?: string;
   onAccount?: () => void;
   accountHref?: string;
   onOrders?: () => void;
   ordersHref?: string;
   shopPath?: string;
 }) {
-  const company = isCompanyBuyer(buyer);
-  const label = company ? buyer.businessName : buyer.name;
+  const router = useRouter();
+  const company = buyer ? isCompanyBuyer(buyer) : false;
+  const label = name ?? (company && buyer ? buyer.businessName : buyer?.name) ?? "";
   const initials = buyerInitials(label);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -31,22 +34,27 @@ export function BuyerMenu({
 
   useEffect(() => {
     if (!open) return;
-    function onPointerDown(event: PointerEvent) {
+    function onClick(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
     }
-    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("click", onClick);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("click", onClick);
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
 
   function close() {
     setOpen(false);
+  }
+
+  function go(href: string) {
+    setOpen(false);
+    router.push(href);
   }
 
   const itemClass = "flex w-full cursor-pointer px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50";
@@ -68,7 +76,7 @@ export function BuyerMenu({
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
         >
           {onOrders ? (
             <button
@@ -83,9 +91,9 @@ export function BuyerMenu({
               Porudžbine
             </button>
           ) : ordersHref ? (
-            <Link href={ordersHref} role="menuitem" className={itemClass} onClick={close}>
+            <button type="button" role="menuitem" className={itemClass} onClick={() => go(ordersHref)}>
               Porudžbine
-            </Link>
+            </button>
           ) : null}
           {onAccount ? (
             <button
@@ -100,9 +108,9 @@ export function BuyerMenu({
               Moj nalog
             </button>
           ) : accountHref ? (
-            <Link href={accountHref} role="menuitem" className={itemClass} onClick={close}>
+            <button type="button" role="menuitem" className={itemClass} onClick={() => go(accountHref)}>
               Moj nalog
-            </Link>
+            </button>
           ) : null}
           <LogoutButton
             icon={false}

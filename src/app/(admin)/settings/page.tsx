@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { storePath } from "@/lib/constants";
 import { requireSession } from "@/lib/auth";
-import { isDemoMode } from "@/lib/config";
+import { isDemoMode, usesPostgres } from "@/lib/config";
 
 export const metadata: Metadata = { title: "Podešavanja" };
 
@@ -27,9 +27,13 @@ export default async function SettingsPage() {
         </div>
       </section>
       <SettingsForm organization={session.organization} />
-      {isDemoMode() ? (
+      {usesPostgres() ? (
         <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
-          Demo režim čuva nalog, katalog i porudžbine u lokalnom fajlu .data/demo-db.json. Za produkciju podesite Supabase promenljive iz .env.example i pokrenite supabase/schema.sql.
+          Nalozi, katalog i porudžbine su u PostgreSQL bazi prodora. Server se pokreće naredbom npm run db.
+        </p>
+      ) : isDemoMode() ? (
+        <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
+          Demo režim čuva nalog, katalog i porudžbine u lokalnom fajlu .data/demo-db.json. Pokrenite npm run db da ih prebacite u PostgreSQL.
         </p>
       ) : null}
     </div>

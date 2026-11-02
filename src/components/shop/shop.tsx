@@ -1,16 +1,19 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { StoreAccountLinks } from "@/components/shop/account-links";
 import { BuyerMenu } from "@/components/shop/buyer-menu";
+import { CartButton } from "@/components/shop/cart-button";
+import { StoreHeader } from "@/components/shop/store-header";
 import { PaymentMethodChoice } from "@/components/shop/checkout-kind";
 import { updateBuyerAccountAction, type BuyerAccountState } from "@/lib/actions/account";
 import { placeShopOrderAction } from "@/lib/actions/orders";
-import { isCompanyBuyer, orderConfirmationEmail } from "@/lib/buyer";
+import { isCompanyBuyer } from "@/lib/buyer";
+import type { DemoRole } from "@/lib/demo-shops";
 import { supplierTheme } from "@/lib/color";
 import {
   addCartQuantity,
@@ -27,7 +30,6 @@ import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pri
 import type { BuyerAccount, BuyerOrder, OrderedQuantity, Product, PublicCatalog } from "@/lib/data/types";
 import { belgradeMonthKey, currentBelgradeMonthKey, formatDateTime, formatQuantity, formatRsd, monthLabel } from "@/lib/format";
 import { purchaseMonths, purchasesForMonth } from "@/lib/purchases";
-import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -42,6 +44,7 @@ export function Shop({
   orders = [],
   repeatOrderId,
   openAccount = false,
+  demoRole = null,
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
@@ -49,6 +52,7 @@ export function Shop({
   orders?: BuyerOrder[];
   repeatOrderId?: string;
   openAccount?: boolean;
+  demoRole?: DemoRole | null;
 }) {
   const router = useRouter();
   const [savedBuyer, setSavedBuyer] = useState<BuyerAccount | null>(null);
@@ -161,37 +165,28 @@ export function Shop({
 
   return (
     <div className="min-h-dvh bg-background pb-24" style={supplierTheme(catalog.supplier.brandColor)}>
-      <header className="sticky top-0 z-30 border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link
-            href={catalogHref}
-            onClick={openCatalog}
-            className="flex min-w-0 items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <SupplierLogo name={catalog.supplier.name} logoUrl={catalog.supplier.logoUrl} className="size-12" />
-            <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight">{catalog.supplier.name}</h1>
-          </Link>
-          <div className="flex items-center gap-3">
-            <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} />
-            <Button variant="secondary" onClick={() => setStep(step === "browse" ? "cart" : "browse")}>
-              <ShoppingBag className="size-4" aria-hidden="true" />
-              Korpa
-              <span className="tabular-nums">{count}</span>
-            </Button>
-            {buyer ? (
-              <BuyerMenu
-                buyer={buyer}
-                shopPath={catalogHref}
-                ordersHref={ordersPath(catalog.supplier.slug)}
-                onAccount={() => {
-                  setPane("account");
-                  setStep("browse");
-                }}
-              />
-            ) : null}
-          </div>
-        </div>
-      </header>
+      <StoreHeader
+        href={catalogHref}
+        name={catalog.supplier.name}
+        logoUrl={catalog.supplier.logoUrl}
+        heading
+        onNavigate={openCatalog}
+        role={demoRole ? { slug: catalog.supplier.slug, active: demoRole } : null}
+      >
+        <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} />
+        <CartButton count={count} onClick={() => setStep(step === "browse" ? "cart" : "browse")} />
+        {buyer ? (
+          <BuyerMenu
+            buyer={buyer}
+            shopPath={catalogHref}
+            ordersHref={ordersPath(catalog.supplier.slug)}
+            onAccount={() => {
+              setPane("account");
+              setStep("browse");
+            }}
+          />
+        ) : null}
+      </StoreHeader>
       {catalog.supplier.slug === "mercis-atelier" ? (
         <div className="relative h-56 overflow-hidden bg-[#1c1917] sm:h-72">
           <img src="/products/ma-ogrlica.svg" alt="" className="size-full object-contain p-8" />
@@ -791,8 +786,13 @@ export function Checkout({
     postalCode: buyer?.postalCode ?? "",
     city: buyer?.city ?? "",
   });
-
   const company = buyer && isCompanyBuyer(buyer) ? buyer : null;
+  const [asCompany, setAsCompany] = useState(Boolean(company));
+  const [companyFields, setCompanyFields] = useState({
+    businessName: company?.businessName ?? "",
+    pib: company?.pib ?? "",
+    mb: company?.mb ?? "",
+  });
 
   function rememberRetail(form: FormData) {
     setRetail({
@@ -804,6 +804,13 @@ export function Checkout({
       city: String(form.get("city") ?? ""),
     });
     setNotes(String(form.get("notes") ?? ""));
+    if (asCompany) {
+      setCompanyFields({
+        businessName: String(form.get("businessName") ?? ""),
+        pib: String(form.get("pib") ?? ""),
+        mb: String(form.get("mb") ?? ""),
+      });
+    }
   }
 
   async function place(paymentMethod?: string, companyDraft?: { notes: string; mb: string; postalCode: string }) {
@@ -832,6 +839,10 @@ export function Checkout({
           city: retail.city,
           notes,
           paymentMethod,
+          company: asCompany,
+          businessName: asCompany ? companyFields.businessName : "",
+          pib: asCompany ? companyFields.pib : "",
+          mb: asCompany ? companyFields.mb : "",
           honeypot,
           items,
         });
@@ -884,7 +895,10 @@ export function Checkout({
           Nazad na kasu
         </button>
         <h2 className="text-lg font-semibold">Način plaćanja</h2>
-        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}.</p>
+        <p className="text-sm text-muted-foreground">
+          Ukupno {formatRsd(total)}.
+          {asCompany ? ` Račun na ${companyFields.businessName.trim()}, PIB ${companyFields.pib.replace(/\D/g, "")}.` : ""}
+        </p>
         {message ? <Alert message={message} /> : null}
         <PaymentMethodChoice value={paymentMethod} error={errors.paymentMethod} onChange={setPaymentMethod} />
         <Honeypot value={honeypot} onChange={setHoneypot} />
@@ -954,8 +968,20 @@ export function Checkout({
         event.preventDefault();
         const form = new FormData(event.currentTarget);
         const postalCode = String(form.get("postalCode") ?? "").trim();
+        const nextErrors: Record<string, string> = {};
         if (!/^\d{5}$/.test(postalCode)) {
-          setErrors({ postalCode: postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj." });
+          nextErrors.postalCode = postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj.";
+        }
+        if (asCompany) {
+          const businessName = String(form.get("businessName") ?? "").trim();
+          const pib = String(form.get("pib") ?? "").replace(/\D/g, "");
+          const mb = String(form.get("mb") ?? "").replace(/\D/g, "");
+          if (businessName.length < 2) nextErrors.businessName = "Unesite naziv firme.";
+          if (!/^\d{9}$/.test(pib)) nextErrors.pib = pib ? "PIB ima 9 cifara." : "Unesite PIB.";
+          if (!/^\d{8}$/.test(mb)) nextErrors.mb = mb ? "Matični broj ima 8 cifara." : "Unesite matični broj.";
+        }
+        if (Object.keys(nextErrors).length > 0) {
+          setErrors(nextErrors);
           return;
         }
         setErrors({});
@@ -968,12 +994,40 @@ export function Checkout({
         Nazad na korpu
       </button>
       <h2 className="text-lg font-semibold">Kasa</h2>
-      <p className="text-sm text-muted-foreground">
-        {buyer ? `Prijavljeni ste kao ${buyer.name}. ` : "Nalog nije potreban. "}
-        {buyer ? `Potvrda porudžbine stiže na ${orderConfirmationEmail(buyer)}. ` : "Potvrda stiže na email koji unesete. "}
-        Ukupno {formatRsd(total)}. Isporuka na adresu koju unesete.
-      </p>
       {message ? <Alert message={message} /> : null}
+      <label className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4 accent-primary"
+          checked={asCompany}
+          onChange={(event) => {
+            const form = event.currentTarget.form;
+            if (form && asCompany) {
+              const data = new FormData(form);
+              setCompanyFields({
+                businessName: String(data.get("businessName") ?? ""),
+                pib: String(data.get("pib") ?? ""),
+                mb: String(data.get("mb") ?? ""),
+              });
+            }
+            setAsCompany(event.target.checked);
+            setErrors({});
+          }}
+        />
+        <span>
+          <span className="font-medium">Pravno lice</span>
+          <span className="mt-0.5 block text-muted-foreground">
+            Račun ide na firmu. Potrebni su naziv, PIB i matični broj.
+          </span>
+        </span>
+      </label>
+      {asCompany ? (
+        <>
+          <Field name="businessName" label="Naziv firme" autoComplete="organization" error={errors.businessName} defaultValue={companyFields.businessName} />
+          <Field name="pib" label="PIB" inputMode="numeric" error={errors.pib} defaultValue={companyFields.pib} hint="9 cifara." />
+          <Field name="mb" label="Matični broj" inputMode="numeric" error={errors.mb} defaultValue={companyFields.mb} hint="8 cifara." />
+        </>
+      ) : null}
       <Field name="customerName" label="Ime i prezime" autoComplete="name" error={errors.customerName} defaultValue={retail.customerName} />
       <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} defaultValue={retail.email} />
       <Field name="phone" label="Telefon" autoComplete="tel" error={errors.phone} defaultValue={retail.phone} />
@@ -1019,6 +1073,7 @@ function Field({
   defaultValue,
   required = true,
   hint,
+  inputMode,
 }: {
   name: string;
   label: string;
@@ -1028,11 +1083,12 @@ function Field({
   defaultValue?: string;
   required?: boolean;
   hint?: string;
+  inputMode?: "numeric" | "text";
 }) {
   return (
     <div>
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} type={type} autoComplete={autoComplete} defaultValue={defaultValue} required={required} className="mt-1.5 h-11" aria-invalid={Boolean(error)} />
+      <Input id={name} name={name} type={type} inputMode={inputMode} autoComplete={autoComplete} defaultValue={defaultValue} required={required} className="mt-1.5 h-11" aria-invalid={Boolean(error)} />
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
       <FieldError message={error} />
     </div>

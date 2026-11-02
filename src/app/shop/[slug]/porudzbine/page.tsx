@@ -6,8 +6,10 @@ import { BuyerOrdersFrame } from "@/components/shop/buyer-orders";
 import { CompanyOrders, OrderList } from "@/components/shop/shop";
 import { getSession } from "@/lib/auth";
 import { isCompanyBuyer } from "@/lib/buyer";
+import { isDemoMode } from "@/lib/config";
 import { ordersPath, storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
+import { demoShopRole, type DemoRole } from "@/lib/demo-shops";
 
 export const metadata: Metadata = { title: "Porudžbine" };
 
@@ -21,9 +23,12 @@ export default async function BuyerOrdersPage({
   if (!catalog) notFound();
   const session = await getSession();
   const next = ordersPath(catalog.supplier.slug);
+  const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
   if (session?.kind !== "buyer") {
+    if (demo && !session) redirect(`/demo/ulaz?slug=${encodeURIComponent(catalog.supplier.slug)}&role=prodavac`);
     redirect(session ? "/dashboard" : `/login?next=${encodeURIComponent(next)}`);
   }
+  const demoRole: DemoRole | null = demo ? "kupac" : null;
   const orders = (await getCommerce().listBuyerOrders(session.userId)).filter(
     (order) => order.supplierSlug === catalog.supplier.slug,
   );
@@ -40,6 +45,7 @@ export default async function BuyerOrdersPage({
       buyer={session}
       showAccount={true}
       products={catalog.products}
+      demoRole={demoRole}
     >
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         {company ? (

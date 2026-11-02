@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ClosedStore } from "@/components/shop/closed-store";
 import { ProductDetail } from "@/components/shop/product-detail";
 import { ProductFrame } from "@/components/shop/product-frame";
 import { getSession } from "@/lib/auth";
+import { isDemoMode } from "@/lib/config";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
+import { demoShopRole, type DemoRole } from "@/lib/demo-shops";
 import type { Product } from "@/lib/data/types";
 
 function otherProducts(products: Product[], current: Product) {
@@ -42,7 +44,10 @@ export default async function ProductPage({
   if (!product) notFound();
 
   const session = await getSession();
+  const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
+  if (demo && !session) redirect(`/demo/ulaz?slug=${encodeURIComponent(catalog.supplier.slug)}&role=prodavac`);
   const buyer = session?.kind === "buyer" ? session : null;
+  const demoRole: DemoRole | null = demo ? (buyer ? "kupac" : "prodavac") : null;
   const backHref = storePath(catalog.supplier.slug);
   const category = catalog.categories.find((item) => item.id === product.categoryId);
 
@@ -56,6 +61,7 @@ export default async function ProductPage({
       buyer={buyer}
       showAccount={session?.kind !== "supplier"}
       products={catalog.products}
+      demoRole={demoRole}
     >
       <ProductDetail
         key={product.id}

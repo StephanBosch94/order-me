@@ -314,6 +314,10 @@ export const retailOrderSchema = z
     city: z.string().trim().min(2, "Unesite grad.").max(80),
     notes: z.string().trim().max(1000),
     paymentMethod: z.enum(["pouzecem", "ips"], "Izaberite način plaćanja."),
+    company: z.boolean().optional(),
+    businessName: z.string().trim().max(160).optional(),
+    pib: z.string().trim().max(20).optional(),
+    mb: z.string().trim().max(20).optional(),
     honeypot: z.string().optional(),
     items: z
       .array(
@@ -336,6 +340,23 @@ export const retailOrderSchema = z
         path: ["postalCode"],
         message: value.postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj.",
       });
+    }
+    if (value.company) {
+      const businessName = value.businessName?.trim() ?? "";
+      const pib = (value.pib ?? "").replace(/\D/g, "");
+      if (businessName.length < 2) {
+        ctx.addIssue({ code: "custom", path: ["businessName"], message: "Unesite naziv firme." });
+      }
+      if (!/^\d{9}$/.test(pib)) {
+        ctx.addIssue({ code: "custom", path: ["pib"], message: pib ? "PIB ima 9 cifara." : "Unesite PIB." });
+      }
+      if (!normalizeMb(value.mb ?? "")) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["mb"],
+          message: value.mb?.trim() ? "Matični broj ima 8 cifara." : "Unesite matični broj.",
+        });
+      }
     }
     if (value.honeypot) {
       ctx.addIssue({ code: "custom", path: ["honeypot"], message: "Kupovina nije prihvaćena." });

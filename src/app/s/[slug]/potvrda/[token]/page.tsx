@@ -68,14 +68,17 @@ export default async function ConfirmationPage({
             Način plaćanja: {paymentLabel(order.paymentMethod)}
           </p>
         ) : null}
-        {order.customerSnapshot.mb || order.customerSnapshot.pib ? (
+        {order.customerSnapshot.pib ? (
           <p className="border-t border-border px-4 py-3 text-sm">
-            {[
-              order.customerSnapshot.mb ? `Matični broj ${order.customerSnapshot.mb}` : "",
-              order.customerSnapshot.pib ? `PIB ${order.customerSnapshot.pib}` : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            <span className="font-medium">{order.customerSnapshot.businessName}</span>
+            <span className="mt-1 block text-muted-foreground">
+              {[
+                order.customerSnapshot.mb ? `Matični broj ${order.customerSnapshot.mb}` : "",
+                `PIB ${order.customerSnapshot.pib}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
           </p>
         ) : null}
       </section>

@@ -59,7 +59,7 @@ export default async function DashboardPage() {
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Porudžbine koje čekaju potvrdu</h2>
-          <Link href="/orders" className="text-sm text-indigo-700 hover:underline">
+          <Link href="/orders" className="text-sm font-medium text-indigo-700 hover:underline">
             Sve porudžbine
           </Link>
         </div>

@@ -1,3 +1,4 @@
+import { normalizeMb } from "@/lib/buyer";
 import type { Organization } from "@/lib/data/types";
 
 export type SetupStep = {
@@ -8,13 +9,16 @@ export type SetupStep = {
   done: boolean;
 };
 
-type SetupOrganization = Pick<Organization, "name" | "audience" | "phone" | "address" | "city" | "pib">;
+type SetupOrganization = Pick<Organization, "name" | "audience" | "phone" | "address" | "city" | "pib" | "mb">;
 
 export function storeSetup(organization: SetupOrganization, activeProducts: number): SetupStep[] {
   const phone = organization.phone.trim();
   const address = organization.address.trim();
   const city = organization.city.trim();
   const place = [address, city].filter(Boolean).join(", ");
+  const pib = organization.pib.trim();
+  const mb = normalizeMb(organization.mb) ?? "";
+  const identityDone = address.length >= 3 && city.length >= 2 && /^\d{9}$/.test(pib) && mb.length === 8;
   const steps: SetupStep[] = [
     {
       id: "name",
@@ -32,10 +36,10 @@ export function storeSetup(organization: SetupOrganization, activeProducts: numb
     },
     {
       id: "address",
-      title: "Adresa prodavnice",
-      detail: place || "Unesite ulicu i grad.",
+      title: "Adresa, PIB i matični broj",
+      detail: identityDone ? `${place} · PIB ${pib} · MB ${mb}` : "Unesite ulicu, grad, PIB i matični broj u podešavanjima.",
       href: "/settings",
-      done: address.length >= 3 && city.length >= 2,
+      done: identityDone,
     },
   ];
 

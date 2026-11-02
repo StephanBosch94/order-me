@@ -20,6 +20,10 @@ export function isDemoMode() {
   return getDataMode() === "demo";
 }
 
+export function usesPostgres() {
+  return isDemoMode() && Boolean(process.env.DATABASE_URL?.trim());
+}
+
 export function getAppUrl() {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configured) return configured.replace(/\/$/, "");

@@ -11,7 +11,7 @@ import { readDemoSession } from "@/lib/session-token";
 
 export const SESSION_COOKIE = "poruci_session";
 
-const cookieOptions = {
+export const sessionCookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
   secure: process.env.NODE_ENV === "production",
@@ -96,7 +96,7 @@ export async function requirePlatformSession(): Promise<PlatformAccount> {
 
 export async function setDemoSession(token: string) {
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, cookieOptions);
+  store.set(SESSION_COOKIE, token, sessionCookieOptions);
 }
 
 export async function clearDemoSession() {

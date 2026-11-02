@@ -181,7 +181,7 @@ export function FileDropzone({
         take(event.dataTransfer.files);
       }}
       className={cn(
-        "mt-2 flex cursor-pointer flex-col items-center rounded-lg border border-dashed border-border bg-card px-6 py-8 text-center transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25",
+        "relative mt-2 flex cursor-pointer flex-col items-center overflow-hidden rounded-lg border border-dashed border-border bg-card px-6 py-8 text-center transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25",
         over && "border-primary bg-zinc-50",
         className,
       )}
