@@ -140,9 +140,13 @@ export type Product = {
   updatedAt: string;
 };
 
+export type CustomerParty = "fizicka" | "pravna";
+
 export type Customer = {
   id: string;
   organizationId: string;
+  /** Unique customer code inside one distributor, for example K-0001. */
+  code: string;
   businessName: string;
   contactName: string;
   email: string;
@@ -151,11 +155,15 @@ export type Customer = {
   address: string;
   city: string;
   notes: string;
+  party: CustomerParty;
+  /** Days until the invoice due date. Zero means payment is due immediately. Only legal entities use it. */
+  paymentTermDays: number;
   createdAt: string;
   updatedAt: string;
 };
 
 export type CustomerSnapshot = {
+  code: string;
   businessName: string;
   contactName: string;
   email: string;
@@ -233,11 +241,14 @@ export type OrderListItem = {
 
 export type CustomerSummary = {
   id: string;
+  code: string;
   businessName: string;
   contactName: string;
   email: string;
   phone: string;
   city: string;
+  party: CustomerParty;
+  paymentTermDays: number;
   orderCount: number;
   totalPara: number;
   lastOrderAt: string | null;
@@ -337,6 +348,7 @@ export type OrganizationInput = {
 };
 
 export type CustomerInput = {
+  code: string;
   businessName: string;
   contactName: string;
   email: string;
@@ -345,6 +357,8 @@ export type CustomerInput = {
   address: string;
   city: string;
   notes: string;
+  party: CustomerParty;
+  paymentTermDays: number;
 };
 
 export type PublicOrderInput = {
@@ -366,6 +380,13 @@ export type PublicOrderInput = {
   bankAccount?: string;
   /** Resolved potvrda address. Empty means the order contact email. */
   confirmationEmail?: string;
+};
+
+export type StaffOrderInput = {
+  customerId: string;
+  notes: string;
+  items: { productId: string; quantity: number }[];
+  actorName: string;
 };
 
 export type CreateOrderResult =

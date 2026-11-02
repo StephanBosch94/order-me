@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
+import { DemoPicker } from "@/components/marketing/demo-picker";
+import { distributionDemoLabel, showOnlineStore } from "@/lib/marketing";
 import { cn } from "@/lib/utils";
+
+const retailDescription = "Kupac vidi katalog i poručuje. Manje poziva i poruka „imate li ovu?“.";
+const distributionDescription = "Manje telefonskih poziva i poruka, više vremena za Vas.";
 
 export const metadata: Metadata = {
   title: { absolute: "Prodora" },
-  description:
-    "Kupac vidi katalog i poručuje. Manje poziva i poruka „imate li ovu?“.",
+  description: showOnlineStore ? retailDescription : distributionDescription,
 };
 
 const sharedBenefits = [
@@ -47,16 +51,16 @@ const catalogBenefits = [
 
 const steps = [
   {
-    title: "Otvorite prodavnicu",
+    title: "Otvorite distribuciju",
     body: "Naziv, telefon i adresa. To kupci vide na stranici.",
   },
   {
-    title: "Dodajte katalog",
+    title: "Dodajte proizvode",
     body: "Naziv, cena, slika, jedinica i količina. Cenu uvek računa server.",
   },
   {
     title: "Pošaljite link",
-    body: "Prodavnica je na /shop/vaš-naziv. Isti link šaljete svim kupcima.",
+    body: "Link je na /shop/vaš-naziv. Isti link šaljete kupcima koje snabdevate.",
   },
   {
     title: "Obradite porudžbinu",
@@ -71,8 +75,8 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Logo />
           <nav className="hidden items-center gap-1 md:flex" aria-label="Sadržaj stranice">
-            <Anchor href="#prodavnica">Prodavnica</Anchor>
-            <Anchor href="#katalog">Katalog</Anchor>
+            {showOnlineStore ? <Anchor href="#katalog">Katalog</Anchor> : null}
+            <Anchor href="#distribucija">Distribucija</Anchor>
             <Anchor href="#koristi">Koristi</Anchor>
             <Anchor href="#kako">Kako radi</Anchor>
           </nav>
@@ -96,7 +100,9 @@ export default function HomePage() {
             <div>
               <p className="text-sm font-medium text-[#425466]">Za one koji prodaju u Srbiji</p>
               <h1 className="mt-4 max-w-xl text-[2.6rem] leading-[1.05] font-semibold tracking-[-0.035em] text-balance sm:text-6xl lg:text-[4.25rem]">
-                Manje telefonskih poziva. U prodavnici, manje „imate li ovu?“.
+                {showOnlineStore
+                  ? "Manje telefonskih poziva. U prodavnici, manje „imate li ovu?“."
+                  : "Manje telefonskih poziva i poruka, više vremena za Vas."}
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-[#425466]">
                 Kupac vidi sliku, cenu i količinu, pa sam poručuje. Porudžbina stiže u vaš pregled, umesto
@@ -104,12 +110,13 @@ export default function HomePage() {
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButtonLg}>
-                  Otvorite prodavnicu
+                  Otvorite distribuciju
                   <Arrow />
                 </Link>
+                <DemoPicker className={outlineButtonLg} />
               </div>
             </div>
-            <DemoStoreLink href="/shop/mercis-atelier" className="block">
+            <DemoStoreLink href="/shop/mesara-pajic" className="block">
               <ShopPreview />
             </DemoStoreLink>
           </div>
@@ -117,23 +124,26 @@ export default function HomePage() {
 
         <section aria-label="Demo" className="border-y border-[#e6ebf1]">
           <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <p className="text-sm text-[#425466]">Pogledajte demo pre registracije</p>
-            <div className="flex flex-wrap gap-x-8 gap-y-2 text-lg font-semibold tracking-tight">
-              <DemoStoreLink href="/shop/mercis-atelier" className="hover:text-[#635bff]">
-                Mercis Atelier
-              </DemoStoreLink>
+            <p className="text-sm text-[#425466]">Pre registracije</p>
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+              {showOnlineStore ? (
+                <DemoStoreLink href="/shop/mercis-atelier" className="hover:text-[#635bff]">
+                  <span className="block text-xs font-medium text-[#635bff]">Online prodavnica</span>
+                  <span className="mt-1 block text-lg font-semibold tracking-tight">Mercis Atelier</span>
+                </DemoStoreLink>
+              ) : null}
               <DemoStoreLink href="/shop/mesara-pajic" className="hover:text-[#635bff]">
-                Mesara Pajić
+                <span className="block text-lg font-semibold tracking-tight">{distributionDemoLabel}</span>
               </DemoStoreLink>
             </div>
           </div>
         </section>
 
-        <section id="prodavnica" className="scroll-mt-20 border-t border-[#e6ebf1]">
+        {showOnlineStore ? <section id="katalog" className="scroll-mt-20 border-t border-[#e6ebf1]">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2">
             <img src="/products/ma-mindjuse.svg" alt="Minđuše alke" className="aspect-[4/3] w-full rounded-2xl border border-[#e6ebf1] bg-[#f6f1ea] object-contain p-10" />
             <div>
-              <p className="text-sm font-medium text-[#635bff]">Prodavnica</p>
+              <p className="text-sm font-medium text-[#635bff]">Katalog</p>
               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-balance">Manje „imate li ovu?“</h2>
               <p className="mt-4 text-base leading-7 text-[#425466]">
                 Kupac vidi minđuše, ogrlicu ili prsten, cenu i sliku, pa sam stavlja u korpu i ostavlja adresu.
@@ -142,7 +152,7 @@ export default function HomePage() {
               <BenefitList items={shopBenefits} />
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButton}>
-                  Otvorite prodavnicu
+                  Otvorite distribuciju
                 </Link>
                 <DemoStoreLink href="/shop/mercis-atelier" className={secondaryButton}>
                   Pogledajte Mercis Atelier
@@ -150,23 +160,23 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </section>
+        </section> : null}
 
-        <section id="katalog" className="scroll-mt-20 border-t border-[#e6ebf1] bg-[#f6f9fc]">
+        <section id="distribucija" className="scroll-mt-20 border-t border-[#e6ebf1] bg-[#f6f9fc]">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2">
             <div className="lg:order-1">
-              <p className="text-sm font-medium text-[#635bff]">Katalog</p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-balance">Manje telefonskih poziva</h2>
+              <p className="text-sm font-medium text-[#635bff]">Distribucija</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-balance">Manje telefonskih poziva i poruka, više vremena za Vas.</h2>
               <p className="mt-4 text-base leading-7 text-[#425466]">
-                Umesto poziva, kupac sam unosi količine. Sa nalogom vidi svoje porudžbine.
+                Skratite vreme provedeno na telefonu i posvetite se rastu svog biznisa.
               </p>
               <BenefitList items={catalogBenefits} />
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButton}>
-                  Otvorite prodavnicu
+                  Otvorite distribuciju
                 </Link>
                 <DemoStoreLink href="/shop/mesara-pajic" className={secondaryButton}>
-                  Pogledajte Mesaru Pajić
+                  {distributionDemoLabel}
                 </DemoStoreLink>
               </div>
               <p className="mt-4 text-sm leading-6 text-[#425466]">
@@ -177,7 +187,7 @@ export default function HomePage() {
                 i da vidi svoje porudžbine.
               </p>
             </div>
-            <img src="/marketing/kuhinja.jpg" alt="Kuhinja u kojoj se sprema hrana" className="aspect-[4/3] w-full rounded-2xl border border-[#e6ebf1] object-cover lg:order-2" />
+            <img src="/marketing/biznis.jpg" alt="Vlasnica radnje radi na laptopu" className="aspect-[4/3] w-full rounded-2xl border border-[#e6ebf1] object-cover object-[center_32%] lg:order-2" />
           </div>
         </section>
 
@@ -216,18 +226,18 @@ export default function HomePage() {
         <section className="border-t border-[#e6ebf1]">
           <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6 sm:py-24 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-balance">Otvorite prodavnicu</h2>
+              <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-balance">Otvorite distribuciju</h2>
               <p className="mt-4 max-w-xl text-base leading-7 text-[#425466]">
-                Demo možete da pogledate pre registracije.
+                <DemoStoreLink href="/shop/mesara-pajic" className="font-medium text-[#635bff] hover:underline">
+                  {distributionDemoLabel}
+                </DemoStoreLink>{" "}
+                pre registracije.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link href="/signup" className={primaryButtonLg}>
-                Otvorite prodavnicu
+                Otvorite distribuciju
                 <Arrow />
-              </Link>
-              <Link href="/login" className={secondaryButtonLg}>
-                Prijava
               </Link>
             </div>
           </div>
@@ -237,10 +247,10 @@ export default function HomePage() {
       <footer className="border-t border-[#e6ebf1] bg-[#f6f9fc]">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
           <Logo />
-          <FooterColumn title="Prodavnica">
-            <FooterLink href="/signup">Otvorite prodavnicu</FooterLink>
-            <FooterLink href="/shop/mercis-atelier">Mercis Atelier</FooterLink>
-            <FooterLink href="/shop/mesara-pajic">Mesara Pajić</FooterLink>
+          <FooterColumn title="Distribucija">
+            <FooterLink href="/signup">Otvorite distribuciju</FooterLink>
+            {showOnlineStore ? <FooterLink href="/shop/mercis-atelier" newTab>Mercis Atelier</FooterLink> : null}
+            <FooterLink href="/shop/mesara-pajic" newTab>{distributionDemoLabel}</FooterLink>
           </FooterColumn>
           <FooterColumn title="Kupci">
             <FooterLink href="/signup/kupac">Nalog kupca</FooterLink>
@@ -259,8 +269,10 @@ export default function HomePage() {
 const primaryButton =
   "inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[#635bff] px-3.5 text-sm font-medium text-white shadow-[0_4px_12px_rgba(99,91,255,0.28)] transition-colors hover:bg-[#4f46e5]";
 const primaryButtonLg = cn(primaryButton, "h-12 px-5 text-[15px]");
-const secondaryButton = primaryButton;
-const secondaryButtonLg = primaryButtonLg;
+const outlineButton =
+  "inline-flex h-10 items-center justify-center rounded-md border border-[#cdd5e0] bg-white px-3.5 text-sm font-medium text-[#0a2540] transition-colors hover:bg-[#f6f9fc]";
+const outlineButtonLg = cn(outlineButton, "h-12 px-5 text-[15px]");
+const secondaryButton = outlineButton;
 
 function Arrow() {
   return (
@@ -277,12 +289,12 @@ function ShopPreview() {
         <span className="size-2.5 rounded-full bg-[#ff5f57]" aria-hidden="true" />
         <span className="size-2.5 rounded-full bg-[#febc2e]" aria-hidden="true" />
         <span className="size-2.5 rounded-full bg-[#28c840]" aria-hidden="true" />
-        <span className="ml-2 truncate text-xs text-[#425466]">Mercis Atelier</span>
+        <span className="ml-2 truncate text-xs text-[#425466]">Mesara Pajić</span>
       </div>
       <img
-        src="/products/ma-ogrlica.svg"
-        alt="Mercis Atelier: ručno rađen nakit, cene u dinarima"
-        className="aspect-[4/5] w-full bg-[#f6f1ea] object-contain p-10 sm:aspect-[5/4] lg:aspect-auto lg:max-h-[560px]"
+        src="/products/mp-sveze.jpg"
+        alt="Mesara Pajić: sveže meso"
+        className="aspect-[4/5] w-full object-cover sm:aspect-[5/4] lg:aspect-auto lg:max-h-[560px]"
       />
     </div>
   );
@@ -330,8 +342,9 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
 
 function DemoStoreLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className={className}>
+    <Link href={href} target="_blank" rel="noreferrer" className={className}>
       {children}
+      <span className="sr-only">, otvara se u novom tabu</span>
     </Link>
   );
 }

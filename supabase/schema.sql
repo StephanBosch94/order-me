@@ -101,6 +101,9 @@ create table if not exists public.customers (
   address text not null default '',
   city text not null default '',
   notes text not null default '',
+  code text not null default '',
+  party text not null default 'fizicka' check (party in ('fizicka', 'pravna')),
+  payment_term_days integer not null default 0 check (payment_term_days >= 0 and payment_term_days <= 365),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -365,6 +368,44 @@ values
   ('Osnovni', 199000, 'Katalog, porudžbine i stranica prodavnice.'),
   ('Poslovni', 499000, 'Veći katalog i prioritetna podrška.')
 on conflict (name) do nothing;
+
+alter table public.customers add column if not exists party text;
+alter table public.customers add column if not exists payment_term_days integer;
+update public.customers
+set party = case when pib ~ '^[0-9]{9}$' then 'pravna' else 'fizicka' end
+where party is null;
+update public.customers
+set payment_term_days = case when party = 'pravna' then 15 else 0 end
+where payment_term_days is null;
+alter table public.customers alter column party set default 'fizicka';
+alter table public.customers alter column payment_term_days set default 0;
+alter table public.customers alter column party set not null;
+alter table public.customers alter column payment_term_days set not null;
+alter table public.customers add column if not exists code text;
+update public.customers as customer
+set code = 'K-' || lpad((bases.base + numbered.rn)::text, 4, '0')
+from (
+  select id, organization_id, row_number() over (partition by organization_id order by created_at, id) as rn
+  from public.customers
+  where code is null or code = ''
+) as numbered
+join (
+  select organization_id, coalesce(max(substring(code from '^K-([0-9]+)$')::int), 0) as base
+  from public.customers
+  group by organization_id
+) as bases on bases.organization_id = numbered.organization_id
+where customer.id = numbered.id;
+alter table public.customers alter column code set default '';
+alter table public.customers alter column code set not null;
+create unique index if not exists customers_org_code_idx on public.customers (organization_id, code);
+do $$ begin
+  alter table public.customers add constraint customers_party_check check (party in ('fizicka', 'pravna'));
+exception when duplicate_object then null;
+end $$;
+do $$ begin
+  alter table public.customers add constraint customers_payment_term_check check (payment_term_days >= 0 and payment_term_days <= 365);
+exception when duplicate_object then null;
+end $$;
 
 insert into public.subscriptions (organization_id, plan_id, status, period_start)
 select o.id, p.id, 'aktivna', date_trunc('month', now())

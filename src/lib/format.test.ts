@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseRsdToPara } from "@/lib/format";
+import { addCalendarDays, formatDate, parseRsdToPara } from "@/lib/format";
 import { orderPrefixFromName, slugCandidate, slugify } from "@/lib/text";
 
 test("parses Serbian and plain prices into para", () => {
@@ -11,6 +11,13 @@ test("parses Serbian and plain prices into para", () => {
   assert.equal(parseRsdToPara("85"), 8500);
   assert.equal(parseRsdToPara("1.250"), 125000);
   assert.equal(parseRsdToPara(""), null);
+});
+
+test("adds calendar days in Belgrade", () => {
+  const start = "2026-11-02T10:00:00.000Z";
+  assert.equal(formatDate(addCalendarDays(start, 0)), "02. 11. 2026.");
+  assert.equal(formatDate(addCalendarDays(start, 15)), "17. 11. 2026.");
+  assert.equal(formatDate(addCalendarDays("2026-01-31T10:00:00.000Z", 1)), "01. 02. 2026.");
 });
 
 test("slugifies Serbian names", () => {

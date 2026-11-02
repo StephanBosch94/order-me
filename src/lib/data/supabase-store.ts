@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
+import { nextCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
@@ -37,6 +38,7 @@ import type {
   PublicOrderInput,
   PublicOrderView,
   PublicSupplier,
+  StaffOrderInput,
   SessionAccount,
   Subscription,
   SubscriptionPlan,
@@ -149,6 +151,9 @@ function mapProduct(row: Record<string, unknown>): Product {
 }
 
 function mapCustomer(row: Record<string, unknown>): Customer {
+  const pib = String(row.pib ?? "");
+  const party = row.party === "fizicka" || row.party === "pravna" ? row.party : partyForPib(pib);
+  const rawDays = Number(row.payment_term_days);
   return {
     id: String(row.id),
     organizationId: String(row.organization_id),
@@ -156,10 +161,13 @@ function mapCustomer(row: Record<string, unknown>): Customer {
     contactName: String(row.contact_name),
     email: String(row.email),
     phone: String(row.phone ?? ""),
-    pib: String(row.pib ?? ""),
+    pib,
     address: String(row.address ?? ""),
     city: String(row.city ?? ""),
     notes: String(row.notes ?? ""),
+    code: String(row.code ?? ""),
+    party,
+    paymentTermDays: paymentTermFor(party, Number.isFinite(rawDays) ? rawDays : null),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -184,6 +192,7 @@ function mapOrder(row: Record<string, unknown>): Order {
       mb: String((row.customer_snapshot as CustomerSnapshot | null)?.mb ?? ""),
       postalCode: String((row.customer_snapshot as CustomerSnapshot | null)?.postalCode ?? ""),
       confirmationEmail: String((row.customer_snapshot as CustomerSnapshot | null)?.confirmationEmail ?? "").trim(),
+      code: String((row.customer_snapshot as CustomerSnapshot | null)?.code ?? ""),
     },
     customerEmailStatus: String(row.customer_email_status) as EmailDelivery,
     supplierEmailStatus: String(row.supplier_email_status) as EmailDelivery,
@@ -657,7 +666,7 @@ export const supabaseRepository: CommerceRepository = {
     return customers
       .filter((customer) => {
         if (!needle) return true;
-        return [customer.businessName, customer.contactName, customer.email, customer.city]
+        return [customer.code, customer.businessName, customer.contactName, customer.email, customer.city]
           .map(fold)
           .some((value) => value.includes(needle));
       })
@@ -692,6 +701,15 @@ export const supabaseRepository: CommerceRepository = {
   },
 
   async updateCustomer(organizationId, customerId, input: CustomerInput) {
+    const clash = await db()
+      .from("customers")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("code", input.code)
+      .neq("id", customerId)
+      .maybeSingle();
+    fail(clash.error);
+    if (clash.data) throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
     const { data, error } = await db()
       .from("customers")
       .update({
@@ -703,6 +721,9 @@ export const supabaseRepository: CommerceRepository = {
         address: input.address,
         city: input.city,
         notes: input.notes,
+        code: input.code,
+        party: input.party,
+        payment_term_days: input.paymentTermDays,
         updated_at: new Date().toISOString(),
       })
       .eq("organization_id", organizationId)
@@ -713,6 +734,135 @@ export const supabaseRepository: CommerceRepository = {
     return data ? mapCustomer(data as Record<string, unknown>) : null;
   },
 
+  async createCustomer(organizationId, input: CustomerInput) {
+    const admin = db();
+    const email = input.email.toLowerCase();
+    const existing = await admin
+      .from("customers")
+      .select("id, code, email")
+      .eq("organization_id", organizationId);
+    fail(existing.error);
+    const rows = (existing.data ?? []) as Record<string, unknown>[];
+    if (rows.some((row) => String(row.email ?? "").toLowerCase() === email)) {
+      throw new DataError("Kupac sa ovom email adresom već postoji.", "conflict");
+    }
+    const code = input.code.trim()
+      ? input.code.trim().toUpperCase()
+      : nextCustomerCode(rows.map((row) => String(row.code ?? "")));
+    if (rows.some((row) => String(row.code ?? "").toUpperCase() === code)) {
+      throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
+    }
+    const inserted = await admin
+      .from("customers")
+      .insert({
+        organization_id: organizationId,
+        business_name: input.businessName,
+        contact_name: input.contactName,
+        email,
+        phone: input.phone,
+        pib: input.pib,
+        address: input.address,
+        city: input.city,
+        notes: input.notes,
+        code,
+        party: input.party,
+        payment_term_days: input.paymentTermDays,
+      })
+      .select("*")
+      .single();
+    fail(inserted.error);
+    return mapCustomer(inserted.data as Record<string, unknown>);
+  },
+
+  async createStaffOrder(organizationId, input: StaffOrderInput) {
+    const admin = db();
+    const organizationResult = await admin.from("organizations").select("*").eq("id", organizationId).maybeSingle();
+    fail(organizationResult.error);
+    const customerResult = await admin
+      .from("customers")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("id", input.customerId)
+      .maybeSingle();
+    fail(customerResult.error);
+    if (!organizationResult.data || !customerResult.data) {
+      return { ok: false as const, message: "Kupac nije pronađen." };
+    }
+    const organization = mapOrganization(organizationResult.data as Record<string, unknown>);
+    const customer = mapCustomer(customerResult.data as Record<string, unknown>);
+    const productResult = await admin.from("products").select("*").eq("organization_id", organizationId);
+    fail(productResult.error);
+    const priced = priceOrderLines(
+      ((productResult.data ?? []) as Record<string, unknown>[]).map(mapProduct),
+      input.items,
+      { enforceMinimum: false, allowInactive: true },
+    );
+    if (!priced.ok) return priced;
+
+    const number = await allocateNumber(organizationId);
+    const snapshot: CustomerSnapshot = {
+      code: customer.code,
+      businessName: customer.businessName,
+      contactName: customer.contactName,
+      email: customer.email,
+      phone: customer.phone,
+      pib: customer.pib,
+      mb: "",
+      address: customer.address,
+      postalCode: "",
+      city: customer.city,
+      bankAccount: "",
+      confirmationEmail: "",
+    };
+    const insertedOrder = await admin
+      .from("orders")
+      .insert({
+        organization_id: organizationId,
+        customer_id: customer.id,
+        number,
+        status: "nova",
+        notes: input.notes,
+        subtotal_para: priced.subtotalPara,
+        total_para: priced.subtotalPara,
+        idempotency_key: randomUUID(),
+        confirmation_token: randomUUID(),
+        customer_snapshot: snapshot,
+        payment_method: customer.party === "pravna" ? "racun" : null,
+      })
+      .select("*")
+      .single();
+    fail(insertedOrder.error);
+    const order = mapOrder(insertedOrder.data as Record<string, unknown>);
+    const items = await admin.from("order_items").insert(
+      priced.items.map((line) => ({
+        order_id: order.id,
+        organization_id: organizationId,
+        product_id: line.productId,
+        name: line.name,
+        sku: line.sku,
+        unit: line.unit,
+        quantity: line.quantity,
+        unit_price_para: line.unitPricePara,
+        line_total_para: line.lineTotalPara,
+      })),
+    );
+    fail(items.error);
+    const history = await admin.from("order_status_history").insert({
+      order_id: order.id,
+      organization_id: organizationId,
+      from_status: null,
+      to_status: "nova",
+      actor_name: input.actorName,
+    });
+    fail(history.error);
+    return {
+      ok: true as const,
+      duplicate: false,
+      order: await orderDetail(order),
+      supplier: toPublic(organization),
+    };
+  },
+
   async listOrders(organizationId, query: OrderListQuery) {
     const orders = await loadOrders(organizationId);
     const counts = await itemCounts(organizationId);
@@ -721,7 +871,7 @@ export const supabaseRepository: CommerceRepository = {
     const needle = fold(query.q ?? "");
     if (needle) {
       rows = rows.filter((order) =>
-        [order.number, order.customerSnapshot.businessName, order.customerSnapshot.contactName]
+        [order.number, order.customerSnapshot.code, order.customerSnapshot.businessName, order.customerSnapshot.contactName]
           .map(fold)
           .some((value) => value.includes(needle)),
       );
@@ -817,6 +967,11 @@ export const supabaseRepository: CommerceRepository = {
 
     const now = new Date().toISOString();
     const email = input.email.toLowerCase();
+    const existingCodes = await admin.from("customers").select("code").eq("organization_id", organization.id);
+    fail(existingCodes.error);
+    const customerCode = nextCustomerCode(
+      ((existingCodes.data ?? []) as Record<string, unknown>[]).map((row) => String(row.code ?? "")),
+    );
     const customerResult = await admin
       .from("customers")
       .select("*")
@@ -837,6 +992,9 @@ export const supabaseRepository: CommerceRepository = {
           pib: input.pib,
           address: input.address,
           city: input.city,
+          code: customerCode,
+          party: partyForPib(input.pib),
+          payment_term_days: paymentTermFor(partyForPib(input.pib)),
         })
         .select("*")
         .single();
@@ -864,6 +1022,7 @@ export const supabaseRepository: CommerceRepository = {
 
     const number = await allocateNumber(organization.id);
     const snapshot: CustomerSnapshot = {
+      code: customer.code,
       businessName: customer.businessName,
       contactName: customer.contactName,
       email: customer.email,
@@ -1379,11 +1538,14 @@ function summarize(customer: Customer, orders: Order[]): CustomerSummary {
   const last = [...own].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   return {
     id: customer.id,
+    code: customer.code,
     businessName: customer.businessName,
     contactName: customer.contactName,
     email: customer.email,
     phone: customer.phone,
     city: customer.city,
+    party: customer.party,
+    paymentTermDays: customer.paymentTermDays,
     orderCount: own.length,
     totalPara: own.filter((order) => order.status !== "otkazana").reduce((sum, order) => sum + order.totalPara, 0),
     lastOrderAt: last?.createdAt ?? null,

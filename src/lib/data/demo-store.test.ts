@@ -77,6 +77,7 @@ test("isolates suppliers and keeps order snapshots", async () => {
     );
     assert.equal(created.ok, true);
     if (!created.ok) return;
+    assert.equal(created.order.customerSnapshot.code, "K-0001");
 
     assert.equal(await store.getOrder(second.id, created.order.id), null);
     assert.deepEqual(await store.listProducts(second.id), []);
@@ -444,5 +445,63 @@ test("owner adds a staff member to the same shop", async () => {
         }),
       (error: unknown) => error instanceof DataError && error.message === "Nalog sa ovom email adresom već postoji.",
     );
+  });
+});
+
+test("a distributor can add a customer and an order", async () => {
+  await withStore(async (store) => {
+    const seller = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    const organization = await store.createOrganization({
+      userId: seller.id,
+      userName: seller.name,
+      userEmail: seller.email,
+      name: "Mesara Pajić",
+      slug: "mesara-test",
+      phone: "",
+    });
+    const product = await store.createProduct(organization.id, {
+      name: "Svinjski but",
+      sku: "MP-BUT",
+      description: "",
+      categoryId: null,
+      newCategory: "",
+      unit: "kilogram",
+      pricePara: 78000,
+      salePricePara: null,
+      minQuantity: 5,
+      active: true,
+    });
+    const customer = await store.createCustomer(organization.id, {
+      code: "",
+      businessName: "Restoran Dunav",
+      contactName: "Marko Jović",
+      email: "marko@restorandunav.rs",
+      phone: "0631112200",
+      pib: "108765432",
+      address: "Bulevar 1",
+      city: "Beograd",
+      notes: "",
+      party: "pravna",
+      paymentTermDays: 30,
+    });
+    assert.equal(customer.code, "K-0001");
+    const created = await store.createStaffOrder(organization.id, {
+      customerId: customer.id,
+      notes: "Pre 11 časova",
+      actorName: "Ana Petrović",
+      items: [{ productId: product.id, quantity: 1.5 }],
+    });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+    assert.equal(created.order.number.endsWith("-1001"), true);
+    assert.equal(created.order.customerSnapshot.code, "K-0001");
+    assert.equal(created.order.items[0]?.quantity, 1.5);
+    assert.equal(created.order.totalPara, 117000);
+    assert.equal(created.order.history[0]?.actorName, "Ana Petrović");
+    assert.equal(created.order.paymentMethod, "racun");
   });
 });

@@ -8,6 +8,7 @@ import type {
   CustomerDetail,
   CustomerInput,
   CustomerSummary,
+  StaffOrderInput,
   DashboardData,
   EmailDelivery,
   ImportResult,
@@ -106,6 +107,8 @@ export interface CommerceRepository {
     customerId: string,
     input: CustomerInput,
   ): Promise<Customer | null>;
+  createCustomer(organizationId: string, input: CustomerInput): Promise<Customer>;
+  createStaffOrder(organizationId: string, input: StaffOrderInput): Promise<CreateOrderResult>;
   listOrders(organizationId: string, query: OrderListQuery): Promise<Paginated<OrderListItem>>;
   getOrder(organizationId: string, orderId: string): Promise<OrderDetail | null>;
   getOrderByToken(token: string): Promise<PublicOrderView | null>;

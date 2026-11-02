@@ -6,10 +6,11 @@ import { loginAction, signupAction, type AuthState } from "@/lib/actions/auth";
 import { AudienceChoice } from "@/components/supplier/audience-choice";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
+import { showOnlineStore } from "@/lib/marketing";
 
 const initial: AuthState = { error: "" };
 
-export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean }) {
+export function LoginForm({ nextPath }: { nextPath: string }) {
   const [state, action, pending] = useActionState(loginAction, initial);
   return (
     <form action={action} className="space-y-4">
@@ -28,11 +29,6 @@ export function LoginForm({ nextPath, demo }: { nextPath: string; demo: boolean 
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Prijava…" : "Prijavite se"}
       </Button>
-      {demo ? (
-        <p className="rounded-md bg-zinc-50 px-3 py-2 text-xs leading-5 text-muted-foreground">
-          Mercis Atelier i Mesara Pajić otvaraju se bez prijave. Na prodavnici izaberite Kupac ili Prodavac.
-        </p>
-      ) : null}
     </form>
   );
 }
@@ -68,7 +64,11 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
         <>
           <Field name="organizationName" label="Naziv prodavnice" error={state.fieldErrors?.organizationName} />
           <p className="text-sm text-muted-foreground">Adresa stranice pravi se od naziva. Možete je promeniti u podešavanjima.</p>
-          <AudienceChoice defaultValue="oba" error={state.fieldErrors?.audience} />
+          {showOnlineStore ? (
+            <AudienceChoice defaultValue="oba" error={state.fieldErrors?.audience} />
+          ) : (
+            <input type="hidden" name="audience" value="pravna" />
+          )}
           <Field name="phone" label="Telefon" autoComplete="tel" required={false} error={state.fieldErrors?.phone} />
         </>
       ) : (
@@ -83,7 +83,7 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Kreiranje…" : supplier ? "Otvorite prodavnicu" : "Otvorite nalog"}
+        {pending ? "Kreiranje…" : supplier ? "Otvorite distribuciju" : "Otvorite nalog"}
       </Button>
     </form>
   );

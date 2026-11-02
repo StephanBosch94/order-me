@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
+import Link from "next/link";
+
 import { OrdersBrowser, readOrderFilters } from "@/components/admin/orders-browser";
+import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { sellsToBusinesses, sellsToConsumers } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
@@ -28,6 +31,11 @@ export default async function OrdersPage({
       basePath="/orders"
       title="Porudžbine"
       description="Pretražite, filtrirajte i otvorite porudžbine kupaca."
+      actions={
+        <Link href="/orders/new">
+          <Button>Nova porudžbina</Button>
+        </Link>
+      }
       publicPath={`/s/${session.organization.slug}`}
       emptyTitle="Nema porudžbina za izabrane filtere"
       emptyBody="Promenite pretragu ili sačekajte da kupac pošalje porudžbinu sa vaše javne stranice."

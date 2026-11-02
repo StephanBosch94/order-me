@@ -82,6 +82,12 @@ export function formatDate(iso: string) {
   return `${parts.day}. ${parts.month}. ${parts.year}.`;
 }
 
+/** Adds calendar days in Europe/Belgrade and returns noon UTC on that date. */
+export function addCalendarDays(iso: string, days: number) {
+  const [year, month, day] = belgradeDateKey(iso).split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days, 12)).toISOString();
+}
+
 export function formatLongDate(date = new Date()) {
   const parts = belgradeParts(date);
   return `${parts.weekday}, ${Number(parts.day)}. ${parts.monthName} ${parts.year}.`;

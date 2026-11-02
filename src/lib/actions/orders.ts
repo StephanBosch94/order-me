@@ -7,11 +7,14 @@ import { getSession, requireSession } from "@/lib/auth";
 import { isCompanyBuyer, normalizeBankAccount, normalizeMb, normalizePostalCode, orderConfirmationEmail } from "@/lib/buyer";
 import { isBusinessStore, sellsToBusinesses } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
+import { DataError } from "@/lib/errors";
 import type { BuyerAccount, OrderStatus } from "@/lib/data/types";
 import { deliverOrderEmails } from "@/lib/email/order";
 import {
   businessOrderSchema,
   customerSchema,
+  newCustomerSchema,
+  staffOrderSchema,
   fieldErrors,
   publicOrderSchema,
   retailOrderSchema,
@@ -265,13 +268,81 @@ export async function updateCustomerAction(customerId: string, formData: FormDat
     address: formData.get("address") ?? "",
     city: formData.get("city") ?? "",
     notes: formData.get("notes") ?? "",
+    party: formData.get("party"),
+    paymentTermDays: formData.get("paymentTermDays") ?? "",
+    code: formData.get("code") ?? "",
   });
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Proverite podatke o kupcu." };
   }
-  const customer = await getCommerce().updateCustomer(session.organization.id, customerId, parsed.data);
+  let customer;
+  try {
+    customer = await getCommerce().updateCustomer(session.organization.id, customerId, parsed.data);
+  } catch (error) {
+    if (error instanceof DataError) return { ok: false, message: error.message };
+    throw error;
+  }
   if (!customer) return { ok: false, message: "Kupac nije pronađen." };
   revalidatePath(`/customers/${customerId}`);
   revalidatePath("/customers");
   return { ok: true, message: "Podaci o kupcu su sačuvani." };
+}
+
+export async function createCustomerAction(formData: FormData) {
+  const session = await requireSession();
+  const parsed = newCustomerSchema.safeParse({
+    businessName: formData.get("businessName"),
+    contactName: formData.get("contactName"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    pib: formData.get("pib") ?? "",
+    address: formData.get("address") ?? "",
+    city: formData.get("city") ?? "",
+    notes: formData.get("notes") ?? "",
+    party: formData.get("party"),
+    paymentTermDays: formData.get("paymentTermDays") ?? "",
+    code: formData.get("code") ?? "",
+  });
+  if (!parsed.success) {
+    return { ok: false as const, message: parsed.error.issues[0]?.message ?? "Proverite podatke o kupcu." };
+  }
+  try {
+    const customer = await getCommerce().createCustomer(session.organization.id, parsed.data);
+    revalidatePath("/customers");
+    return { ok: true as const, message: "Kupac je dodat.", id: customer.id };
+  } catch (error) {
+    if (error instanceof DataError) return { ok: false as const, message: error.message };
+    throw error;
+  }
+}
+
+export async function createStaffOrderAction(input: {
+  customerId: string;
+  notes: string;
+  items: { productId: string; quantity: number }[];
+}) {
+  const session = await requireSession();
+  const parsed = staffOrderSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, message: parsed.error.issues[0]?.message ?? "Proverite porudžbinu." };
+  }
+  const result = await getCommerce().createStaffOrder(session.organization.id, {
+    ...parsed.data,
+    actorName: session.name,
+  });
+  if (!result.ok) return { ok: false as const, message: result.message };
+
+  const organization = await getCommerce().getOrganization(result.order.organizationId);
+  if (organization) {
+    const delivery = await deliverOrderEmails(result.order, result.supplier, organization).catch(() => ({
+      customer: "failed" as const,
+      supplier: "failed" as const,
+    }));
+    await getCommerce().setEmailStatus(result.order.id, delivery.customer, delivery.supplier);
+  }
+  revalidatePath("/orders");
+  revalidatePath("/dashboard");
+  revalidatePath("/customers");
+  revalidatePath(`/customers/${parsed.data.customerId}`);
+  return { ok: true as const, message: "Porudžbina je sačuvana.", id: result.order.id };
 }

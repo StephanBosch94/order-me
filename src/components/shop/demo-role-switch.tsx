@@ -16,13 +16,16 @@ export function DemoRoleSwitch({ slug, active }: { slug: string; active: DemoRol
   }
 
   return (
-    <div className="flex rounded-md border border-border p-0.5" role="tablist" aria-label="Uloga u demo prodavnici">
-      <RoleButton active={active === "prodavac"} disabled={pending} onClick={() => choose("prodavac")}>
-        Prodavac
-      </RoleButton>
-      <RoleButton active={active === "kupac"} disabled={pending} onClick={() => choose("kupac")}>
-        Kupac
-      </RoleButton>
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-medium text-muted-foreground">Demo</span>
+      <div className="flex rounded-md border border-border p-0.5" role="tablist" aria-label="Uloga u demo prodavnici">
+        <RoleButton active={active === "prodavac"} disabled={pending} onClick={() => choose("prodavac")}>
+          Prodavac
+        </RoleButton>
+        <RoleButton active={active === "kupac"} disabled={pending} onClick={() => choose("kupac")}>
+          Kupac
+        </RoleButton>
+      </div>
     </div>
   );
 }

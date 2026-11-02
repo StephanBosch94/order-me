@@ -207,19 +207,6 @@ export function Shop({
       ) : null}
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        {step === "browse" && companyBuyer && pane !== "account" ? (
-          <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1" role="tablist" aria-label="Prodavnica">
-            <ShopTab selected={pane === "catalog"} onClick={() => setPane("catalog")}>
-              Prodavnica
-            </ShopTab>
-            <Link
-              href={ordersPath(catalog.supplier.slug)}
-              className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-foreground"
-            >
-              Porudžbine
-            </Link>
-          </div>
-        ) : null}
         {step === "browse" && pane === "account" && buyer ? (
           <div className="mb-6">
             <button
@@ -303,28 +290,6 @@ export function Shop({
         ) : null}
       </div>
     </div>
-  );
-}
-
-function ShopTab({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={selected}
-      onClick={onClick}
-      className={`h-9 cursor-pointer rounded-md px-3 text-sm font-medium ${selected ? "bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]" : "text-foreground"}`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -444,21 +409,21 @@ function LastOrder({
   const href = confirmationPath(order.supplierSlug, order.confirmationToken);
   const summary = (
     <>
-      <h2 id="poslednja-naslov" className="text-sm font-semibold">
+      <h2 id="poslednja-naslov" className="text-base font-semibold">
         Poslednja porudžbina
-        <span className="ml-2 inline-flex flex-wrap items-center gap-2 align-middle font-normal">
+        <span className="ml-3 inline-flex flex-wrap items-center gap-2 align-middle font-normal">
           <span className="font-medium text-foreground underline-offset-2 group-hover:underline">{order.number}</span>
           <StatusBadge status={order.status} />
           <span className="text-muted-foreground">· {formatRsd(order.totalPara)}</span>
         </span>
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">
         {order.items.map((item) => `${formatQuantity(item.quantity)} ${item.name}`).join(" · ")}
       </p>
     </>
   );
   return (
-    <section className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-border bg-card px-4 py-3" aria-labelledby="poslednja-naslov">
+    <section className="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-border bg-card px-5 py-5" aria-labelledby="poslednja-naslov">
       {href ? (
         <Link href={href} className="group min-w-0 flex-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {summary}

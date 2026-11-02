@@ -162,18 +162,114 @@ export const organizationSchema = z.object({
   audience: z.enum(["fizicka", "pravna", "oba"], "Izaberite kome prodajete."),
 });
 
-export const customerSchema = z.object({
-  businessName: z.string().trim().min(2, "Unesite naziv firme.").max(160),
-  contactName: z.string().trim().min(2, "Unesite ime kontakt osobe.").max(120),
-  email: z.email("Unesite ispravnu email adresu."),
-  phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
-  pib: z
-    .string()
-    .trim()
-    .refine((value) => value === "" || /^\d{9}$/.test(value), "PIB ima 9 cifara."),
-  address: z.string().trim().max(200),
-  city: z.string().trim().max(80),
+export const customerSchema = z
+  .object({
+    businessName: z.string().trim().min(2, "Unesite naziv.").max(160),
+    contactName: z.string().trim().min(2, "Unesite ime kontakt osobe.").max(120),
+    email: z.email("Unesite ispravnu email adresu."),
+    phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
+    pib: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || /^\d{9}$/.test(value), "PIB ima 9 cifara."),
+    address: z.string().trim().max(200),
+    city: z.string().trim().max(80),
+    notes: z.string().trim().max(1000),
+    party: z.enum(["fizicka", "pravna"], "Izaberite da li je kupac fizičko ili pravno lice."),
+    paymentTermDays: z.string().trim(),
+    code: z
+      .string()
+      .trim()
+      .min(1, "Unesite šifru kupca.")
+      .max(20, "Šifra može imati najviše 20 karaktera.")
+      .transform((value) => value.toUpperCase())
+      .refine((value) => /^[A-Z0-9][A-Z0-9-]*$/.test(value), "Šifra može da sadrži slova, brojeve i crtu."),
+  })
+  .superRefine((value, ctx) => {
+    if (value.party !== "pravna") return;
+    if (!/^\d+$/.test(value.paymentTermDays) || Number(value.paymentTermDays) > 365) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["paymentTermDays"],
+        message: "Odloženo plaćanje unesite kao broj dana od 0 do 365.",
+      });
+    }
+  })
+  .transform((value) => ({
+    businessName: value.businessName,
+    contactName: value.contactName,
+    email: value.email,
+    phone: value.phone,
+    pib: value.pib,
+    address: value.address,
+    city: value.city,
+    notes: value.notes,
+    party: value.party,
+    paymentTermDays: value.party === "pravna" ? Number(value.paymentTermDays) : 0,
+    code: value.code,
+  }));
+
+export const newCustomerSchema = z
+  .object({
+    businessName: z.string().trim().min(2, "Unesite naziv.").max(160),
+    contactName: z.string().trim().min(2, "Unesite ime kontakt osobe.").max(120),
+    email: z.email("Unesite ispravnu email adresu."),
+    phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
+    pib: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || /^\d{9}$/.test(value), "PIB ima 9 cifara."),
+    address: z.string().trim().max(200),
+    city: z.string().trim().max(80),
+    notes: z.string().trim().max(1000),
+    party: z.enum(["fizicka", "pravna"], "Izaberite da li je kupac fizičko ili pravno lice."),
+    paymentTermDays: z.string().trim(),
+    code: z
+      .string()
+      .trim()
+      .max(20, "Šifra može imati najviše 20 karaktera.")
+      .transform((value) => value.toUpperCase())
+      .refine(
+        (value) => value === "" || /^[A-Z0-9][A-Z0-9-]*$/.test(value),
+        "Šifra može da sadrži slova, brojeve i crtu.",
+      ),
+  })
+  .superRefine((value, ctx) => {
+    if (value.party !== "pravna") return;
+    if (!/^\d+$/.test(value.paymentTermDays) || Number(value.paymentTermDays) > 365) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["paymentTermDays"],
+        message: "Odloženo plaćanje unesite kao broj dana od 0 do 365.",
+      });
+    }
+  })
+  .transform((value) => ({
+    businessName: value.businessName,
+    contactName: value.contactName,
+    email: value.email,
+    phone: value.phone,
+    pib: value.pib,
+    address: value.address,
+    city: value.city,
+    notes: value.notes,
+    party: value.party,
+    paymentTermDays: value.party === "pravna" ? Number(value.paymentTermDays) : 0,
+    code: value.code,
+  }));
+
+export const staffOrderSchema = z.object({
+  customerId: z.string().trim().min(1, "Izaberite kupca."),
   notes: z.string().trim().max(1000),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().trim().min(1, "Izaberite proizvod."),
+        quantity: z.number(),
+      }),
+    )
+    .min(1, "Dodajte bar jednu stavku.")
+    .max(100, "Porudžbina može imati najviše 100 stavki."),
 });
 
 export const productFormSchema = z

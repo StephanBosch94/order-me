@@ -30,7 +30,7 @@ export default async function LoginPage({
   const store = await storeFromPath(nextPath);
   return (
     <AuthShell title="Prijava" subtitle="Prijavite se na nalog prodavca ili kupca." store={store} showStoreBack={false}>
-      <LoginForm nextPath={nextPath} demo={isDemoMode()} />
+      <LoginForm nextPath={nextPath} />
       <p className="mt-6 text-sm text-muted-foreground">
         Nemate nalog?{" "}
         <Link href={accountHref(nextPath)} className="font-medium text-foreground underline-offset-2 hover:underline">

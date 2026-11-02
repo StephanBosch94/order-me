@@ -191,10 +191,13 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     },
   ];
 
-  const customers: Customer[] = customerDefs.map((customer) => ({
+  const customers: Customer[] = customerDefs.map((customer, index) => ({
     id: seedId(`customer:gastro-supply:${customer.email}`),
     organizationId: orgId,
     ...customer,
+    code: `K-${String(index + 1).padStart(4, "0")}`,
+    party: "pravna",
+    paymentTermDays: 15,
     notes: "",
     createdAt: ago(60),
     updatedAt: ago(2),
@@ -248,6 +251,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       confirmationToken: seedId(`confirm:${number}`),
       paymentMethod: null,
       customerSnapshot: {
+        code: customer.code,
         businessName: customer.businessName,
         contactName: customer.contactName,
         email: customer.email,
@@ -1275,6 +1279,9 @@ function ensureRetailBuyerOrders(db: DemoDatabase, user: DemoUser) {
       address: user.address,
       city: user.city,
       notes: "",
+      code: "K-0001",
+      party: "fizicka",
+      paymentTermDays: 0,
       createdAt: now,
       updatedAt: now,
     };
@@ -1335,6 +1342,7 @@ function ensureRetailBuyerOrders(db: DemoDatabase, user: DemoUser) {
       confirmationToken: seedId(`confirm:demo-buyer:butik:${spec.suffix}`),
       paymentMethod: spec.payment,
       customerSnapshot: {
+        code: customer.code,
         businessName: user.name,
         contactName: user.name,
         email: user.email,

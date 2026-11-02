@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { requireSession } from "@/lib/auth";
+import { documentKind, documentLabel, partyForPib, paymentTermFor } from "@/lib/customers";
 import { getCommerce } from "@/lib/data";
 import type { PublicSupplier } from "@/lib/data/types";
-import { buildOrderConfirmationPdf } from "@/lib/pdf/order-confirmation";
+import { buildTradeDocumentPdf } from "@/lib/pdf/trade-document";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
@@ -26,11 +27,20 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     channel: session.organization.channel,
     audience: session.organization.audience,
   };
-  const pdf = await buildOrderConfirmationPdf(order, supplier);
+  const customer = await getCommerce().getCustomer(session.organization.id, order.customerId);
+  const party = customer?.party ?? partyForPib(order.customerSnapshot.pib);
+  const kind = documentKind(party);
+  const pdf = await buildTradeDocumentPdf(order, supplier, {
+    kind,
+    paymentTermDays: paymentTermFor(party, customer?.paymentTermDays),
+    customerCode: customer?.code || order.customerSnapshot.code,
+  });
+  const filename = `${kind}-${order.number}.pdf`;
   return new NextResponse(Buffer.from(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="potvrda-${order.number}.pdf"`,
+      "Content-Disposition": `inline; filename="${filename}"`,
+      "X-Document": documentLabel(kind),
     },
   });
 }

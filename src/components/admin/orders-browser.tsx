@@ -48,6 +48,7 @@ export function OrdersBrowser({
   emptyHref,
   emptyLabel,
   showBuyerKind,
+  actions,
 }: {
   result: Paginated<OrderListItem>;
   filters: OrderListFilters;
@@ -60,13 +61,14 @@ export function OrdersBrowser({
   emptyHref?: string;
   emptyLabel?: string;
   showBuyerKind: boolean;
+  actions?: React.ReactNode;
 }) {
   const pages = Math.max(Math.ceil(result.total / result.pageSize), 1);
   const { q, status, from, to, sort } = filters;
 
   return (
     <div>
-      <PageHeader title={title} count={result.total} description={description} />
+      <PageHeader title={title} count={result.total} description={description} actions={actions} />
       <OrderFilters q={q} status={status} from={from} to={to} sort={sort} page={filters.page} />
 
       {result.total === 0 ? (

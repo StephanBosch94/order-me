@@ -4,6 +4,7 @@ import path from "node:path";
 
 import type { CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
+import { nextCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
@@ -47,6 +48,7 @@ import type {
   PublicOrderInput,
   PublicOrderView,
   PublicSupplier,
+  StaffOrderInput,
   SessionAccount,
   Subscription,
   SubscriptionStatus,
@@ -108,6 +110,7 @@ function orderListItem(db: DemoDatabase, order: Order): OrderListItem {
 
 function snapshot(customer: Customer, extra: { bankAccount?: string; mb?: string; postalCode?: string; confirmationEmail?: string } = {}) {
   return {
+    code: customer.code,
     businessName: customer.businessName,
     contactName: customer.contactName,
     email: customer.email,
@@ -621,7 +624,7 @@ export class DemoStore implements CommerceRepository {
       .filter((customer) => customer.organizationId === organizationId)
       .filter((customer) => {
         if (!needle) return true;
-        return [customer.businessName, customer.contactName, customer.email, customer.city]
+        return [customer.code, customer.businessName, customer.contactName, customer.email, customer.city]
           .map(fold)
           .some((value) => value.includes(needle));
       })
@@ -660,8 +663,117 @@ export class DemoStore implements CommerceRepository {
         (item) => item.id === customerId && item.organizationId === organizationId,
       );
       if (!customer) return null;
-      Object.assign(customer, input, { updatedAt: new Date().toISOString() });
+      const code = input.code.trim().toUpperCase();
+      const taken = db.customers.some(
+        (item) => item.organizationId === organizationId && item.id !== customer.id && item.code.toUpperCase() === code,
+      );
+      if (taken) throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
+      Object.assign(customer, input, { code, updatedAt: new Date().toISOString() });
       return customer;
+    });
+  }
+
+  async createCustomer(organizationId: string, input: CustomerInput) {
+    return this.exclusive(async (db) => {
+      const email = input.email.toLowerCase();
+      if (
+        db.customers.some(
+          (item) => item.organizationId === organizationId && item.email.toLowerCase() === email,
+        )
+      ) {
+        throw new DataError("Kupac sa ovom email adresom već postoji.", "conflict");
+      }
+      const code = input.code.trim()
+        ? input.code.trim().toUpperCase()
+        : nextCustomerCode(
+            db.customers.filter((item) => item.organizationId === organizationId).map((item) => item.code),
+          );
+      if (
+        db.customers.some(
+          (item) => item.organizationId === organizationId && item.code.toUpperCase() === code,
+        )
+      ) {
+        throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
+      }
+      const now = new Date().toISOString();
+      const customer: Customer = {
+        id: randomUUID(),
+        organizationId,
+        ...input,
+        email,
+        code,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.customers.push(customer);
+      return customer;
+    });
+  }
+
+  async createStaffOrder(organizationId: string, input: StaffOrderInput) {
+    return this.exclusive(async (db) => {
+      const organization = db.organizations.find((item) => item.id === organizationId);
+      const customer = db.customers.find(
+        (item) => item.id === input.customerId && item.organizationId === organizationId,
+      );
+      if (!organization || !customer) return { ok: false as const, message: "Kupac nije pronađen." };
+      const catalog = db.products.filter((product) => product.organizationId === organization.id);
+      const priced = priceOrderLines(catalog, input.items, { enforceMinimum: false, allowInactive: true });
+      if (!priced.ok) return priced;
+
+      const now = new Date().toISOString();
+      const number = `${organization.orderPrefix}-${belgradeYear(now)}-${String(organization.nextOrderNumber).padStart(4, "0")}`;
+      organization.nextOrderNumber += 1;
+      organization.updatedAt = now;
+      const order: Order = {
+        id: randomUUID(),
+        organizationId: organization.id,
+        customerId: customer.id,
+        buyerUserId: null,
+        number,
+        status: "nova",
+        notes: input.notes,
+        subtotalPara: priced.subtotalPara,
+        totalPara: priced.subtotalPara,
+        idempotencyKey: randomUUID(),
+        confirmationToken: randomUUID(),
+        customerSnapshot: snapshot(customer),
+        customerEmailStatus: "pending",
+        supplierEmailStatus: "pending",
+        paymentMethod: customer.party === "pravna" ? "racun" : null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.orders.push(order);
+      for (const line of priced.items) {
+        db.orderItems.push({
+          id: randomUUID(),
+          orderId: order.id,
+          organizationId: organization.id,
+          productId: line.productId,
+          name: line.name,
+          sku: line.sku,
+          unit: line.unit,
+          quantity: line.quantity,
+          unitPricePara: line.unitPricePara,
+          lineTotalPara: line.lineTotalPara,
+        });
+      }
+      db.statusHistory.push({
+        id: randomUUID(),
+        orderId: order.id,
+        organizationId: organization.id,
+        fromStatus: null,
+        toStatus: "nova",
+        actorName: input.actorName,
+        createdAt: now,
+      });
+      return {
+        ok: true as const,
+        duplicate: false,
+        order: orderDetail(db, order),
+        supplier: toPublicSupplier(organization),
+      };
     });
   }
 
@@ -674,7 +786,7 @@ export class DemoStore implements CommerceRepository {
     const needle = fold(query.q ?? "");
     if (needle) {
       rows = rows.filter((order) =>
-        [order.number, order.customerSnapshot.businessName, order.customerSnapshot.contactName]
+        [order.number, order.customerSnapshot.code, order.customerSnapshot.businessName, order.customerSnapshot.contactName]
           .map(fold)
           .some((value) => value.includes(needle)),
       );
@@ -780,6 +892,11 @@ export class DemoStore implements CommerceRepository {
           address: input.address,
           city: input.city,
           notes: "",
+          code: nextCustomerCode(
+            db.customers.filter((item) => item.organizationId === organization.id).map((item) => item.code),
+          ),
+          party: partyForPib(input.pib),
+          paymentTermDays: paymentTermFor(partyForPib(input.pib)),
           createdAt: now,
           updatedAt: now,
         };
@@ -1159,6 +1276,20 @@ function normalizeDatabase(db: DemoDatabase) {
     order.customerSnapshot.mb ??= "";
     order.customerSnapshot.postalCode ??= "";
     order.customerSnapshot.confirmationEmail ??= "";
+    order.customerSnapshot.code ??= "";
+  }
+  for (const customer of db.customers) {
+    if (customer.party !== "fizicka" && customer.party !== "pravna") {
+      customer.party = partyForPib(customer.pib ?? "");
+    }
+    customer.paymentTermDays = paymentTermFor(customer.party, customer.paymentTermDays);
+    customer.code ??= "";
+  }
+  assignCustomerCodes(db.customers);
+  for (const order of db.orders) {
+    if (order.customerSnapshot.code) continue;
+    const customer = db.customers.find((item) => item.id === order.customerId);
+    order.customerSnapshot.code = customer?.code ?? "";
   }
   for (const organization of db.organizations) {
     if (organization.audience !== "fizicka" && organization.audience !== "pravna" && organization.audience !== "oba") {
@@ -1224,15 +1355,38 @@ function summarizeCustomer(db: DemoDatabase, customer: Customer): CustomerSummar
   const last = [...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   return {
     id: customer.id,
+    code: customer.code,
     businessName: customer.businessName,
     contactName: customer.contactName,
     email: customer.email,
     phone: customer.phone,
     city: customer.city,
+    party: customer.party,
+    paymentTermDays: customer.paymentTermDays,
     orderCount: orders.length,
     totalPara: billable.reduce((sum, order) => sum + order.totalPara, 0),
     lastOrderAt: last?.createdAt ?? null,
   };
+}
+
+function assignCustomerCodes(customers: DemoDatabase["customers"]) {
+  const groups = new Map<string, typeof customers>();
+  for (const customer of customers) {
+    const group = groups.get(customer.organizationId) ?? [];
+    group.push(customer);
+    groups.set(customer.organizationId, group);
+  }
+  for (const group of groups.values()) {
+    const missing = group
+      .filter((customer) => !customer.code.trim())
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+    const taken = group.map((customer) => customer.code).filter((code) => code.trim());
+    for (const customer of missing) {
+      const code = nextCustomerCode(taken);
+      customer.code = code;
+      taken.push(code);
+    }
+  }
 }
 
 const SUBSCRIPTION_STATUSES = new Set<SubscriptionStatus>(["aktivna", "otkazana", "istekla"]);

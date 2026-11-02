@@ -6,6 +6,7 @@ import { OrderStatusMenu } from "@/components/admin/order-actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireSession } from "@/lib/auth";
 import { paymentLabel, unitLabel } from "@/lib/constants";
+import { documentKind, documentLabel, partyForPib, partyLabel, paymentTermFor } from "@/lib/customers";
 import { getCommerce } from "@/lib/data";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
 
@@ -16,6 +17,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const order = await getCommerce().getOrder(session.organization.id, id);
   if (!order) notFound();
+  const customerRecord = await getCommerce().getCustomer(session.organization.id, order.customerId);
+  const party = customerRecord?.party ?? partyForPib(order.customerSnapshot.pib);
+  const kind = documentKind(party);
+  const paymentTermDays = paymentTermFor(party, customerRecord?.paymentTermDays);
   const customer = order.customerSnapshot;
 
   return (
@@ -33,8 +38,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <OrderStatusMenu orderId={order.id} status={order.status} />
-          <a href={`/api/orders/${order.id}/pdf`} className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-zinc-50">
-            Preuzmi potvrdu
+          <a
+            href={`/api/orders/${order.id}/pdf?vrsta=${kind}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-zinc-50"
+          >
+            Štampaj {kind === "faktura" ? "fakturu" : "nalog"}
           </a>
         </div>
       </div>
@@ -74,10 +84,28 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         <div className="space-y-4">
           <section className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-sm font-semibold">Kupac</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">Kupac</h2>
+              <Link href={`/customers/${order.customerId}`} className="text-sm text-muted-foreground hover:text-foreground">
+                Izmeni
+              </Link>
+            </div>
             <dl className="mt-3 space-y-2 text-sm">
               <div>
-                <dt className="text-muted-foreground">Firma</dt>
+                <dt className="text-muted-foreground">Šifra</dt>
+                <dd className="tabular-nums">{customerRecord?.code || customer.code}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Vrsta</dt>
+                <dd>
+                  {partyLabel(party)}
+                  {party === "pravna"
+                    ? ` · odloženo plaćanje ${paymentTermDays === 0 ? "odmah" : `${paymentTermDays} dana`}`
+                    : ` · ${documentLabel(kind).toLowerCase()}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{party === "pravna" ? "Firma" : "Ime"}</dt>
                 <dd>{customer.businessName}</dd>
               </div>
               <div>
