@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { nextCustomerCode } from "@/lib/customers";
 import { effectivePricePara } from "@/lib/data/pricing";
 import { belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { hashPassword } from "@/lib/password";
@@ -141,8 +142,8 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     brandColor: MEAT_BRAND_COLOR,
     coverUrl: "/products/mesara-pajic-cover.jpg",
     description: MEAT_DESCRIPTION,
-    channel: "b2b",
-    audience: "pravna",
+    channel: "b2c",
+    audience: "oba",
     orderPrefix: "PU",
     nextOrderNumber: 1001,
     active: true,
@@ -209,23 +210,42 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     updatedAt: ago(2),
   }));
 
-  customers.push({
-    id: seedId("customer:gastro-supply:milica.radic@example.com"),
-    organizationId: orgId,
-    businessName: "Milica Radić",
-    contactName: "Milica Radić",
-    email: "milica.radic@example.com",
-    phone: "+381 69 441 2280",
-    pib: "",
-    address: "Apatinski put 14",
-    city: "Sombor",
-    notes: "",
-    code: "K-0005",
-    party: "fizicka",
-    paymentTermDays: 0,
-    createdAt: ago(40),
-    updatedAt: ago(2),
-  });
+  customers.push(
+    {
+      id: seedId("customer:gastro-supply:milica.radic@example.com"),
+      organizationId: orgId,
+      businessName: "Milica Radić",
+      contactName: "Milica Radić",
+      email: "milica.radic@example.com",
+      phone: "+381 69 441 2280",
+      pib: "",
+      address: "Apatinski put 14",
+      city: "Sombor",
+      notes: "",
+      code: "K-0005",
+      party: "fizicka",
+      paymentTermDays: 0,
+      createdAt: ago(40),
+      updatedAt: ago(2),
+    },
+    {
+      id: seedId("customer:gastro-supply:nikola.jovanovic@example.com"),
+      organizationId: orgId,
+      businessName: "Nikola Jovanović",
+      contactName: "Nikola Jovanović",
+      email: "nikola.jovanovic@example.com",
+      phone: "+381 64 220 1188",
+      pib: "",
+      address: "Cara Dušana 9",
+      city: "Novi Sad",
+      notes: "",
+      code: "K-0006",
+      party: "fizicka",
+      paymentTermDays: 0,
+      createdAt: ago(25),
+      updatedAt: ago(2),
+    },
+  );
 
   const orders: Order[] = [];
   const orderItems: OrderItem[] = [];
@@ -238,6 +258,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     createdAt: string;
     notes: string;
     confirmed?: boolean;
+    payment?: Order["paymentMethod"];
   }) => {
     const customer = customers.find((item) => item.businessName === input.customer)!;
     const number = `${organization.orderPrefix}-${year}-${String(organization.nextOrderNumber).padStart(4, "0")}`;
@@ -273,7 +294,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       totalPara,
       idempotencyKey: seedId(`idem:${number}`),
       confirmationToken: seedId(`confirm:${number}`),
-      paymentMethod: null,
+      paymentMethod: input.payment ?? null,
       customerSnapshot: {
         code: customer.code,
         businessName: customer.businessName,
@@ -325,6 +346,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       status: spec.status,
       createdAt: ago(spec.days, spec.hours),
       notes: spec.notes,
+      payment: spec.payment,
     });
   }
 
@@ -719,8 +741,9 @@ const GASTRO_DEMO_ORDERS: Array<{
   status: OrderStatus;
   days: number;
   hours: number;
-  notes: string;
-}> = [
+    notes: string;
+    payment?: Order["paymentMethod"];
+  }> = [
   {
     suffix: "1001",
     customer: "Restoran Dunav",
@@ -819,6 +842,29 @@ const GASTRO_DEMO_ORDERS: Array<{
     days: 20,
     hours: 4,
     notes: "Kupac je otkazao jer je stigla druga isporuka.",
+  },
+  {
+    suffix: "1009",
+    customer: "Milica Radić",
+    lines: [
+      ["MP-KUL", 0.5],
+      ["MP-PKO", 1],
+    ],
+    status: "isporucena",
+    days: 1,
+    hours: 3,
+    notes: "",
+    payment: "pouzecem",
+  },
+  {
+    suffix: "1010",
+    customer: "Nikola Jovanović",
+    lines: [["MP-CVA", 0.5]],
+    status: "potvrdjena",
+    days: 4,
+    hours: 2,
+    notes: "",
+    payment: "ips",
   },
 ];
 
@@ -1061,11 +1107,201 @@ function ensureJewelryShop(db: DemoDatabase) {
   return backfillBoutiqueSales(db, organization.id) || changed;
 }
 
+const PHYSICAL_DEMO_CUSTOMERS: Array<{
+  email: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  code: string;
+  daysOld: number;
+}> = [
+  {
+    email: "milica.radic@example.com",
+    name: "Milica Radić",
+    phone: "+381 69 441 2280",
+    address: "Apatinski put 14",
+    city: "Sombor",
+    code: "K-0005",
+    daysOld: 40,
+  },
+  {
+    email: "nikola.jovanovic@example.com",
+    name: "Nikola Jovanović",
+    phone: "+381 64 220 1188",
+    address: "Cara Dušana 9",
+    city: "Novi Sad",
+    code: "K-0006",
+    daysOld: 25,
+  },
+];
+
+function ensureMeatPhysicalBuyers(db: DemoDatabase) {
+  const organization = db.organizations.find((item) => item.slug === MEAT_SLUG || item.slug === LEGACY_MEAT_SLUG);
+  if (!organization) return false;
+  let changed = false;
+  const now = new Date().toISOString();
+  for (const spec of PHYSICAL_DEMO_CUSTOMERS) {
+    const existing = db.customers.find(
+      (item) => item.organizationId === organization.id && item.email.toLowerCase() === spec.email,
+    );
+    if (existing) continue;
+    const codes = db.customers.filter((item) => item.organizationId === organization.id).map((item) => item.code);
+    db.customers.push({
+      id: seedId(`customer:gastro-supply:${spec.email}`),
+      organizationId: organization.id,
+      businessName: spec.name,
+      contactName: spec.name,
+      email: spec.email,
+      phone: spec.phone,
+      pib: "",
+      address: spec.address,
+      city: spec.city,
+      notes: "",
+      code: codes.includes(spec.code) ? nextCustomerCode(codes) : spec.code,
+      party: "fizicka",
+      paymentTermDays: 0,
+      createdAt: ago(spec.daysOld),
+      updatedAt: now,
+    });
+    changed = true;
+  }
+
+  const orders: Array<{
+    key: string;
+    email: string;
+    lines: Array<[string, number]>;
+    status: OrderStatus;
+    payment: NonNullable<Order["paymentMethod"]>;
+    days: number;
+  }> = [
+    {
+      key: "milica",
+      email: "milica.radic@example.com",
+      lines: [
+        ["MP-KUL", 0.5],
+        ["MP-PKO", 1],
+      ],
+      status: "isporucena",
+      payment: "pouzecem",
+      days: 1,
+    },
+    {
+      key: "nikola",
+      email: "nikola.jovanovic@example.com",
+      lines: [["MP-CVA", 0.5]],
+      status: "potvrdjena",
+      payment: "ips",
+      days: 4,
+    },
+  ];
+  const year = belgradeYear(now);
+  for (const spec of orders) {
+    const customer = db.customers.find(
+      (item) => item.organizationId === organization.id && item.email.toLowerCase() === spec.email,
+    );
+    if (!customer) continue;
+    const orderId = seedId(`order:physical:mesara:${spec.key}`);
+    if (db.orders.some((order) => order.id === orderId || order.customerId === customer.id)) continue;
+    const lines = spec.lines.flatMap(([sku, quantity]) => {
+      const product = db.products.find(
+        (item) => item.organizationId === organization.id && item.sku === sku && item.active,
+      );
+      if (!product) return [];
+      const lineTotalPara = Math.round(product.pricePara * quantity);
+      return [
+        {
+          id: seedId(`item:physical:mesara:${spec.key}:${sku}`),
+          orderId,
+          organizationId: organization.id,
+          productId: product.id,
+          name: product.name,
+          sku: product.sku,
+          unit: product.unit,
+          quantity,
+          unitPricePara: product.pricePara,
+          lineTotalPara,
+        } satisfies OrderItem,
+      ];
+    });
+    if (lines.length === 0) continue;
+    let number = "";
+    do {
+      number = `${organization.orderPrefix}-${year}-${String(organization.nextOrderNumber).padStart(4, "0")}`;
+      organization.nextOrderNumber += 1;
+    } while (db.orders.some((order) => order.organizationId === organization.id && order.number === number));
+    const totalPara = lines.reduce((sum, item) => sum + item.lineTotalPara, 0);
+    const createdAt = ago(spec.days, 3);
+    db.orders.push({
+      id: orderId,
+      organizationId: organization.id,
+      customerId: customer.id,
+      buyerUserId: null,
+      number,
+      status: spec.status,
+      notes: "",
+      subtotalPara: totalPara,
+      totalPara,
+      idempotencyKey: seedId(`idem:physical:mesara:${spec.key}`),
+      confirmationToken: seedId(`confirm:physical:mesara:${spec.key}`),
+      paymentMethod: spec.payment,
+      customerSnapshot: {
+        code: customer.code,
+        businessName: customer.businessName,
+        contactName: customer.contactName,
+        email: customer.email,
+        phone: customer.phone,
+        pib: "",
+        mb: "",
+        address: customer.address,
+        postalCode: "",
+        city: customer.city,
+        bankAccount: "",
+      },
+      customerEmailStatus: "skipped",
+      supplierEmailStatus: "skipped",
+      sefInvoiceId: null,
+      sefStatus: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    db.orderItems.push(...lines);
+    db.statusHistory.push({
+      id: seedId(`status:physical:mesara:${spec.key}:nova`),
+      orderId,
+      organizationId: organization.id,
+      fromStatus: null,
+      toStatus: "nova",
+      actorName: "Sistem",
+      createdAt,
+    });
+    if (spec.status !== "nova") {
+      db.statusHistory.push({
+        id: seedId(`status:physical:mesara:${spec.key}:${spec.status}`),
+        orderId,
+        organizationId: organization.id,
+        fromStatus: "nova",
+        toStatus: spec.status,
+        actorName: "Ana Petrović",
+        createdAt: new Date(new Date(createdAt).getTime() + 45 * 60 * 1000).toISOString(),
+      });
+    }
+    changed = true;
+  }
+
+  if (changed && organization.audience === "pravna") {
+    organization.audience = "oba";
+    organization.updatedAt = now;
+  }
+  return changed;
+}
+
 export async function ensureRetailDemo(db: DemoDatabase) {
   let changed = renameUserEmail(db, "ana@gastrosupply.rs", DEMO_EMAIL);
   changed = renameUserEmail(db, "vera@butikvera.rs", RETAIL_DEMO_EMAIL) || changed;
   changed = renameUserEmail(db, "jovana@butikvera.rs", RETAIL_BUYER_EMAIL) || changed;
   changed = ensureMeatShop(db) || changed;
+  changed = ensureMeatPhysicalBuyers(db) || changed;
   changed = ensureJewelryShop(db) || changed;
   changed = applyDemoStock(db) || changed;
   const ownerChanged = await ensureBoutiqueOwner(db);

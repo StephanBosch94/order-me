@@ -26,7 +26,20 @@ test("demo catalog ids stay the same on every seed", async () => {
   assert.equal(mesara?.brandColor, "#0c1f2e");
   assert.equal(mesara?.logoUrl, "/suppliers/mesara-pajic-logo.jpg");
   assert.equal(mesara?.coverUrl, "/products/mesara-pajic-cover.jpg");
-  assert.equal(mesara?.audience, "pravna");
+  assert.equal(mesara?.audience, "oba");
+  const physical = first.customers.filter((item) => item.organizationId === mesara?.id && item.party === "fizicka");
+  assert.deepEqual(
+    physical.map((item) => item.businessName).sort(),
+    ["Milica Radić", "Nikola Jovanović"],
+  );
+  assert.equal(
+    first.orders.some((order) => order.customerId === physical.find((item) => item.businessName === "Milica Radić")?.id),
+    true,
+  );
+  assert.equal(
+    first.orders.some((order) => order.customerId === physical.find((item) => item.businessName === "Nikola Jovanović")?.id),
+    true,
+  );
   assert.equal(mesara?.trackStock, false);
   assert.equal(butik?.trackStock, false);
   assert.equal(mesara?.slug, "mesara-pajic");
@@ -123,7 +136,7 @@ test("an existing Pult database picks up the meat shop without a new generation"
   assert.equal(org.brandColor, "#0c1f2e");
   assert.equal(org.logoUrl, "/suppliers/mesara-pajic-logo.jpg");
   assert.equal(org.coverUrl, "/products/mesara-pajic-cover.jpg");
-  assert.equal(org.audience, "pravna");
+  assert.equal(org.audience, "oba");
   assert.equal(org.slug, "mesara-pajic");
   assert.equal(org.email, "porudzbine@mesarapajic.rs");
   assert.equal(ana.email, "ana@mesarapajic.rs");
@@ -161,6 +174,37 @@ test("an existing Mala mesara Pajić name becomes Mesara Pajić without replacin
   org.name = "Porodična mesara";
   assert.equal(await ensureRetailDemo(db), false);
   assert.equal(org.name, "Porodična mesara");
+});
+
+test("an existing meat shop keeps physical customers and an order from each", async () => {
+  const db = await createSeedDatabase();
+  const org = db.organizations.find((item) => item.slug === "mesara-pajic");
+  assert.ok(org);
+  org.audience = "pravna";
+  const physicalIds = new Set(
+    db.customers.filter((item) => item.organizationId === org.id && item.party === "fizicka").map((item) => item.id),
+  );
+  const orderIds = new Set(db.orders.filter((item) => physicalIds.has(item.customerId)).map((item) => item.id));
+  db.customers = db.customers.filter((item) => !physicalIds.has(item.id));
+  db.orders = db.orders.filter((item) => !orderIds.has(item.id));
+  db.orderItems = db.orderItems.filter((item) => !orderIds.has(item.orderId));
+  db.statusHistory = db.statusHistory.filter((item) => !orderIds.has(item.orderId));
+  const next = org.nextOrderNumber;
+  assert.equal(await ensureRetailDemo(db), true);
+  assert.equal(org.audience, "oba");
+  const physical = db.customers.filter((item) => item.organizationId === org.id && item.party === "fizicka");
+  assert.deepEqual(
+    physical.map((item) => item.businessName).sort(),
+    ["Milica Radić", "Nikola Jovanović"],
+  );
+  for (const customer of physical) {
+    assert.equal(db.orders.some((order) => order.customerId === customer.id && order.status !== "otkazana"), true);
+  }
+  assert.ok(org.nextOrderNumber > next);
+  assert.equal(await ensureRetailDemo(db), false);
+  org.audience = "pravna";
+  assert.equal(await ensureRetailDemo(db), false);
+  assert.equal(org.audience, "pravna");
 });
 
 test("missing warehouse stock is filled without replacing the meat shop", async () => {
