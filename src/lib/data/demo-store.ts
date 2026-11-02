@@ -4,11 +4,19 @@ import path from "node:path";
 
 import type { CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
-import { nextCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
+import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
+import { salesFollowUps } from "@/lib/follow-ups";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
-import { priceOrderLines } from "@/lib/data/pricing";
+import {
+  isFractionalUnit,
+  nextStockQuantities,
+  normalizeStockQuantity,
+  priceOrderLines,
+  stockDirectionForStatus,
+  type StockDirection,
+} from "@/lib/data/pricing";
 import {
   createSeedDatabase,
   emptyDatabase,
@@ -78,9 +86,25 @@ function toPublicSupplier(organization: Organization): PublicSupplier {
     mb: organization.mb,
     logoUrl: organization.logoUrl,
     brandColor: organization.brandColor,
+    coverUrl: organization.coverUrl,
+    description: organization.description,
     channel: organization.channel,
     audience: organization.audience,
   };
+}
+
+function applyStockMovement(
+  products: Product[],
+  lines: { productId: string | null; quantity: number }[],
+  direction: StockDirection,
+) {
+  const now = new Date().toISOString();
+  for (const update of nextStockQuantities(products, lines, direction)) {
+    const product = products.find((item) => item.id === update.id);
+    if (!product) continue;
+    product.stockQuantity = update.stockQuantity;
+    product.updatedAt = now;
+  }
 }
 
 function orderDetail(db: DemoDatabase, order: Order): OrderDetail {
@@ -94,6 +118,13 @@ function orderDetail(db: DemoDatabase, order: Order): OrderDetail {
 }
 
 function orderListItem(db: DemoDatabase, order: Order): OrderListItem {
+  const customer = db.customers.find(
+    (item) => item.id === order.customerId && item.organizationId === order.organizationId,
+  );
+  const party =
+    customer?.party === "fizicka" || customer?.party === "pravna"
+      ? customer.party
+      : partyForPib(order.customerSnapshot.pib);
   return {
     id: order.id,
     number: order.number,
@@ -105,6 +136,7 @@ function orderListItem(db: DemoDatabase, order: Order): OrderListItem {
     itemCount: db.orderItems.filter((item) => item.orderId === order.id).length,
     paymentMethod: order.paymentMethod,
     pib: order.customerSnapshot.pib,
+    party,
   };
 }
 
@@ -234,11 +266,17 @@ export class DemoStore implements CommerceRepository {
         mb: "",
         logoUrl: null,
         brandColor: null,
+        coverUrl: null,
+        description: "",
         audience: input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna"),
         channel: channelForAudience(input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna")),
         orderPrefix: orderPrefixFromName(input.name),
         nextOrderNumber: 1001,
         active: true,
+        trackStock: false,
+        efakturaApiKey: "",
+        efakturaEnabled: false,
+        efakturaEnvironment: "demo",
         createdAt: now,
         updatedAt: now,
       };
@@ -542,6 +580,7 @@ export class DemoStore implements CommerceRepository {
         ...syncProductImages(input.imageUrl, input.imageUrls),
         active: input.active,
         minQuantity: input.minQuantity,
+        stockQuantity: input.stockQuantity,
         createdAt: now,
         updatedAt: now,
       };
@@ -566,6 +605,7 @@ export class DemoStore implements CommerceRepository {
       product.salePricePara = input.salePricePara;
       product.active = input.active;
       product.minQuantity = input.minQuantity;
+      product.stockQuantity = input.stockQuantity;
       if (input.imageUrls !== undefined || input.imageUrl !== undefined) {
         const images = syncProductImages(
           input.imageUrl,
@@ -602,6 +642,7 @@ export class DemoStore implements CommerceRepository {
             imageUrls: [],
             active: row.active,
             minQuantity: row.minQuantity,
+            stockQuantity: 0,
             createdAt: now,
             updatedAt: now,
           });
@@ -663,12 +704,29 @@ export class DemoStore implements CommerceRepository {
         (item) => item.id === customerId && item.organizationId === organizationId,
       );
       if (!customer) return null;
-      const code = input.code.trim().toUpperCase();
-      const taken = db.customers.some(
-        (item) => item.organizationId === organizationId && item.id !== customer.id && item.code.toUpperCase() === code,
-      );
-      if (taken) throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
-      Object.assign(customer, input, { code, updatedAt: new Date().toISOString() });
+      const email = input.email.toLowerCase();
+      if (
+        db.customers.some(
+          (item) =>
+            item.organizationId === organizationId && item.id !== customer.id && item.email.toLowerCase() === email,
+        )
+      ) {
+        throw new DataError("Kupac sa ovom email adresom već postoji.", "conflict");
+      }
+      const requested = normalizeCustomerCode(input.code);
+      const code = requested || customer.code;
+      if (
+        requested &&
+        db.customers.some(
+          (item) =>
+            item.organizationId === organizationId &&
+            item.id !== customer.id &&
+            normalizeCustomerCode(item.code) === code,
+        )
+      ) {
+        throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
+      }
+      Object.assign(customer, input, { email, code, updatedAt: new Date().toISOString() });
       return customer;
     });
   }
@@ -741,6 +799,9 @@ export class DemoStore implements CommerceRepository {
         customerEmailStatus: "pending",
         supplierEmailStatus: "pending",
         paymentMethod: customer.party === "pravna" ? "racun" : null,
+        stockHeld: organization.trackStock === true,
+        sefInvoiceId: null,
+        sefStatus: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -768,6 +829,7 @@ export class DemoStore implements CommerceRepository {
         actorName: input.actorName,
         createdAt: now,
       });
+      if (organization.trackStock) applyStockMovement(catalog, priced.items, "reserve");
       return {
         ok: true as const,
         duplicate: false,
@@ -936,6 +998,9 @@ export class DemoStore implements CommerceRepository {
         customerEmailStatus: "pending",
         supplierEmailStatus: "pending",
         paymentMethod: input.paymentMethod ?? null,
+        stockHeld: organization.trackStock === true,
+        sefInvoiceId: null,
+        sefStatus: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -964,6 +1029,7 @@ export class DemoStore implements CommerceRepository {
         actorName: "Kupac",
         createdAt: now,
       });
+      if (organization.trackStock) applyStockMovement(catalog, priced.items, "reserve");
 
       return {
         ok: true,
@@ -986,6 +1052,17 @@ export class DemoStore implements CommerceRepository {
       );
       if (!order) return null;
       if (order.status !== status) {
+        const organization = db.organizations.find((item) => item.id === organizationId);
+        const direction =
+          organization?.trackStock && order.stockHeld ? stockDirectionForStatus(order.status, status) : null;
+        if (direction) {
+          applyStockMovement(
+            db.products.filter((product) => product.organizationId === organizationId),
+            db.orderItems.filter((item) => item.orderId === order.id),
+            direction,
+          );
+          order.stockHeld = false;
+        }
         const now = new Date().toISOString();
         db.statusHistory.push({
           id: randomUUID(),
@@ -1000,6 +1077,20 @@ export class DemoStore implements CommerceRepository {
         order.updatedAt = now;
       }
       return orderDetail(db, order);
+    });
+  }
+
+  async saveSefInvoice(organizationId: string, orderId: string, input: { invoiceId: string; status: string }) {
+    return this.exclusive(async (db) => {
+      const order = db.orders.find((item) => item.id === orderId && item.organizationId === organizationId);
+      if (!order) return null;
+      if (order.sefInvoiceId) {
+        return { invoiceId: order.sefInvoiceId, status: order.sefStatus ?? "poslata", already: true };
+      }
+      order.sefInvoiceId = input.invoiceId;
+      order.sefStatus = input.status;
+      order.updatedAt = new Date().toISOString();
+      return { invoiceId: input.invoiceId, status: input.status, already: false };
     });
   }
 
@@ -1042,6 +1133,24 @@ export class DemoStore implements CommerceRepository {
         .reduce((sum, order) => sum + order.totalPara, 0),
       activeProducts: products.filter((product) => product.active).length,
       recentOrders: awaiting.map((order) => orderListItem(db, order)),
+      followUps: salesFollowUps(
+        db.customers
+          .filter((customer) => customer.organizationId === organizationId)
+          .map((customer) => ({
+            id: customer.id,
+            code: customer.code,
+            businessName: customer.businessName,
+            email: customer.email,
+            phone: customer.phone,
+            createdAt: customer.createdAt,
+          })),
+        orders.map((order) => ({
+          customerId: order.customerId,
+          status: order.status,
+          totalPara: order.totalPara,
+          createdAt: order.createdAt,
+        })),
+      ),
       hasProducts: products.length > 0,
       hasOrders: orders.length > 0,
     };
@@ -1177,6 +1286,7 @@ export class DemoStore implements CommerceRepository {
         const galleries = applyDemoGalleries(parsed);
         changed = retail || photos || galleries;
       }
+      changed = missingTrackStock(parsed) || changed;
       const db = normalizeDatabase(parsed);
       if (changed) await this.persist(db);
       return db;
@@ -1219,6 +1329,7 @@ export class DemoStore implements CommerceRepository {
       const galleries = applyDemoGalleries(loaded);
       changed = retail || photos || galleries;
     }
+    changed = missingTrackStock(loaded) || changed;
     const db = normalizeDatabase(loaded);
     if (changed) await saveDatabase(db);
     return db;
@@ -1250,6 +1361,12 @@ export class DemoStore implements CommerceRepository {
   }
 }
 
+function missingTrackStock(db: DemoDatabase) {
+  return (db.organizations ?? []).some(
+    (organization) => organization.trackStock !== true && organization.trackStock !== false,
+  );
+}
+
 function normalizeDatabase(db: DemoDatabase) {
   db.plans ??= [];
   db.subscriptions ??= [];
@@ -1277,6 +1394,19 @@ function normalizeDatabase(db: DemoDatabase) {
     order.customerSnapshot.postalCode ??= "";
     order.customerSnapshot.confirmationEmail ??= "";
     order.customerSnapshot.code ??= "";
+    const invoiceId = order.sefInvoiceId;
+    order.sefInvoiceId = typeof invoiceId === "string" && invoiceId.trim() ? invoiceId.trim() : null;
+    const sefStatus = order.sefStatus;
+    order.sefStatus = typeof sefStatus === "string" && sefStatus.trim() ? sefStatus.trim() : null;
+  }
+  for (const organization of db.organizations) {
+    organization.coverUrl ??= null;
+    organization.description ??= "";
+    if (organization.trackStock !== true) organization.trackStock = false;
+    if (typeof organization.efakturaApiKey !== "string") organization.efakturaApiKey = "";
+    else organization.efakturaApiKey = organization.efakturaApiKey.trim();
+    if (organization.efakturaEnabled !== true) organization.efakturaEnabled = false;
+    if (organization.efakturaEnvironment !== "produkcija") organization.efakturaEnvironment = "demo";
   }
   for (const customer of db.customers) {
     if (customer.party !== "fizicka" && customer.party !== "pravna") {
@@ -1303,6 +1433,9 @@ function normalizeDatabase(db: DemoDatabase) {
     const images = syncProductImages(product.imageUrl, product.imageUrls);
     product.imageUrl = images.imageUrl;
     product.imageUrls = images.imageUrls;
+    const rawStock = Number(product.stockQuantity);
+    const stock = normalizeStockQuantity(isFractionalUnit(product.unit) ? rawStock : Math.trunc(rawStock), product.unit);
+    product.stockQuantity = stock ?? 0;
   }
   return db;
 }

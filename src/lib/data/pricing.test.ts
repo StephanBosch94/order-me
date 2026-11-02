@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { priceOrderLines } from "@/lib/data/pricing";
+import { nextStockQuantities, priceOrderLines, stockDirectionForStatus } from "@/lib/data/pricing";
 import type { Product } from "@/lib/data/types";
 
 const product: Product = {
@@ -18,6 +18,7 @@ const product: Product = {
   imageUrls: [],
   active: true,
   minQuantity: 100,
+  stockQuantity: 0,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
@@ -50,4 +51,27 @@ test("charges the sale price when it is lower than the regular price", () => {
 test("rejects an inactive or unknown product", () => {
   const result = priceOrderLines([{ ...product, active: false }], [{ productId: "p1", quantity: 100 }]);
   assert.equal(result.ok, false);
+});
+
+test("warehouse stock floors at zero and skips a line without a product", () => {
+  const held = [{ id: "p1", unit: "komad" as const, stockQuantity: 2 }];
+  assert.deepEqual(
+    nextStockQuantities(
+      held,
+      [
+        { productId: "p1", quantity: 5 },
+        { productId: null, quantity: 3 },
+      ],
+      "reserve",
+    ),
+    [{ id: "p1", stockQuantity: 0 }],
+  );
+  assert.deepEqual(
+    nextStockQuantities([{ ...held[0], stockQuantity: 0 }], [{ productId: "p1", quantity: 5 }], "release"),
+    [{ id: "p1", stockQuantity: 5 }],
+  );
+  assert.equal(stockDirectionForStatus("nova", "potvrdjena"), null);
+  assert.equal(stockDirectionForStatus("u_pripremi", "isporucena"), null);
+  assert.equal(stockDirectionForStatus("potvrdjena", "otkazana"), "release");
+  assert.equal(stockDirectionForStatus("otkazana", "otkazana"), null);
 });

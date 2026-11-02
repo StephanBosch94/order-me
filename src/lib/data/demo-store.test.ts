@@ -56,6 +56,7 @@ test("isolates suppliers and keeps order snapshots", async () => {
       pricePara: 18900,
       salePricePara: null,
       minQuantity: 1,
+      stockQuantity: 0,
       active: true,
     });
 
@@ -91,6 +92,7 @@ test("isolates suppliers and keeps order snapshots", async () => {
       pricePara: 1,
       salePricePara: null,
       minQuantity: 1,
+      stockQuantity: 0,
       active: true,
     }), null);
 
@@ -104,8 +106,10 @@ test("isolates suppliers and keeps order snapshots", async () => {
       pricePara: 20000,
       salePricePara: null,
       minQuantity: 1,
+      stockQuantity: 12,
       active: true,
     });
+    assert.equal((await store.getProduct(first.id, product.id))?.stockQuantity, 12);
     const historical = await store.getOrder(first.id, created.order.id);
     assert.equal(historical?.items[0]?.name, "Salvete");
     assert.equal(historical?.items[0]?.unitPricePara, 18900);
@@ -167,6 +171,7 @@ test("buyer account sees only orders placed with that account", async () => {
         pricePara: 10000,
         salePricePara: null,
         minQuantity: 1,
+        stockQuantity: 0,
         active: true,
       },
     );
@@ -240,6 +245,7 @@ test("listOrders separates company orders and keeps cancelled ones", async () =>
       pricePara: 10000,
       salePricePara: null,
       minQuantity: 1,
+      stockQuantity: 0,
       active: true,
     });
 
@@ -299,6 +305,9 @@ test("listOrders separates company orders and keeps cancelled ones", async () =>
     assert.equal(companies.items.find((order) => order.id === cancelled.id)?.status, "otkazana");
     assert.deepEqual(others.items.map((order) => order.id), [personal.id]);
     assert.equal(all.total, 4);
+    assert.equal(all.items.find((order) => order.id === byPib.id)?.party, "pravna");
+    assert.equal(all.items.find((order) => order.id === personal.id)?.party, "fizicka");
+    assert.equal(all.items.find((order) => order.id === byInvoice.id)?.party, "fizicka");
   });
 });
 
@@ -473,6 +482,7 @@ test("a distributor can add a customer and an order", async () => {
       pricePara: 78000,
       salePricePara: null,
       minQuantity: 5,
+      stockQuantity: 24,
       active: true,
     });
     const customer = await store.createCustomer(organization.id, {
@@ -503,5 +513,219 @@ test("a distributor can add a customer and an order", async () => {
     assert.equal(created.order.totalPara, 117000);
     assert.equal(created.order.history[0]?.actorName, "Ana Petrović");
     assert.equal(created.order.paymentMethod, "racun");
+  });
+});
+
+test("editing a customer keeps a blank code and rejects duplicates", async () => {
+  await withStore(async (store) => {
+    const seller = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    const organization = await store.createOrganization({
+      userId: seller.id,
+      userName: seller.name,
+      userEmail: seller.email,
+      name: "Mesara Pajić",
+      slug: "mesara-test",
+      phone: "",
+    });
+    const base = {
+      contactName: "Ivana Stojanović",
+      phone: "+381 60 444 5500",
+      pib: "105432109",
+      address: "Kralja Petra 22",
+      city: "Kragujevac",
+      notes: "",
+      party: "pravna" as const,
+      paymentTermDays: 15,
+    };
+    const market = await store.createCustomer(organization.id, {
+      ...base,
+      code: "K-0004",
+      businessName: "Market 22",
+      email: "ivana@market22.rs",
+    });
+    const other = await store.createCustomer(organization.id, {
+      ...base,
+      code: "K-0001",
+      businessName: "Restoran Dunav",
+      contactName: "Marko Jović",
+      email: "marko@restorandunav.rs",
+      phone: "0631112200",
+      pib: "108765432",
+    });
+    const updated = await store.updateCustomer(organization.id, market.id, {
+      ...base,
+      code: "",
+      businessName: "Market 22",
+      email: "ivana@market22.rs",
+      phone: "+381 60 444 5599",
+      notes: "Provera izmene",
+    });
+    assert.ok(updated);
+    assert.equal(updated?.code, "K-0004");
+    assert.equal(updated?.phone, "+381 60 444 5599");
+    assert.equal(updated?.notes, "Provera izmene");
+    await assert.rejects(
+      () =>
+        store.updateCustomer(organization.id, market.id, {
+          ...base,
+          code: other.code,
+          businessName: "Market 22",
+          email: "ivana@market22.rs",
+        }),
+      (error: unknown) => error instanceof DataError && error.message === "Ova šifra je već dodeljena drugom kupcu.",
+    );
+    await assert.rejects(
+      () =>
+        store.updateCustomer(organization.id, market.id, {
+          ...base,
+          code: "K-0004",
+          businessName: "Market 22",
+          email: "MARKO@restorandunav.rs",
+        }),
+      (error: unknown) => error instanceof DataError && error.message === "Kupac sa ovom email adresom već postoji.",
+    );
+    const kept = await store.getCustomer(organization.id, market.id);
+    assert.equal(kept?.code, "K-0004");
+    assert.equal(kept?.notes, "Provera izmene");
+  });
+});
+
+test("orders change warehouse stock only while tracking is on", async () => {
+  await withStore(async (store) => {
+    const seller = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    const organization = await store.createOrganization({
+      userId: seller.id,
+      userName: seller.name,
+      userEmail: seller.email,
+      name: "Mesara Pajić",
+      slug: "mesara-test",
+      phone: "",
+    });
+    assert.equal(organization.trackStock, false);
+    assert.equal(organization.efakturaEnabled, false);
+    assert.equal(organization.efakturaApiKey, "");
+    assert.equal(organization.efakturaEnvironment, "demo");
+    const product = await store.createProduct(organization.id, {
+      name: "Suva kobasica",
+      sku: "MP-SKOB",
+      description: "",
+      categoryId: null,
+      newCategory: "",
+      unit: "komad",
+      pricePara: 89000,
+      salePricePara: null,
+      minQuantity: 1,
+      stockQuantity: 4,
+      active: true,
+    });
+    const customer = await store.createCustomer(organization.id, {
+      code: "",
+      businessName: "Restoran Dunav",
+      contactName: "Marko Jović",
+      email: "marko@restorandunav.rs",
+      phone: "0631112200",
+      pib: "108765432",
+      address: "Bulevar 1",
+      city: "Beograd",
+      notes: "",
+      party: "pravna",
+      paymentTermDays: 30,
+    });
+
+    async function stock() {
+      return (await store.getProduct(organization.id, product.id))?.stockQuantity;
+    }
+
+    const ignored = await store.createStaffOrder(organization.id, {
+      customerId: customer.id,
+      notes: "",
+      actorName: "Ana Petrović",
+      items: [{ productId: product.id, quantity: 1 }],
+    });
+    assert.equal(ignored.ok, true);
+    assert.equal(await stock(), 4);
+
+    const settings = {
+      name: organization.name,
+      slug: organization.slug,
+      email: organization.email,
+      notificationEmail: organization.notificationEmail,
+      phone: organization.phone,
+      address: organization.address,
+      city: organization.city,
+      pib: organization.pib,
+      mb: organization.mb,
+      logoUrl: organization.logoUrl,
+      brandColor: organization.brandColor,
+      coverUrl: organization.coverUrl,
+      description: organization.description,
+      audience: organization.audience,
+      efakturaApiKey: "",
+      efakturaEnabled: false,
+      efakturaEnvironment: "demo" as const,
+    };
+    const enabled = await store.updateOrganization(organization.id, { ...settings, trackStock: true });
+    assert.equal(enabled.trackStock, true);
+
+    const created = await store.createStaffOrder(organization.id, {
+      customerId: customer.id,
+      notes: "",
+      actorName: "Ana Petrović",
+      items: [{ productId: product.id, quantity: 1 }],
+    });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+    assert.equal(await stock(), 3);
+    await store.updateOrderStatus(organization.id, created.order.id, "potvrdjena", "Ana Petrović");
+    await store.updateOrderStatus(organization.id, created.order.id, "u_pripremi", "Ana Petrović");
+    assert.equal(await stock(), 3);
+    await store.updateOrderStatus(organization.id, created.order.id, "otkazana", "Ana Petrović");
+    assert.equal(await stock(), 4);
+    await store.updateOrderStatus(organization.id, created.order.id, "otkazana", "Ana Petrović");
+    assert.equal(await stock(), 4);
+
+    const short = await store.createStaffOrder(organization.id, {
+      customerId: customer.id,
+      notes: "",
+      actorName: "Ana Petrović",
+      items: [{ productId: product.id, quantity: 9 }],
+    });
+    assert.equal(short.ok, true);
+    if (!short.ok) return;
+    assert.equal(await stock(), 0);
+    await store.updateOrderStatus(organization.id, short.order.id, "otkazana", "Ana Petrović");
+    assert.equal(await stock(), 9);
+
+    const bought = await store.createPublicOrder(
+      {
+        slug: "mesara-test",
+        idempotencyKey: crypto.randomUUID(),
+        businessName: "Jovana Ilić",
+        contactName: "Jovana Ilić",
+        email: "jovana@example.rs",
+        phone: "064111222",
+        pib: "",
+        address: "",
+        city: "Beograd",
+        notes: "",
+        items: [{ productId: product.id, quantity: 2 }],
+      },
+      "127.0.0.1",
+    );
+    assert.equal(bought.ok, true);
+    if (!bought.ok) return;
+    assert.equal(await stock(), 7);
+
+    await store.updateOrganization(organization.id, { ...settings, trackStock: false });
+    await store.updateOrderStatus(organization.id, bought.order.id, "otkazana", "Ana Petrović");
+    assert.equal(await stock(), 7);
   });
 });

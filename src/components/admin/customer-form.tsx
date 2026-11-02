@@ -35,17 +35,38 @@ export function CustomerForm({ customer }: { customer: Customer }) {
       }}
     >
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          name="businessName"
+          label={party === "pravna" ? "Naziv firme" : "Ime i prezime"}
+          defaultValue={customer.businessName}
+        />
+        <Field name="contactName" label="Kontakt osoba" defaultValue={customer.contactName} />
+        <Field name="email" label="Email" defaultValue={customer.email} type="email" />
+        <Field name="phone" label="Telefon" defaultValue={customer.phone} />
+        <Field name="pib" label="PIB" defaultValue={customer.pib} />
+        <Field name="city" label="Grad" defaultValue={customer.city} />
+        <div className="sm:col-span-2">
+          <Field name="address" label="Adresa" defaultValue={customer.address} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label htmlFor="notes">Interna napomena</Label>
+          <Textarea id="notes" name="notes" defaultValue={customer.notes} className="mt-1.5" />
+        </div>
+      </div>
       <div className="max-w-[12rem]">
         <Field name="code" label="Šifra kupca" defaultValue={customer.code} />
-        <p className="mt-1.5 text-sm text-muted-foreground">Jedinstvena je unutar vaše distribucije.</p>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Ako ostavite prazno, postojeća šifra ostaje. Jedinstvena je unutar vaše distribucije.
+        </p>
       </div>
       <fieldset>
         <legend className="text-sm font-medium">Vrsta kupca</legend>
         <div className="mt-2 flex flex-wrap gap-4">
           {(
             [
-              ["fizicka", "Fizičko lice"],
               ["pravna", "Pravno lice"],
+              ["fizicka", "Fizičko lice"],
             ] as const
           ).map(([value, label]) => (
             <label key={value} className="flex items-center gap-2 text-sm">
@@ -84,25 +105,6 @@ export function CustomerForm({ customer }: { customer: Customer }) {
           </p>
         </div>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          name="businessName"
-          label={party === "pravna" ? "Naziv firme" : "Ime i prezime"}
-          defaultValue={customer.businessName}
-        />
-        <Field name="contactName" label="Kontakt osoba" defaultValue={customer.contactName} />
-        <Field name="email" label="Email" defaultValue={customer.email} type="email" />
-        <Field name="phone" label="Telefon" defaultValue={customer.phone} />
-        <Field name="pib" label="PIB" defaultValue={customer.pib} />
-        <Field name="city" label="Grad" defaultValue={customer.city} />
-        <div className="sm:col-span-2">
-          <Field name="address" label="Adresa" defaultValue={customer.address} />
-        </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="notes">Interna napomena</Label>
-          <Textarea id="notes" name="notes" defaultValue={customer.notes} className="mt-1.5" />
-        </div>
-      </div>
       <Button type="submit" disabled={pending}>
         {pending ? "Čuvanje…" : "Sačuvaj izmene"}
       </Button>

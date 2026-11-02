@@ -10,7 +10,7 @@ import { requireSession } from "@/lib/auth";
 import { unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { salePricePara } from "@/lib/data/pricing";
-import { formatRsd } from "@/lib/format";
+import { formatQuantity, formatRsd } from "@/lib/format";
 import { fold } from "@/lib/text";
 
 export const metadata: Metadata = { title: "Proizvodi" };
@@ -29,6 +29,7 @@ export default async function ProductsPage({
     getCommerce().listProducts(session.organization.id),
     getCommerce().listCategories(session.organization.id),
   ]);
+  const trackStock = session.organization.trackStock === true;
   const needle = fold(q);
   const filtered = products.filter((product) => {
     if (category && product.categoryId !== category) return false;
@@ -57,7 +58,7 @@ export default async function ProductsPage({
       {products.length === 0 ? (
         <EmptyState
           title="Katalog je prazan"
-          body="Dodajte proizvod ručno ili uvezite CSV. Neaktivni proizvodi se ne prikazuju kupcima."
+          body="Dodajte proizvod ručno ili ubacite CSV. Neaktivni proizvodi se ne prikazuju kupcima."
           action={
             <Link href="/products/new">
               <Button>Dodaj proizvod</Button>
@@ -67,12 +68,13 @@ export default async function ProductsPage({
       ) : filtered.length === 0 ? (
         <EmptyState title="Nema rezultata" body="Promenite pretragu ili filter kategorije." />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Proizvod</th>
                 <th className="hidden px-4 py-3 font-medium sm:table-cell">Jedinica</th>
+                {trackStock ? <th className="px-4 py-3 font-medium">Magacin</th> : null}
                 <th className="px-4 py-3 text-right font-medium">Cena</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3" />
@@ -95,6 +97,11 @@ export default async function ProductsPage({
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">{unitLabel(product.unit)}</td>
+                  {trackStock ? (
+                    <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                      {formatQuantity(product.stockQuantity)} {unitLabel(product.unit).toLowerCase()}
+                    </td>
+                  ) : null}
                   <td className="px-4 py-3 text-right tabular-nums">
                     {sale ? (
                       <div>

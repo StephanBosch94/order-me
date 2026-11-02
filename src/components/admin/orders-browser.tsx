@@ -5,7 +5,7 @@ import { ConfirmOrderButton } from "@/components/admin/order-actions";
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
-import { isCompanyOrder } from "@/lib/company-order";
+import { partyLabel } from "@/lib/customers";
 import { ORDER_STATUSES } from "@/lib/constants";
 import type { OrderListItem, OrderStatus, Paginated } from "@/lib/data/types";
 import { formatDateTime, formatRsd } from "@/lib/format";
@@ -47,7 +47,6 @@ export function OrdersBrowser({
   emptyBody,
   emptyHref,
   emptyLabel,
-  showBuyerKind,
   actions,
 }: {
   result: Paginated<OrderListItem>;
@@ -60,7 +59,6 @@ export function OrdersBrowser({
   emptyBody: string;
   emptyHref?: string;
   emptyLabel?: string;
-  showBuyerKind: boolean;
   actions?: React.ReactNode;
 }) {
   const pages = Math.max(Math.ceil(result.total / result.pageSize), 1);
@@ -92,7 +90,7 @@ export function OrdersBrowser({
                     <StatusBadge status={order.status} />
                   </div>
                   <p className="mt-2 text-sm">{order.businessName}</p>
-                  {showBuyerKind ? <p className="mt-1 text-sm text-muted-foreground">{buyerKind(order)}</p> : null}
+                  <p className="mt-1 text-sm text-muted-foreground">{partyLabel(order.party)}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
                   <p className="mt-2 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</p>
                 </Link>
@@ -110,7 +108,7 @@ export function OrdersBrowser({
                 <tr>
                   <th className="px-4 py-3 font-medium">Broj</th>
                   <th className="px-4 py-3 font-medium">Kupac</th>
-                  {showBuyerKind ? <th className="px-4 py-3 font-medium">Vrsta</th> : null}
+                  <th className="px-4 py-3 font-medium">Vrsta</th>
                   <th className="px-4 py-3 font-medium">Stavke</th>
                   <th className="px-4 py-3 text-right font-medium">Ukupno</th>
                   <th className="px-4 py-3 font-medium">Datum</th>
@@ -136,7 +134,7 @@ export function OrdersBrowser({
                       <div>{order.businessName}</div>
                       <div className="text-muted-foreground">{order.contactName}</div>
                     </td>
-                    {showBuyerKind ? <td className="px-4 py-3">{buyerKind(order)}</td> : null}
+                    <td className="px-4 py-3">{partyLabel(order.party)}</td>
                     <td className="px-4 py-3 tabular-nums">{order.itemCount}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatRsd(order.totalPara)}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDateTime(order.createdAt)}</td>
@@ -199,15 +197,6 @@ function Pagination({
       </div>
     </div>
   );
-}
-
-function buyerKind(order: OrderListItem) {
-  return isCompanyOrder({
-    paymentMethod: order.paymentMethod,
-    customerSnapshot: { pib: order.pib },
-  })
-    ? "Pravno lice"
-    : "Fizičko lice";
 }
 
 function one(value: string | string[] | undefined) {

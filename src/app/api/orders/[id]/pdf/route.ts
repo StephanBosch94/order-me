@@ -24,6 +24,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     mb: session.organization.mb,
     logoUrl: session.organization.logoUrl,
     brandColor: session.organization.brandColor,
+    coverUrl: session.organization.coverUrl,
+    description: session.organization.description,
     channel: session.organization.channel,
     audience: session.organization.audience,
   };

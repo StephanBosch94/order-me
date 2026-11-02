@@ -44,7 +44,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
         <section className="rounded-lg border border-border bg-card p-4">
           <h2 className="text-sm font-semibold">Podaci</h2>
           <div className="mt-4">
-            <CustomerForm customer={customer} />
+            <CustomerForm key={customer.updatedAt} customer={customer} />
           </div>
         </section>
         <section className="rounded-lg border border-border bg-card">

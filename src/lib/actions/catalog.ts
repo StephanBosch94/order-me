@@ -76,6 +76,9 @@ async function collectProductImages(organizationId: string, formData: FormData, 
 
 export async function saveProductAction(formData: FormData): Promise<FormState & { id?: string }> {
   const session = await requireSession();
+  const productId = text(formData, "id");
+  const existing = productId ? await getCommerce().getProduct(session.organization.id, productId) : null;
+  const trackStock = session.organization.trackStock === true;
   const parsed = productFormSchema.safeParse({
     name: text(formData, "name"),
     sku: text(formData, "sku"),
@@ -86,6 +89,7 @@ export async function saveProductAction(formData: FormData): Promise<FormState &
     price: text(formData, "price"),
     salePrice: text(formData, "salePrice"),
     minQuantity: text(formData, "minQuantity"),
+    stockQuantity: trackStock ? text(formData, "stockQuantity") : "0",
     active: text(formData, "active") === "true",
   });
   if (!parsed.success) {
@@ -96,14 +100,13 @@ export async function saveProductAction(formData: FormData): Promise<FormState &
   }
 
   try {
-    const productId = text(formData, "id");
-    const existing = productId ? await getCommerce().getProduct(session.organization.id, productId) : null;
     const owned = new Set(existing?.imageUrls ?? []);
     if (existing?.imageUrl) owned.add(existing.imageUrl);
     const images = await collectProductImages(session.organization.id, formData, owned);
     if ("error" in images) return { error: images.error };
     const { imageUrl, imageUrls } = images;
     const input = toProductInput(parsed.data, imageUrl);
+    if (!trackStock) input.stockQuantity = existing?.stockQuantity ?? 0;
     if (imageUrls !== undefined) input.imageUrls = imageUrls;
     const product = productId
       ? await getCommerce().updateProduct(session.organization.id, productId, input)
@@ -132,6 +135,7 @@ export async function setProductActiveAction(productId: string, active: boolean)
     pricePara: product.pricePara,
     salePricePara: product.salePricePara,
     minQuantity: product.minQuantity,
+    stockQuantity: product.stockQuantity,
     active,
   });
   revalidatePath("/products");
@@ -174,6 +178,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
     pib: text(formData, "pib"),
     mb: text(formData, "mb"),
     brandColor: text(formData, "brandColor"),
+    description: text(formData, "description"),
     audience: text(formData, "audience"),
   });
   if (!parsed.success) {
@@ -185,16 +190,33 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
 
   let logoUrl = session.organization.logoUrl;
   if (formData.get("removeLogo") === "on") logoUrl = null;
+  let coverUrl = session.organization.coverUrl;
+  if (formData.get("removeCover") === "on") coverUrl = null;
   const brandColor = formData.get("clearBrandColor") === "on" ? null : parsed.data.brandColor || null;
   const logo = formData.get("logo");
+  const cover = formData.get("cover");
   try {
     if (logo instanceof File && logo.size > 0) {
       logoUrl = await storeImage(session.organization.id, logo);
     }
+    if (cover instanceof File && cover.size > 0) {
+      coverUrl = await storeImage(session.organization.id, cover);
+    }
+    const submittedKey = text(formData, "efakturaApiKey").trim();
+    if (submittedKey && (submittedKey.length > 200 || /\s/.test(submittedKey))) {
+      return { error: "API ključ nije ispravan." };
+    }
+    const stored = await getCommerce().getOrganization(session.organization.id);
+    const environment = text(formData, "efakturaEnvironment");
     await getCommerce().updateOrganization(session.organization.id, {
       ...parsed.data,
       logoUrl,
       brandColor,
+      coverUrl,
+      trackStock: formData.get("trackStock") === "on",
+      efakturaApiKey: submittedKey || stored?.efakturaApiKey || "",
+      efakturaEnabled: formData.get("efakturaEnabled") === "on",
+      efakturaEnvironment: environment === "produkcija" ? "produkcija" : "demo",
     });
   } catch (error) {
     if (error instanceof DataError) {
@@ -205,6 +227,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
   }
 
   revalidatePath("/settings");
+  revalidatePath("/products");
   revalidatePath("/dashboard");
   revalidatePath("/orders");
   revalidatePath(storePath(session.organization.slug));

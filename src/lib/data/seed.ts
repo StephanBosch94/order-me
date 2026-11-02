@@ -137,13 +137,19 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     city: "Bački Petrovac",
     pib: "109876543",
     mb: "21456789",
-    logoUrl: "/suppliers/mesara-pajic.svg",
+    logoUrl: "/suppliers/mesara-pajic-logo.jpg",
     brandColor: MEAT_BRAND_COLOR,
+    coverUrl: "/products/mesara-pajic-cover.jpg",
+    description: MEAT_DESCRIPTION,
     channel: "b2b",
     audience: "pravna",
     orderPrefix: "PU",
     nextOrderNumber: 1001,
     active: true,
+    trackStock: false,
+    efakturaApiKey: "",
+    efakturaEnabled: false,
+    efakturaEnvironment: "demo",
     createdAt: ago(120),
     updatedAt: now,
   };
@@ -202,6 +208,24 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     createdAt: ago(60),
     updatedAt: ago(2),
   }));
+
+  customers.push({
+    id: seedId("customer:gastro-supply:milica.radic@example.com"),
+    organizationId: orgId,
+    businessName: "Milica Radić",
+    contactName: "Milica Radić",
+    email: "milica.radic@example.com",
+    phone: "+381 69 441 2280",
+    pib: "",
+    address: "Apatinski put 14",
+    city: "Sombor",
+    notes: "",
+    code: "K-0005",
+    party: "fizicka",
+    paymentTermDays: 0,
+    createdAt: ago(40),
+    updatedAt: ago(2),
+  });
 
   const orders: Order[] = [];
   const orderItems: OrderItem[] = [];
@@ -265,6 +289,8 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       },
       customerEmailStatus: "skipped",
       supplierEmailStatus: "skipped",
+      sefInvoiceId: null,
+      sefStatus: null,
       createdAt: input.createdAt,
       updatedAt: input.createdAt,
     };
@@ -497,6 +523,7 @@ function boutiqueCatalog(organizationId: string, now: string) {
     imageUrls: galleryFor(sku, imageUrl),
     active: true,
     minQuantity: 1,
+    stockQuantity: demoStock(sku),
     createdAt: now,
     updatedAt: now,
   });
@@ -513,8 +540,51 @@ function boutiqueCatalog(organizationId: string, now: string) {
   return { categories: [earrings, necklaces, rings], items };
 }
 
+/** Plausible on-hand amounts for the demo catalog. Applied only when a product has no stock yet. */
+const DEMO_STOCK: Record<string, number> = {
+  "MP-BUT": 48,
+  "MP-VRT": 36,
+  "MP-PLC": 42,
+  "MP-SSL": 28,
+  "MP-PKO": 22,
+  "MP-SKOB": 18,
+  "MP-KUL": 14,
+  "MP-PEC": 9,
+  "MP-SVR": 11,
+  "MP-DSL": 16,
+  "MP-CVA": 8,
+  "MA-ALK": 12,
+  "MA-BIS": 6,
+  "MA-LOVE": 9,
+  "MA-IME": 4,
+  "MA-PRS": 15,
+  "MA-TIM": 20,
+  "MA-NAR": 11,
+  "MA-DEC": 7,
+};
+
+function demoStock(sku: string) {
+  return DEMO_STOCK[sku] ?? 0;
+}
+
+export function applyDemoStock(db: DemoDatabase) {
+  let changed = false;
+  for (const product of db.products) {
+    if (typeof product.stockQuantity === "number" && Number.isFinite(product.stockQuantity) && product.stockQuantity >= 0) {
+      continue;
+    }
+    product.stockQuantity = demoStock(product.sku);
+    changed = true;
+  }
+  return changed;
+}
+
 const MEAT_SHOP_NAME = "Mesara Pajić";
-const MEAT_BRAND_COLOR = "#7a1f2b";
+const MEAT_BRAND_COLOR = "#0c1f2e";
+const MEAT_DESCRIPTION = "Sveže meso, petrovački kulen i kobasice iz Bačkog Petrovca.";
+const PREVIOUS_MEAT_LOGOS = new Set(["/suppliers/gastro-supply.svg", "/suppliers/mesara-pajic.svg"]);
+const PREVIOUS_MEAT_COVERS = new Set(["/products/mp-suvo.jpg"]);
+const PREVIOUS_MEAT_DESCRIPTIONS = new Set(["Petrovački kulen, kobasice i suvo meso iz Bačkog Petrovca."]);
 const PACKAGING_SKUS = new Set([
   "KB-4030",
   "PC-025",
@@ -673,7 +743,7 @@ const GASTRO_DEMO_ORDERS: Array<{
       ["MP-SVR", 1],
     ],
     status: "nova",
-    days: 1,
+    days: 16,
     hours: 3,
     notes: "",
   },
@@ -685,7 +755,7 @@ const GASTRO_DEMO_ORDERS: Array<{
       ["MP-PLC", 10],
     ],
     status: "potvrdjena",
-    days: 2,
+    days: 3,
     hours: 5,
     notes: "Dostava na magacin, ulaz iz dvorišta.",
   },
@@ -698,7 +768,7 @@ const GASTRO_DEMO_ORDERS: Array<{
       ["MP-SKOB", 4],
     ],
     status: "potvrdjena",
-    days: 3,
+    days: 18,
     hours: 4,
     notes: "",
   },
@@ -737,7 +807,7 @@ const GASTRO_DEMO_ORDERS: Array<{
       ["MP-SKOB", 2],
     ],
     status: "isporucena",
-    days: 16,
+    days: 31,
     hours: 1,
     notes: "",
   },
@@ -778,6 +848,7 @@ function gastroCatalog(organizationId: string, createdAt: string) {
       imageUrls: gallery,
       active: true,
       minQuantity: product.minQuantity,
+      stockQuantity: demoStock(product.sku),
       createdAt,
       updatedAt: createdAt,
     };
@@ -809,12 +880,20 @@ function ensureMeatShop(db: DemoDatabase) {
     organization.address = "Jarmočna 20";
     changed = true;
   }
-  if (organization.brandColor === "#14532d") {
+  if (organization.brandColor === "#14532d" || organization.brandColor === "#7a1f2b") {
     organization.brandColor = MEAT_BRAND_COLOR;
     changed = true;
   }
-  if (!organization.logoUrl || organization.logoUrl === "/suppliers/gastro-supply.svg") {
-    organization.logoUrl = "/suppliers/mesara-pajic.svg";
+  if (!organization.logoUrl || PREVIOUS_MEAT_LOGOS.has(organization.logoUrl)) {
+    organization.logoUrl = "/suppliers/mesara-pajic-logo.jpg";
+    changed = true;
+  }
+  if (organization.coverUrl === undefined || (organization.coverUrl !== null && PREVIOUS_MEAT_COVERS.has(organization.coverUrl))) {
+    organization.coverUrl = "/products/mesara-pajic-cover.jpg";
+    changed = true;
+  }
+  if (organization.description === undefined || PREVIOUS_MEAT_DESCRIPTIONS.has(organization.description)) {
+    organization.description = MEAT_DESCRIPTION;
     changed = true;
   }
   if (changed) organization.updatedAt = now;
@@ -911,11 +990,17 @@ function ensureJewelryShop(db: DemoDatabase) {
       mb: "",
       logoUrl: null,
       brandColor: null,
+      coverUrl: "/products/ma-ogrlica.svg",
+      description: "Ručno rađen nakit iz ateljea u Beogradu.",
       channel: "b2c",
       audience: "fizicka",
       orderPrefix: "BV",
       nextOrderNumber: 1001,
       active: true,
+      trackStock: false,
+      efakturaApiKey: "",
+      efakturaEnabled: false,
+      efakturaEnvironment: "demo",
       createdAt: now,
       updatedAt: now,
     };
@@ -925,6 +1010,14 @@ function ensureJewelryShop(db: DemoDatabase) {
   const identity = `${organization.name}|${organization.slug}|${organization.email}|${organization.city}|${organization.logoUrl}`;
   fillBoutique(organization, now);
   if (identity !== `${organization.name}|${organization.slug}|${organization.email}|${organization.city}|${organization.logoUrl}`) {
+    changed = true;
+  }
+  if (organization.coverUrl === undefined) {
+    organization.coverUrl = "/products/ma-ogrlica.svg";
+    changed = true;
+  }
+  if (organization.description === undefined) {
+    organization.description = "Ručno rađen nakit iz ateljea u Beogradu.";
     changed = true;
   }
   const owned = db.products.filter((product) => product.organizationId === organization.id);
@@ -974,6 +1067,7 @@ export async function ensureRetailDemo(db: DemoDatabase) {
   changed = renameUserEmail(db, "jovana@butikvera.rs", RETAIL_BUYER_EMAIL) || changed;
   changed = ensureMeatShop(db) || changed;
   changed = ensureJewelryShop(db) || changed;
+  changed = applyDemoStock(db) || changed;
   const ownerChanged = await ensureBoutiqueOwner(db);
   const buyersChanged = await ensureDemoBuyers(db);
   const platformChanged = await ensurePlatformAdmin(db);
@@ -1356,6 +1450,8 @@ function ensureRetailBuyerOrders(db: DemoDatabase, user: DemoUser) {
       },
       customerEmailStatus: "skipped",
       supplierEmailStatus: "skipped",
+      sefInvoiceId: null,
+      sefStatus: null,
       createdAt,
       updatedAt: createdAt,
     });

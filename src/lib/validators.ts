@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { RESERVED_SLUGS } from "@/lib/constants";
-import { normalizeQuantity } from "@/lib/data/pricing";
+import { normalizeQuantity, normalizeStockQuantity } from "@/lib/data/pricing";
 import { ORDER_STATUS_VALUES, UNIT_VALUES, type ProductInput } from "@/lib/data/types";
 import { parseRsdToPara } from "@/lib/format";
 
@@ -159,6 +159,7 @@ export const organizationSchema = z.object({
     .string()
     .trim()
     .refine((value) => value === "" || /^#[0-9a-fA-F]{6}$/.test(value), "Unesite boju u formatu #RRGGBB."),
+  description: z.string().trim().max(240, "Opis može imati najviše 240 karaktera."),
   audience: z.enum(["fizicka", "pravna", "oba"], "Izaberite kome prodajete."),
 });
 
@@ -180,10 +181,12 @@ export const customerSchema = z
     code: z
       .string()
       .trim()
-      .min(1, "Unesite šifru kupca.")
       .max(20, "Šifra može imati najviše 20 karaktera.")
       .transform((value) => value.toUpperCase())
-      .refine((value) => /^[A-Z0-9][A-Z0-9-]*$/.test(value), "Šifra može da sadrži slova, brojeve i crtu."),
+      .refine(
+        (value) => value === "" || /^[A-Z0-9][A-Z0-9-]*$/.test(value),
+        "Šifra može da sadrži slova, brojeve i crtu.",
+      ),
   })
   .superRefine((value, ctx) => {
     if (value.party !== "pravna") return;
@@ -283,6 +286,7 @@ export const productFormSchema = z
     price: z.string().trim().min(1, "Unesite cenu."),
     salePrice: z.string().trim(),
     minQuantity: z.string().trim().min(1, "Unesite minimalnu količinu."),
+    stockQuantity: z.string().trim().min(1, "Unesite stanje u magacinu."),
     active: z.boolean(),
   })
   .superRefine((value, ctx) => {
@@ -317,6 +321,14 @@ export const productFormSchema = z
         code: "custom",
         path: ["minQuantity"],
         message: "Minimalna količina nije ispravna za izabranu jedinicu.",
+      });
+    }
+    const stock = Number(value.stockQuantity.replace(",", "."));
+    if (normalizeStockQuantity(stock, value.unit) === null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["stockQuantity"],
+        message: "Stanje u magacinu nije ispravno za izabranu jedinicu.",
       });
     }
   });
@@ -409,7 +421,7 @@ export const retailOrderSchema = z
     postalCode: z.string().trim(),
     city: z.string().trim().min(2, "Unesite grad.").max(80),
     notes: z.string().trim().max(1000),
-    paymentMethod: z.enum(["pouzecem", "ips"], "Izaberite način plaćanja."),
+    paymentMethod: z.enum(["pouzecem", "ips", "racun"], "Izaberite način plaćanja."),
     company: z.boolean().optional(),
     businessName: z.string().trim().max(160).optional(),
     pib: z.string().trim().max(20).optional(),
@@ -438,6 +450,9 @@ export const retailOrderSchema = z
       });
     }
     if (value.company) {
+      if (value.paymentMethod !== "racun") {
+        ctx.addIssue({ code: "custom", path: ["paymentMethod"], message: "Pravno lice plaća na račun." });
+      }
       const businessName = value.businessName?.trim() ?? "";
       const pib = (value.pib ?? "").replace(/\D/g, "");
       if (businessName.length < 2) {
@@ -453,6 +468,8 @@ export const retailOrderSchema = z
           message: value.mb?.trim() ? "Matični broj ima 8 cifara." : "Unesite matični broj.",
         });
       }
+    } else if (value.paymentMethod === "racun") {
+      ctx.addIssue({ code: "custom", path: ["paymentMethod"], message: "Izaberite način plaćanja." });
     }
     if (value.honeypot) {
       ctx.addIssue({ code: "custom", path: ["honeypot"], message: "Kupovina nije prihvaćena." });
@@ -475,7 +492,14 @@ export function toProductInput(
   const pricePara = parseRsdToPara(value.price);
   const salePricePara = value.salePrice ? parseRsdToPara(value.salePrice) : null;
   const minQuantity = normalizeQuantity(Number(value.minQuantity.replace(",", ".")), value.unit);
-  if (pricePara === null || pricePara <= 0 || minQuantity === null || (value.salePrice && (salePricePara === null || salePricePara >= pricePara))) {
+  const stockQuantity = normalizeStockQuantity(Number(value.stockQuantity.replace(",", ".")), value.unit);
+  if (
+    pricePara === null ||
+    pricePara <= 0 ||
+    minQuantity === null ||
+    stockQuantity === null ||
+    (value.salePrice && (salePricePara === null || salePricePara >= pricePara))
+  ) {
     throw new Error("Proizvod nije ispravan.");
   }
 
@@ -489,6 +513,7 @@ export function toProductInput(
     pricePara,
     salePricePara,
     minQuantity,
+    stockQuantity,
     active: value.active,
     imageUrl,
   };

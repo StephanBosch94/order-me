@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { updateSettingsAction, type FormState } from "@/lib/actions/catalog";
 import type { Organization } from "@/lib/data/types";
@@ -16,17 +16,42 @@ import {
   IMAGE_SIZE_ERROR,
   IMAGE_TYPE_ERROR,
 } from "@/components/ui/file-dropzone";
-import { FieldError, Input, Label } from "@/components/ui/fields";
+import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
 
 const initial: FormState = {};
+type SettingsTab = "podaci" | "izgled";
 
-export function SettingsForm({ organization }: { organization: Organization }) {
+export function SettingsForm({
+  organization,
+  hasEfakturaApiKey,
+}: {
+  organization: Organization;
+  hasEfakturaApiKey: boolean;
+}) {
   const [state, action, pending] = useActionState(updateSettingsAction, initial);
+  const [tab, setTab] = useState<SettingsTab>("podaci");
+
+  useEffect(() => {
+    const errors = state.fieldErrors;
+    if (!errors) return;
+    const appearance = ["description", "brandColor"];
+    if (Object.keys(errors).some((key) => appearance.includes(key))) setTab("izgled");
+    else if (Object.keys(errors).length > 0) setTab("podaci");
+  }, [state]);
+
   return (
     <form action={action} className="max-w-2xl space-y-4">
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700">{state.message}</p> : null}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="inline-flex rounded-lg border border-border bg-card p-1" role="tablist" aria-label="Podešavanja">
+        <SettingsTabButton selected={tab === "podaci"} onClick={() => setTab("podaci")}>
+          Podaci
+        </SettingsTabButton>
+        <SettingsTabButton selected={tab === "izgled"} onClick={() => setTab("izgled")}>
+          Izgled stranice
+        </SettingsTabButton>
+      </div>
+      <div className={tab === "podaci" ? "grid gap-4 sm:grid-cols-2" : "hidden"} role="tabpanel">
         <AudienceChoice
           className="sm:col-span-2"
           defaultValue={organization.audience}
@@ -54,7 +79,88 @@ export function SettingsForm({ organization }: { organization: Organization }) {
         </div>
         <Setting name="pib" label="PIB" defaultValue={organization.pib} error={state.fieldErrors?.pib} />
         <Setting name="mb" label="Matični broj" defaultValue={organization.mb} error={state.fieldErrors?.mb} />
+        <div className="sm:col-span-2 rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="trackStock"
+              defaultChecked={organization.trackStock === true}
+              className="mt-0.5 size-4 accent-zinc-950"
+            />
+            <span>
+              <span className="text-sm font-medium">Praćenje stanja u magacinu</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Kad je uključeno, svaki proizvod prikazuje stanje u magacinu, a nova porudžbina tu količinu smanjuje.
+                Otkazivanje je vraća.
+              </span>
+            </span>
+          </label>
+        </div>
+        <div className="sm:col-span-2 rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="efakturaEnabled"
+              defaultChecked={organization.efakturaEnabled === true}
+              className="mt-0.5 size-4 accent-zinc-950"
+            />
+            <span>
+              <span className="text-sm font-medium">Šalji e-fakturu za pravna lica</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Kad je uključeno, fakturu za pravno lice možete poslati u Sistem elektronskih faktura. Nalog za fizičko lice se ne šalje.
+              </span>
+            </span>
+          </label>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="efakturaApiKey">API ključ</Label>
+              <Input
+                id="efakturaApiKey"
+                name="efakturaApiKey"
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                className="mt-1.5"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {hasEfakturaApiKey
+                  ? "API ključ je sačuvan. Prazno polje ga ne briše."
+                  : "Ključ iz portala eFaktura, Podešavanja, Upravljanje API. Nije obavezan za čuvanje podešavanja ni za štampu."}
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="efakturaEnvironment">Okruženje</Label>
+              <select
+                id="efakturaEnvironment"
+                name="efakturaEnvironment"
+                defaultValue={organization.efakturaEnvironment === "produkcija" ? "produkcija" : "demo"}
+                className="mt-1.5 h-10 w-full rounded-md border border-input bg-card px-3 text-sm"
+              >
+                <option value="demo">Demo</option>
+                <option value="produkcija">Produkcija</option>
+              </select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Podrazumevano je demo okruženje Ministarstva finansija.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className={tab === "izgled" ? "grid gap-4 sm:grid-cols-2" : "hidden"} role="tabpanel">
         <LogoField organization={organization} />
+        <CoverField organization={organization} />
+        <div className="sm:col-span-2">
+          <Label htmlFor="description">Opis</Label>
+          <Textarea
+            id="description"
+            name="description"
+            defaultValue={organization.description}
+            maxLength={240}
+            className="mt-1.5"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Stoji preko naslovne slike u prodavnici.</p>
+          <FieldError message={state.fieldErrors?.description} />
+        </div>
         <BrandColorSetting
           key={organization.brandColor ?? "none"}
           initial={organization.brandColor}
@@ -65,6 +171,28 @@ export function SettingsForm({ organization }: { organization: Organization }) {
         {pending ? "Čuvanje…" : "Sačuvaj izmene"}
       </Button>
     </form>
+  );
+}
+
+function SettingsTabButton({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      onClick={onClick}
+      className={`h-9 cursor-pointer rounded-md px-3 text-sm font-medium ${selected ? "bg-primary text-primary-foreground" : "text-foreground"}`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -153,7 +281,7 @@ function LogoField({ organization }: { organization: Organization }) {
         maxBytes={IMAGE_MAX_BYTES}
         heading="Prevucite logotip ovde"
         releaseHeading="Pustite da dodate logotip"
-        hint="JPG, PNG ili WebP, do 2 MB. Prikazuje se kupcima na stranici za poručivanje."
+        hint="Kvadrat, 512 × 512 px. JPG, PNG ili WebP, do 2 MB. U zaglavlju se vidi na 48 × 48 px."
         emptyVisual={
           organization.logoUrl ? <SupplierLogo name={organization.name} logoUrl={organization.logoUrl} className="size-12" /> : undefined
         }
@@ -165,6 +293,37 @@ function LogoField({ organization }: { organization: Organization }) {
         <label className="mt-2 flex items-center gap-2 text-sm">
           <input type="checkbox" name="removeLogo" className="size-4 accent-zinc-950" />
           Uklonite logotip
+        </label>
+      ) : null}
+    </div>
+  );
+}
+
+function CoverField({ organization }: { organization: Organization }) {
+  return (
+    <div className="sm:col-span-2">
+      <Label htmlFor="cover">Naslovna slika</Label>
+      {organization.coverUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={organization.coverUrl} alt="" className="mt-2 h-36 w-full rounded-lg border border-border object-cover" />
+      ) : null}
+      <FileDropzone
+        id="cover"
+        name="cover"
+        accept={IMAGE_FILE_ACCEPT}
+        allowedTypes={IMAGE_FILE_TYPES}
+        maxBytes={IMAGE_MAX_BYTES}
+        heading="Prevucite naslovnu sliku ovde"
+        releaseHeading="Pustite da dodate naslovnu sliku"
+        hint="1920 × 640 px. JPG, PNG ili WebP, do 2 MB. Puni širinu stranice, visina je 288 px."
+        showImagePreview
+        sizeError={IMAGE_SIZE_ERROR}
+        typeError={IMAGE_TYPE_ERROR}
+      />
+      {organization.coverUrl ? (
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input type="checkbox" name="removeCover" className="size-4 accent-zinc-950" />
+          Uklonite naslovnu sliku
         </label>
       ) : null}
     </div>

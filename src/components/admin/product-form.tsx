@@ -42,9 +42,11 @@ const moveButtonClass =
 export function ProductForm({
   product,
   categories,
+  trackStock = false,
 }: {
   product?: Product;
   categories: Category[];
+  trackStock?: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -121,6 +123,7 @@ export function ProductForm({
       price: String(formData.get("price") ?? ""),
       salePrice: String(formData.get("salePrice") ?? ""),
       minQuantity: String(formData.get("minQuantity") ?? ""),
+      stockQuantity: trackStock ? String(formData.get("stockQuantity") ?? "") : "0",
       active: formData.get("active") === "on",
     };
     const parsed = productFormSchema.safeParse(values);
@@ -197,6 +200,21 @@ export function ProductForm({
           <Input id="minQuantity" name="minQuantity" defaultValue={product ? String(product.minQuantity).replace(".", ",") : "1"} className="mt-1.5" inputMode="decimal" required />
           <FieldError message={errors.minQuantity} />
         </div>
+        {trackStock ? (
+          <div>
+            <Label htmlFor="stockQuantity">Stanje u magacinu</Label>
+            <Input
+              id="stockQuantity"
+              name="stockQuantity"
+              defaultValue={product ? String(product.stockQuantity).replace(".", ",") : "0"}
+              className="mt-1.5"
+              inputMode="decimal"
+              required
+            />
+            <p className="mt-1 text-xs text-muted-foreground">Ista jedinica kao na proizvodu. 0 znači da je magacin prazan.</p>
+            <FieldError message={errors.stockQuantity} />
+          </div>
+        ) : null}
         <div>
           <Label htmlFor="categoryId">Kategorija</Label>
           <Select id="categoryId" name="categoryId" defaultValue={product?.categoryId ?? ""} className="mt-1.5">

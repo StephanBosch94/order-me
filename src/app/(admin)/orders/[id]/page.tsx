@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { OrderStatusMenu } from "@/components/admin/order-actions";
+import { OrderStatusMenu, SendEfakturaButton } from "@/components/admin/order-actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireSession } from "@/lib/auth";
 import { paymentLabel, unitLabel } from "@/lib/constants";
@@ -46,6 +46,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           >
             Štampaj {kind === "faktura" ? "fakturu" : "nalog"}
           </a>
+          {order.sefInvoiceId ? (
+            <p className="text-sm">
+              <span className="font-medium">E-faktura:</span> Poslata · {order.sefInvoiceId}
+            </p>
+          ) : party === "pravna" && session.organization.efakturaEnabled ? (
+            <SendEfakturaButton orderId={order.id} />
+          ) : null}
         </div>
       </div>
 
@@ -84,12 +91,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         <div className="space-y-4">
           <section className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold">Kupac</h2>
-              <Link href={`/customers/${order.customerId}`} className="text-sm text-muted-foreground hover:text-foreground">
-                Izmeni
-              </Link>
-            </div>
+            <h2 className="text-sm font-semibold">Kupac</h2>
             <dl className="mt-3 space-y-2 text-sm">
               <div>
                 <dt className="text-muted-foreground">Šifra</dt>
@@ -106,7 +108,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               <div>
                 <dt className="text-muted-foreground">{party === "pravna" ? "Firma" : "Ime"}</dt>
-                <dd>{customer.businessName}</dd>
+                <dd>
+                  <Link href={`/customers/${order.customerId}`} className="font-medium hover:underline">
+                    {customer.businessName}
+                  </Link>
+                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Kontakt</dt>

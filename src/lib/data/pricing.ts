@@ -1,6 +1,6 @@
 import { unitLabel } from "@/lib/constants";
 import { formatQuantity } from "@/lib/format";
-import type { Product, Unit } from "@/lib/data/types";
+import type { OrderStatus, Product, Unit } from "@/lib/data/types";
 
 export type PricedLine = {
   productId: string;
@@ -39,6 +39,53 @@ export function normalizeQuantity(quantity: number, unit: Unit) {
   }
   if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 9999) return null;
   return quantity;
+}
+
+/** Warehouse stock uses the product unit and may be zero. */
+export function normalizeStockQuantity(quantity: number, unit: Unit) {
+  if (!Number.isFinite(quantity) || quantity < 0 || quantity > 999_999) return null;
+  if (isFractionalUnit(unit)) return Math.round(quantity * 1000) / 1000;
+  if (!Number.isInteger(quantity)) return null;
+  return quantity;
+}
+
+export type StockDirection = "reserve" | "release";
+
+/** Returning stock happens only when an order first becomes cancelled. */
+export function stockDirectionForStatus(from: OrderStatus, to: OrderStatus): StockDirection | null {
+  if (to === "otkazana" && from !== "otkazana") return "release";
+  return null;
+}
+
+/**
+ * Reserve subtracts ordered quantities and never goes below zero.
+ * Release adds those quantities back. Lines without a product id are skipped.
+ */
+export function nextStockQuantities(
+  products: Pick<Product, "id" | "unit" | "stockQuantity">[],
+  lines: { productId: string | null; quantity: number }[],
+  direction: StockDirection,
+): { id: string; stockQuantity: number }[] {
+  const quantityByProduct = new Map<string, number>();
+  for (const line of lines) {
+    if (!line.productId) continue;
+    if (!Number.isFinite(line.quantity) || line.quantity <= 0) continue;
+    quantityByProduct.set(line.productId, (quantityByProduct.get(line.productId) ?? 0) + line.quantity);
+  }
+
+  const byId = new Map(products.map((product) => [product.id, product]));
+  const updates: { id: string; stockQuantity: number }[] = [];
+  for (const [productId, quantity] of quantityByProduct) {
+    const product = byId.get(productId);
+    if (!product) continue;
+    const delta = direction === "reserve" ? -quantity : quantity;
+    const floored = Math.max(0, product.stockQuantity + delta);
+    const rounded = isFractionalUnit(product.unit) ? Math.round(floored * 1000) / 1000 : Math.trunc(floored);
+    const stockQuantity = normalizeStockQuantity(Math.min(rounded, 999_999), product.unit);
+    if (stockQuantity === null || stockQuantity === product.stockQuantity) continue;
+    updates.push({ id: product.id, stockQuantity });
+  }
+  return updates;
 }
 
 export function priceOrderLines(

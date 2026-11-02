@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent a
 import { toast } from "sonner";
 
 import { importProductsAction, setProductActiveAction } from "@/lib/actions/catalog";
+import { sendEfakturaAction } from "@/lib/actions/efaktura";
 import { updateOrderStatusAction } from "@/lib/actions/orders";
 import { ORDER_STATUSES, statusLabel } from "@/lib/constants";
 import type { OrderStatus } from "@/lib/data/types";
@@ -142,6 +143,40 @@ export function OrderStatusMenu({ orderId, status }: { orderId: string; status: 
   );
 }
 
+export function SendEfakturaButton({ orderId }: { orderId: string }) {
+  const router = useRouter();
+  const [message, setMessage] = useState("");
+  const [pending, startTransition] = useTransition();
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <Button
+        variant="secondary"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            setMessage("");
+            const result = await sendEfakturaAction(orderId);
+            setMessage(result.ok ? "" : result.message);
+            if (!result.ok) {
+              toast.error(result.message);
+              return;
+            }
+            toast.success(result.message);
+            router.refresh();
+          })
+        }
+      >
+        {pending ? "Slanje…" : "Pošalji e-fakturu"}
+      </Button>
+      {message ? (
+        <p role="alert" className="max-w-xs text-sm text-destructive">
+          {message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function ConfirmOrderButton({ orderId }: { orderId: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -217,7 +252,7 @@ export function CsvImport() {
           setOpen(true);
         }}
       >
-        Uvezi CSV
+        Ubaci CSV
       </Button>
       {open ? (
         <div
@@ -276,7 +311,7 @@ export function CsvImport() {
               {message ? <p className="text-sm">{message}</p> : null}
               <div className="flex gap-2">
                 <Button type="submit" disabled={pending}>
-                  {pending ? "Uvoz…" : "Uvezi"}
+                  {pending ? "Uvoz…" : "Ubaci"}
                 </Button>
                 <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
                   Zatvori

@@ -1,15 +1,21 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { StoreAccountLinks } from "@/components/shop/account-links";
 import { BuyerMenu } from "@/components/shop/buyer-menu";
 import { CartButton } from "@/components/shop/cart-button";
 import { StoreHeader } from "@/components/shop/store-header";
-import { PaymentMethodChoice } from "@/components/shop/checkout-kind";
+import {
+  BuyerKindChoice,
+  PaymentMethodChoice,
+  checkoutParty,
+  showsGuestPartySwitch,
+  type BuyerKind,
+} from "@/components/shop/checkout-kind";
 import { updateBuyerAccountAction, type BuyerAccountState } from "@/lib/actions/account";
 import { placeShopOrderAction } from "@/lib/actions/orders";
 import { isCompanyBuyer } from "@/lib/buyer";
@@ -18,7 +24,6 @@ import { supplierTheme } from "@/lib/color";
 import {
   addCartQuantity,
   confirmationPath,
-  isBusinessStore,
   normalizeCartQuantity,
   ordersPath,
   productPath,
@@ -27,9 +32,10 @@ import {
   unitLabel,
 } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
-import type { BuyerAccount, BuyerOrder, OrderedQuantity, Product, PublicCatalog } from "@/lib/data/types";
+import type { Audience, BuyerAccount, BuyerOrder, OrderedQuantity, Product, PublicCatalog } from "@/lib/data/types";
 import { belgradeMonthKey, currentBelgradeMonthKey, formatDateTime, formatQuantity, formatRsd, monthLabel } from "@/lib/format";
 import { purchaseMonths, purchasesForMonth } from "@/lib/purchases";
+import { fold } from "@/lib/text";
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -68,13 +74,17 @@ export function Shop({
   const [step, setStep] = useState<Step>("browse");
   const [pane, setPane] = useState<"catalog" | "account">(openAccount ? "account" : "catalog");
   const [categoryId, setCategoryId] = useState("all");
+  const [query, setQuery] = useState("");
   const storedCart = useSyncExternalStore(subscribeCart, () => readCartRaw(storageKey), () => "{}");
   const quantities = useMemo(() => parseCart(storedCart), [storedCart]);
 
   const hasSales = catalog.products.some((product) => salePricePara(product));
+  const needle = fold(query.trim());
   const products = catalog.products.filter((product) => {
-    if (categoryId === "sale") return Boolean(salePricePara(product));
-    return categoryId === "all" || product.categoryId === categoryId;
+    if (categoryId === "sale" && !salePricePara(product)) return false;
+    if (categoryId !== "all" && categoryId !== "sale" && product.categoryId !== categoryId) return false;
+    if (!needle) return true;
+    return fold(product.name).includes(needle);
   });
   const lines = catalog.products
     .map((product) => ({
@@ -187,24 +197,7 @@ export function Shop({
           />
         ) : null}
       </StoreHeader>
-      {catalog.supplier.slug === "mercis-atelier" ? (
-        <div className="relative h-56 overflow-hidden bg-[#1c1917] sm:h-72">
-          <img src="/products/ma-ogrlica.svg" alt="" className="size-full object-contain p-8" />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent" />
-          <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
-            Ručno rađen nakit iz ateljea u Beogradu.
-          </p>
-        </div>
-      ) : null}
-      {catalog.supplier.slug === "mesara-pajic" ? (
-        <div className="relative h-56 overflow-hidden sm:h-72">
-          <img src="/products/mp-suvo.jpg" alt="" className="size-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
-          <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
-            Petrovački kulen, kobasice i suvo meso iz Bačkog Petrovca.
-          </p>
-        </div>
-      ) : null}
+      <ShopCover imageUrl={catalog.supplier.coverUrl} text={catalog.supplier.description} />
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         {step === "browse" && pane === "account" && buyer ? (
@@ -226,28 +219,40 @@ export function Shop({
         {step === "browse" && pane === "catalog" ? (
           <>
             {companyBuyer ? <LastOrder order={latestOrder(orders)} onRepeat={addOrderToCart} /> : null}
-            <div className="flex gap-2 overflow-x-auto pb-1" role="toolbar" aria-label="Kategorije">
-              <CategoryButton active={categoryId === "all"} onClick={() => setCategoryId("all")}>
-                Sve
-              </CategoryButton>
-              {hasSales ? (
-                <CategoryButton active={categoryId === "sale"} onClick={() => setCategoryId("sale")}>
-                  Akcija
+            <div className="flex items-center gap-3">
+              <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1" role="toolbar" aria-label="Kategorije">
+                <CategoryButton active={categoryId === "all"} onClick={() => setCategoryId("all")}>
+                  Sve
                 </CategoryButton>
-              ) : null}
-              {catalog.categories.map((category) => (
-                <CategoryButton
-                  key={category.id}
-                  active={categoryId === category.id}
-                  onClick={() => setCategoryId(category.id)}
-                >
-                  {category.name}
-                </CategoryButton>
-              ))}
+                {hasSales ? (
+                  <CategoryButton active={categoryId === "sale"} onClick={() => setCategoryId("sale")}>
+                    Akcija
+                  </CategoryButton>
+                ) : null}
+                {catalog.categories.map((category) => (
+                  <CategoryButton
+                    key={category.id}
+                    active={categoryId === category.id}
+                    onClick={() => setCategoryId(category.id)}
+                  >
+                    {category.name}
+                  </CategoryButton>
+                ))}
+              </div>
+              <div className="relative w-44 shrink-0 sm:w-56">
+                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Pretraži"
+                  aria-label="Pretraži proizvode"
+                  className="h-9 pl-9"
+                />
+              </div>
             </div>
             {products.length === 0 ? (
               <p className="mt-6 rounded-lg border border-dashed border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
-                Trenutno nema proizvoda.
+                {needle ? `Nema proizvoda za „${query.trim()}”.` : "Trenutno nema proizvoda."}
               </p>
             ) : (
               <section className="mt-4">
@@ -274,7 +279,7 @@ export function Shop({
         {step === "checkout" ? (
           <Checkout
             slug={catalog.supplier.slug}
-            business={isBusinessStore(catalog.supplier.audience)}
+            audience={catalog.supplier.audience}
             buyer={buyer}
             lines={lines}
             total={total}
@@ -289,6 +294,26 @@ export function Shop({
           />
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function ShopCover({ imageUrl, text }: { imageUrl: string | null; text: string }) {
+  if (!imageUrl && !text) return null;
+  const contained = imageUrl?.endsWith(".svg") ?? false;
+  return (
+    <div className={`relative h-56 overflow-hidden sm:h-72 ${contained ? "bg-[#1c1917]" : "bg-zinc-900"}`}>
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt=""
+          className={contained ? "size-full object-contain p-8" : "size-full object-cover"}
+        />
+      ) : null}
+      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
+      {text ? (
+        <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">{text}</p>
+      ) : null}
     </div>
   );
 }
@@ -671,9 +696,12 @@ export function Cart({
         <ul className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">
           {lines.map((line) => (
             <li key={line.product.id} className="flex items-center justify-between gap-3 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium">{line.product.name}</p>
-                <p className="text-sm text-muted-foreground tabular-nums">{formatRsd(effectivePricePara(line.product))}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <ProductImage src={line.product.imageUrl} alt={line.product.name} className="size-12" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{line.product.name}</p>
+                  <p className="text-sm text-muted-foreground tabular-nums">{formatRsd(effectivePricePara(line.product))}</p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -718,7 +746,7 @@ export function Cart({
 
 export function Checkout({
   slug,
-  business,
+  audience,
   buyer,
   lines,
   total,
@@ -727,7 +755,7 @@ export function Checkout({
   onSuccess,
 }: {
   slug: string;
-  business: boolean;
+  audience: Audience;
   buyer?: BuyerAccount | null;
   lines: { product: Product; quantity: number }[];
   total: number;
@@ -735,6 +763,11 @@ export function Checkout({
   onBack: () => void;
   onSuccess: (token: string) => void;
 }) {
+  const detailsRef = useRef<HTMLFormElement>(null);
+  const accountParty: BuyerKind | null = buyer ? (isCompanyBuyer(buyer) ? "pravna" : "fizicka") : null;
+  const guestSwitch = showsGuestPartySwitch(audience, buyer);
+  const [guestParty, setGuestParty] = useState<BuyerKind>("fizicka");
+  const party = checkoutParty(audience, accountParty, guestParty);
   const [phase, setPhase] = useState<"details" | "payment">("details");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -751,63 +784,87 @@ export function Checkout({
     postalCode: buyer?.postalCode ?? "",
     city: buyer?.city ?? "",
   });
-  const company = buyer && isCompanyBuyer(buyer) ? buyer : null;
-  const [asCompany, setAsCompany] = useState(Boolean(company));
+  const company = buyer && party === "pravna" && isCompanyBuyer(buyer) ? buyer : null;
   const [companyFields, setCompanyFields] = useState({
-    businessName: company?.businessName ?? "",
-    pib: company?.pib ?? "",
-    mb: company?.mb ?? "",
+    businessName: company?.businessName ?? buyer?.businessName ?? "",
+    pib: company?.pib ?? buyer?.pib ?? "",
+    mb: company?.mb ?? buyer?.mb ?? "",
   });
 
-  function rememberRetail(form: FormData) {
-    setRetail({
-      customerName: String(form.get("customerName") ?? ""),
-      email: String(form.get("email") ?? ""),
-      phone: String(form.get("phone") ?? ""),
-      address: String(form.get("address") ?? ""),
-      postalCode: String(form.get("postalCode") ?? ""),
-      city: String(form.get("city") ?? ""),
-    });
-    setNotes(String(form.get("notes") ?? ""));
-    if (asCompany) {
+  function chooseGuestParty(next: BuyerKind) {
+    const form = detailsRef.current;
+    if (form && guestParty === "pravna") {
+      const data = new FormData(form);
       setCompanyFields({
-        businessName: String(form.get("businessName") ?? ""),
-        pib: String(form.get("pib") ?? ""),
-        mb: String(form.get("mb") ?? ""),
+        businessName: String(data.get("businessName") ?? ""),
+        pib: String(data.get("pib") ?? ""),
+        mb: String(data.get("mb") ?? ""),
       });
     }
+    setGuestParty(next);
+    setErrors({});
+    setMessage("");
   }
 
-  async function place(paymentMethod?: string, companyDraft?: { notes: string; mb: string; postalCode: string }) {
+  async function place(
+    paymentMethod?: string,
+    companyDraft?: { notes: string; mb: string; postalCode: string },
+    retailDraft?: {
+      customerName: string;
+      email: string;
+      phone: string;
+      address: string;
+      postalCode: string;
+      city: string;
+      notes: string;
+      company: boolean;
+      businessName: string;
+      pib: string;
+      mb: string;
+    },
+  ) {
     if (pending) return;
     setPending(true);
     setMessage("");
     const items = lines.map((line) => ({ productId: line.product.id, quantity: line.quantity }));
-    const result = business
+    const retailPayload = retailDraft ?? {
+      customerName: retail.customerName,
+      email: retail.email,
+      phone: retail.phone,
+      address: retail.address,
+      postalCode: retail.postalCode,
+      city: retail.city,
+      notes,
+      company: false,
+      businessName: "",
+      pib: "",
+      mb: "",
+    };
+    const result = company
       ? await placeShopOrderAction({
           slug,
           idempotencyKey: readIdempotencyKey(idempotencyStorage),
           notes: companyDraft?.notes ?? notes,
-          mb: company?.mb || companyDraft?.mb || companyExtra.mb,
-          postalCode: company?.postalCode || companyDraft?.postalCode || companyExtra.postalCode,
+          mb: company.mb || companyDraft?.mb || companyExtra.mb,
+          postalCode: company.postalCode || companyDraft?.postalCode || companyExtra.postalCode,
           honeypot,
           items,
         })
       : await placeShopOrderAction({
           slug,
           idempotencyKey: readIdempotencyKey(idempotencyStorage),
-          customerName: retail.customerName,
-          email: retail.email,
-          phone: retail.phone,
-          address: retail.address,
-          postalCode: retail.postalCode,
-          city: retail.city,
-          notes,
+          customerName: retailPayload.customerName,
+          email: retailPayload.email,
+          phone: retailPayload.phone,
+          address: retailPayload.address,
+          postalCode: retailPayload.postalCode,
+          city: retailPayload.city,
+          notes: retailPayload.notes,
           paymentMethod,
-          company: asCompany,
-          businessName: asCompany ? companyFields.businessName : "",
-          pib: asCompany ? companyFields.pib : "",
-          mb: asCompany ? companyFields.mb : "",
+          company: retailPayload.company,
+          businessName: retailPayload.company ? retailPayload.businessName : "",
+          pib: retailPayload.company ? retailPayload.pib : "",
+          mb: retailPayload.company ? retailPayload.mb : "",
           honeypot,
           items,
         });
@@ -821,7 +878,7 @@ export function Checkout({
     onSuccess(result.token);
   }
 
-  if (business && !company) {
+  if (audience === "pravna" && !company) {
     const back = storePath(slug);
     return (
       <div className="mx-auto max-w-xl space-y-4">
@@ -842,7 +899,7 @@ export function Checkout({
     );
   }
 
-  if (phase === "payment" && !business) {
+  if (phase === "payment" && party === "fizicka") {
     return (
       <form
         onSubmit={(event) => {
@@ -860,10 +917,7 @@ export function Checkout({
           Nazad na kasu
         </button>
         <h2 className="text-lg font-semibold">Način plaćanja</h2>
-        <p className="text-sm text-muted-foreground">
-          Ukupno {formatRsd(total)}.
-          {asCompany ? ` Račun na ${companyFields.businessName.trim()}, PIB ${companyFields.pib.replace(/\D/g, "")}.` : ""}
-        </p>
+        <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}.</p>
         {message ? <Alert message={message} /> : null}
         <PaymentMethodChoice value={paymentMethod} error={errors.paymentMethod} onChange={setPaymentMethod} />
         <Honeypot value={honeypot} onChange={setHoneypot} />
@@ -874,7 +928,7 @@ export function Checkout({
     );
   }
 
-  if (business && company) {
+  if (company) {
     return (
       <form
         onSubmit={(event) => {
@@ -927,8 +981,11 @@ export function Checkout({
     );
   }
 
+  const guestCompany = party === "pravna";
+
   return (
     <form
+      ref={detailsRef}
       onSubmit={(event) => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
@@ -937,10 +994,10 @@ export function Checkout({
         if (!/^\d{5}$/.test(postalCode)) {
           nextErrors.postalCode = postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj.";
         }
-        if (asCompany) {
-          const businessName = String(form.get("businessName") ?? "").trim();
-          const pib = String(form.get("pib") ?? "").replace(/\D/g, "");
-          const mb = String(form.get("mb") ?? "").replace(/\D/g, "");
+        const businessName = String(form.get("businessName") ?? "").trim();
+        const pib = String(form.get("pib") ?? "").replace(/\D/g, "");
+        const mb = String(form.get("mb") ?? "").replace(/\D/g, "");
+        if (guestCompany) {
           if (businessName.length < 2) nextErrors.businessName = "Unesite naziv firme.";
           if (!/^\d{9}$/.test(pib)) nextErrors.pib = pib ? "PIB ima 9 cifara." : "Unesite PIB.";
           if (!/^\d{8}$/.test(mb)) nextErrors.mb = mb ? "Matični broj ima 8 cifara." : "Unesite matični broj.";
@@ -950,7 +1007,33 @@ export function Checkout({
           return;
         }
         setErrors({});
-        rememberRetail(form);
+        const draft = {
+          customerName: String(form.get("customerName") ?? ""),
+          email: String(form.get("email") ?? ""),
+          phone: String(form.get("phone") ?? ""),
+          address: String(form.get("address") ?? ""),
+          postalCode,
+          city: String(form.get("city") ?? ""),
+          notes: String(form.get("notes") ?? ""),
+          company: guestCompany,
+          businessName,
+          pib,
+          mb,
+        };
+        setRetail({
+          customerName: draft.customerName,
+          email: draft.email,
+          phone: draft.phone,
+          address: draft.address,
+          postalCode: draft.postalCode,
+          city: draft.city,
+        });
+        setNotes(draft.notes);
+        if (guestCompany) {
+          setCompanyFields({ businessName, pib, mb });
+          void place("racun", undefined, draft);
+          return;
+        }
         setPhase("payment");
       }}
       className="mx-auto max-w-xl space-y-4"
@@ -960,33 +1043,11 @@ export function Checkout({
       </button>
       <h2 className="text-lg font-semibold">Kasa</h2>
       {message ? <Alert message={message} /> : null}
-      <label className="flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
-        <input
-          type="checkbox"
-          className="mt-0.5 size-4 accent-primary"
-          checked={asCompany}
-          onChange={(event) => {
-            const form = event.currentTarget.form;
-            if (form && asCompany) {
-              const data = new FormData(form);
-              setCompanyFields({
-                businessName: String(data.get("businessName") ?? ""),
-                pib: String(data.get("pib") ?? ""),
-                mb: String(data.get("mb") ?? ""),
-              });
-            }
-            setAsCompany(event.target.checked);
-            setErrors({});
-          }}
-        />
-        <span>
-          <span className="font-medium">Pravno lice</span>
-          <span className="mt-0.5 block text-muted-foreground">
-            Račun ide na firmu. Potrebni su naziv, PIB i matični broj.
-          </span>
-        </span>
-      </label>
-      {asCompany ? (
+      {guestSwitch ? <BuyerKindChoice value={guestParty} error={errors.kind} onChange={chooseGuestParty} /> : null}
+      {guestSwitch && guestCompany ? (
+        <p className="text-sm text-muted-foreground">Račun ide na firmu. Potrebni su naziv, PIB i matični broj.</p>
+      ) : null}
+      {guestCompany ? (
         <>
           <Field name="businessName" label="Naziv firme" autoComplete="organization" error={errors.businessName} defaultValue={companyFields.businessName} />
           <Field name="pib" label="PIB" inputMode="numeric" error={errors.pib} defaultValue={companyFields.pib} hint="9 cifara." />
@@ -1003,8 +1064,9 @@ export function Checkout({
         <Label htmlFor="notes">Napomena</Label>
         <Textarea id="notes" name="notes" defaultValue={notes} className="mt-1.5" />
       </div>
-      <Button type="submit" className="w-full">
-        Način plaćanja
+      <Honeypot value={honeypot} onChange={setHoneypot} />
+      <Button type="submit" className="w-full" disabled={pending}>
+        {guestCompany ? (pending ? "Slanje…" : "Potvrdi porudžbinu") : "Način plaćanja"}
       </Button>
     </form>
   );

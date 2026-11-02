@@ -28,11 +28,17 @@ create table if not exists public.organizations (
   mb text not null default '',
   logo_url text,
   brand_color text,
+  cover_url text,
+  description text not null default '',
   channel text not null default 'b2b' check (channel in ('b2c', 'b2b')),
   audience text not null default 'fizicka' check (audience in ('fizicka', 'pravna', 'oba')),
   order_prefix text not null default 'POR',
   next_order_number integer not null default 1001,
   active boolean not null default true,
+  track_stock boolean not null default false,
+  efaktura_api_key text not null default '',
+  efaktura_enabled boolean not null default false,
+  efaktura_environment text not null default 'demo' check (efaktura_environment in ('demo', 'produkcija')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -85,6 +91,7 @@ create table if not exists public.products (
   image_urls text[] not null default '{}',
   active boolean not null default true,
   min_quantity numeric(12, 3) not null default 1 check (min_quantity > 0),
+  stock_quantity numeric(12, 3) not null default 0 check (stock_quantity >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint products_sale_price_check check (sale_price_para is null or (sale_price_para > 0 and sale_price_para < price_para))
@@ -123,7 +130,10 @@ create table if not exists public.orders (
   customer_snapshot jsonb not null,
   customer_email_status text not null default 'pending',
   supplier_email_status text not null default 'pending',
+  stock_held boolean not null default false,
   payment_method text check (payment_method is null or payment_method in ('pouzecem', 'ips', 'kartica', 'racun')),
+  sef_invoice_id text,
+  sef_status text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (organization_id, number),
@@ -288,6 +298,12 @@ alter table public.products add constraint products_sale_price_check
 
 alter table public.products add column if not exists image_urls text[] not null default '{}';
 
+alter table public.products add column if not exists stock_quantity numeric(12, 3) not null default 0;
+alter table public.products drop constraint if exists products_stock_quantity_check;
+alter table public.products add constraint products_stock_quantity_check check (stock_quantity >= 0);
+
+alter table public.orders add column if not exists stock_held boolean not null default false;
+
 alter table public.orders add column if not exists payment_method text;
 alter table public.orders drop constraint if exists orders_payment_method_check;
 alter table public.orders add constraint orders_payment_method_check
@@ -377,6 +393,21 @@ where party is null;
 update public.customers
 set payment_term_days = case when party = 'pravna' then 15 else 0 end
 where payment_term_days is null;
+alter table public.organizations add column if not exists track_stock boolean not null default false;
+alter table public.organizations add column if not exists efaktura_api_key text not null default '';
+alter table public.organizations add column if not exists efaktura_enabled boolean not null default false;
+alter table public.organizations add column if not exists efaktura_environment text not null default 'demo';
+do $$ begin
+  alter table public.organizations add constraint organizations_efaktura_environment_check
+    check (efaktura_environment in ('demo', 'produkcija'));
+exception when duplicate_object then null;
+end $$;
+alter table public.orders add column if not exists sef_invoice_id text;
+alter table public.orders add column if not exists sef_status text;
+
+alter table public.organizations add column if not exists cover_url text;
+alter table public.organizations add column if not exists description text not null default '';
+
 alter table public.customers alter column party set default 'fizicka';
 alter table public.customers alter column payment_term_days set default 0;
 alter table public.customers alter column party set not null;

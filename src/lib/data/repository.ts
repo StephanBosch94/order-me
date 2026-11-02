@@ -119,6 +119,11 @@ export interface CommerceRepository {
     status: OrderStatus,
     actorName: string,
   ): Promise<OrderDetail | null>;
+  saveSefInvoice(
+    organizationId: string,
+    orderId: string,
+    input: { invoiceId: string; status: string },
+  ): Promise<{ invoiceId: string; status: string; already: boolean } | null>;
   setEmailStatus(orderId: string, customer: EmailDelivery, supplier: EmailDelivery): Promise<void>;
   getDashboard(organizationId: string): Promise<DashboardData>;
   getPublicCatalog(slug: string): Promise<PublicCatalog | null>;

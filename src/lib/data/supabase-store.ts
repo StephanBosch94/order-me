@@ -2,11 +2,18 @@ import { randomUUID } from "node:crypto";
 
 import type { CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
-import { nextCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
+import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
+import { salesFollowUps } from "@/lib/follow-ups";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
-import { priceOrderLines } from "@/lib/data/pricing";
+import {
+  nextStockQuantities,
+  normalizeStockQuantity,
+  priceOrderLines,
+  stockDirectionForStatus,
+  type StockDirection,
+} from "@/lib/data/pricing";
 import type {
   BuyerOrder,
   Category,
@@ -85,6 +92,8 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     mb: String(row.mb ?? ""),
     logoUrl: row.logo_url ? String(row.logo_url) : null,
     brandColor: row.brand_color ? String(row.brand_color) : null,
+    coverUrl: row.cover_url ? String(row.cover_url) : null,
+    description: String(row.description ?? ""),
     audience:
       row.audience === "fizicka" || row.audience === "pravna" || row.audience === "oba"
         ? row.audience
@@ -95,6 +104,10 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     orderPrefix: String(row.order_prefix),
     nextOrderNumber: Number(row.next_order_number),
     active: Boolean(row.active),
+    trackStock: row.track_stock === true,
+    efakturaApiKey: typeof row.efaktura_api_key === "string" ? row.efaktura_api_key : "",
+    efakturaEnabled: row.efaktura_enabled === true,
+    efakturaEnvironment: row.efaktura_environment === "produkcija" ? "produkcija" : "demo",
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -113,6 +126,8 @@ function toPublic(organization: Organization): PublicSupplier {
     mb: organization.mb,
     logoUrl: organization.logoUrl,
     brandColor: organization.brandColor,
+    coverUrl: organization.coverUrl,
+    description: organization.description,
     channel: organization.channel,
     audience: organization.audience,
   };
@@ -145,6 +160,7 @@ function mapProduct(row: Record<string, unknown>): Product {
     ),
     active: Boolean(row.active),
     minQuantity: Number(row.min_quantity),
+    stockQuantity: normalizeStockQuantity(Number(row.stock_quantity), String(row.unit) as Unit) ?? 0,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -200,6 +216,9 @@ function mapOrder(row: Record<string, unknown>): Order {
       row.payment_method === "pouzecem" || row.payment_method === "ips" || row.payment_method === "kartica" || row.payment_method === "racun"
         ? row.payment_method
         : null,
+    stockHeld: row.stock_held === true,
+    sefInvoiceId: typeof row.sef_invoice_id === "string" && row.sef_invoice_id.trim() ? row.sef_invoice_id.trim() : null,
+    sefStatus: typeof row.sef_status === "string" && row.sef_status.trim() ? row.sef_status.trim() : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -232,6 +251,29 @@ function mapEvent(row: Record<string, unknown>): OrderStatusEvent {
   };
 }
 
+async function moveStock(
+  organizationId: string,
+  lines: { productId: string | null; quantity: number }[],
+  direction: StockDirection,
+) {
+  if (!lines.some((line) => line.productId)) return;
+  const admin = db();
+  const productResult = await admin.from("products").select("*").eq("organization_id", organizationId);
+  fail(productResult.error);
+  const products = ((productResult.data ?? []) as Record<string, unknown>[]).map(mapProduct);
+  const updates = nextStockQuantities(products, lines, direction);
+  await Promise.all(
+    updates.map(async (update) => {
+      const result = await admin
+        .from("products")
+        .update({ stock_quantity: update.stockQuantity, updated_at: new Date().toISOString() })
+        .eq("organization_id", organizationId)
+        .eq("id", update.id);
+      fail(result.error);
+    }),
+  );
+}
+
 async function orderDetail(order: Order): Promise<OrderDetail> {
   const admin = db();
   const [items, history] = await Promise.all([
@@ -252,7 +294,7 @@ async function orderDetail(order: Order): Promise<OrderDetail> {
   };
 }
 
-function listItem(order: Order, itemCount: number): OrderListItem {
+function listItem(order: Order, itemCount: number, party: Customer["party"]): OrderListItem {
   return {
     id: order.id,
     number: order.number,
@@ -264,6 +306,7 @@ function listItem(order: Order, itemCount: number): OrderListItem {
     itemCount,
     paymentMethod: order.paymentMethod,
     pib: order.customerSnapshot.pib,
+    party,
   };
 }
 
@@ -311,6 +354,7 @@ export const supabaseRepository: CommerceRepository = {
         audience: input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna"),
         channel: channelForAudience(input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna")),
         order_prefix: orderPrefixFromName(input.name),
+        track_stock: false,
       })
       .select("*")
       .single();
@@ -522,8 +566,14 @@ export const supabaseRepository: CommerceRepository = {
         mb: input.mb,
         logo_url: input.logoUrl,
         brand_color: input.brandColor,
+        cover_url: input.coverUrl,
+        description: input.description,
         audience: input.audience,
         channel: channelForAudience(input.audience),
+        track_stock: input.trackStock,
+        efaktura_api_key: input.efakturaApiKey,
+        efaktura_enabled: input.efakturaEnabled,
+        efaktura_environment: input.efakturaEnvironment === "produkcija" ? "produkcija" : "demo",
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -591,6 +641,7 @@ export const supabaseRepository: CommerceRepository = {
         })(),
         active: input.active,
         min_quantity: input.minQuantity,
+        stock_quantity: input.stockQuantity,
       })
       .select("*")
       .single();
@@ -612,6 +663,7 @@ export const supabaseRepository: CommerceRepository = {
       sale_price_para: input.salePricePara,
       active: input.active,
       min_quantity: input.minQuantity,
+      stock_quantity: input.stockQuantity,
       updated_at: new Date().toISOString(),
     };
     if (input.imageUrls !== undefined || input.imageUrl !== undefined) {
@@ -644,6 +696,7 @@ export const supabaseRepository: CommerceRepository = {
           pricePara: row.pricePara,
           salePricePara: null,
           minQuantity: row.minQuantity,
+          stockQuantity: 0,
           active: row.active,
         });
         result.created += 1;
@@ -688,7 +741,7 @@ export const supabaseRepository: CommerceRepository = {
     const counts = await itemCounts(organizationId);
     const listed = [...orders]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .map((order) => listItem(order, counts.get(order.id) ?? 0));
+      .map((order) => listItem(order, counts.get(order.id) ?? 0, customer.party));
     const detail: CustomerDetail = {
       ...customer,
       orders: listed,
@@ -701,27 +754,38 @@ export const supabaseRepository: CommerceRepository = {
   },
 
   async updateCustomer(organizationId, customerId, input: CustomerInput) {
-    const clash = await db()
+    const existing = await db()
       .from("customers")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("code", input.code)
-      .neq("id", customerId)
-      .maybeSingle();
-    fail(clash.error);
-    if (clash.data) throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
+      .select("id, code, email")
+      .eq("organization_id", organizationId);
+    fail(existing.error);
+    const rows = (existing.data ?? []) as Record<string, unknown>[];
+    const current = rows.find((row) => String(row.id) === customerId);
+    if (!current) return null;
+    const email = input.email.toLowerCase();
+    if (rows.some((row) => String(row.id) !== customerId && String(row.email ?? "").toLowerCase() === email)) {
+      throw new DataError("Kupac sa ovom email adresom već postoji.", "conflict");
+    }
+    const requested = normalizeCustomerCode(input.code);
+    const code = requested || String(current.code ?? "");
+    if (
+      requested &&
+      rows.some((row) => String(row.id) !== customerId && normalizeCustomerCode(String(row.code ?? "")) === code)
+    ) {
+      throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
+    }
     const { data, error } = await db()
       .from("customers")
       .update({
         business_name: input.businessName,
         contact_name: input.contactName,
-        email: input.email,
+        email,
         phone: input.phone,
         pib: input.pib,
         address: input.address,
         city: input.city,
         notes: input.notes,
-        code: input.code,
+        code,
         party: input.party,
         payment_term_days: input.paymentTermDays,
         updated_at: new Date().toISOString(),
@@ -828,6 +892,7 @@ export const supabaseRepository: CommerceRepository = {
         confirmation_token: randomUUID(),
         customer_snapshot: snapshot,
         payment_method: customer.party === "pravna" ? "racun" : null,
+        stock_held: organization.trackStock === true,
       })
       .select("*")
       .single();
@@ -847,6 +912,7 @@ export const supabaseRepository: CommerceRepository = {
       })),
     );
     fail(items.error);
+    if (organization.trackStock) await moveStock(organizationId, priced.items, "reserve");
     const history = await admin.from("order_status_history").insert({
       order_id: order.id,
       organization_id: organizationId,
@@ -896,8 +962,11 @@ export const supabaseRepository: CommerceRepository = {
     const pageSize = Math.min(Math.max(query.pageSize ?? 10, 1), 50);
     const page = Math.max(query.page ?? 1, 1);
     const start = (page - 1) * pageSize;
+    const parties = await customerParties(organizationId);
     const result: Paginated<OrderListItem> = {
-      items: rows.slice(start, start + pageSize).map((order) => listItem(order, counts.get(order.id) ?? 0)),
+      items: rows.slice(start, start + pageSize).map((order) =>
+        listItem(order, counts.get(order.id) ?? 0, parties.get(order.customerId) ?? partyForPib(order.customerSnapshot.pib)),
+      ),
       total: rows.length,
       page,
       pageSize,
@@ -1050,6 +1119,7 @@ export const supabaseRepository: CommerceRepository = {
         customer_snapshot: snapshot,
         buyer_user_id: input.buyerUserId || null,
         payment_method: input.paymentMethod ?? null,
+        stock_held: organization.trackStock === true,
       })
       .select("*")
       .single();
@@ -1080,6 +1150,7 @@ export const supabaseRepository: CommerceRepository = {
       })),
     );
     fail(items.error);
+    if (organization.trackStock) await moveStock(organization.id, priced.items, "reserve");
     const history = await admin.from("order_status_history").insert({
       order_id: order.id,
       organization_id: organization.id,
@@ -1095,10 +1166,17 @@ export const supabaseRepository: CommerceRepository = {
     const current = await this.getOrder(organizationId, orderId);
     if (!current) return null;
     if (current.status === status) return current;
+    const organization = await this.getOrganization(organizationId);
+    const direction =
+      organization?.trackStock && current.stockHeld ? stockDirectionForStatus(current.status, status) : null;
     const admin = db();
     const updated = await admin
       .from("orders")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({
+        status,
+        updated_at: new Date().toISOString(),
+        ...(direction ? { stock_held: false } : {}),
+      })
       .eq("organization_id", organizationId)
       .eq("id", orderId)
       .select("*")
@@ -1112,7 +1190,40 @@ export const supabaseRepository: CommerceRepository = {
       actor_name: actorName,
     });
     fail(history.error);
+    if (direction) await moveStock(organizationId, current.items, direction);
     return orderDetail(mapOrder(updated.data as Record<string, unknown>));
+  },
+
+  async saveSefInvoice(organizationId, orderId, input) {
+    const current = await this.getOrder(organizationId, orderId);
+    if (!current) return null;
+    if (current.sefInvoiceId) {
+      return { invoiceId: current.sefInvoiceId, status: current.sefStatus ?? "poslata", already: true };
+    }
+    const { data, error } = await db()
+      .from("orders")
+      .update({
+        sef_invoice_id: input.invoiceId,
+        sef_status: input.status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("organization_id", organizationId)
+      .eq("id", orderId)
+      .is("sef_invoice_id", null)
+      .select("sef_invoice_id, sef_status")
+      .maybeSingle();
+    fail(error);
+    if (!data) {
+      const again = await this.getOrder(organizationId, orderId);
+      if (!again?.sefInvoiceId) return null;
+      return { invoiceId: again.sefInvoiceId, status: again.sefStatus ?? "poslata", already: true };
+    }
+    const row = data as Record<string, unknown>;
+    return {
+      invoiceId: String(row.sef_invoice_id),
+      status: typeof row.sef_status === "string" && row.sef_status ? row.sef_status : input.status,
+      already: false,
+    };
   },
 
   async setEmailStatus(orderId, customer, supplier) {
@@ -1136,6 +1247,13 @@ export const supabaseRepository: CommerceRepository = {
     const awaiting = orders
       .filter((order) => order.status === "nova")
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const { data: customerRows, error: customerError } = await db()
+      .from("customers")
+      .select("*")
+      .eq("organization_id", organizationId);
+    fail(customerError);
+    const customers = ((customerRows ?? []) as Record<string, unknown>[]).map(mapCustomer);
+    const parties = new Map(customers.map((customer) => [customer.id, customer.party]));
     const data: DashboardData = {
       newOrders: orders.filter(
         (order) => order.status !== "otkazana" && new Date(order.createdAt).getTime() >= weekAgo,
@@ -1150,7 +1268,25 @@ export const supabaseRepository: CommerceRepository = {
         .filter((order) => order.status !== "otkazana" && belgradeMonthKey(order.createdAt) === month)
         .reduce((sum, order) => sum + order.totalPara, 0),
       activeProducts: products.filter((product) => product.active).length,
-      recentOrders: awaiting.map((order) => listItem(order, counts.get(order.id) ?? 0)),
+      recentOrders: awaiting.map((order) =>
+        listItem(order, counts.get(order.id) ?? 0, parties.get(order.customerId) ?? partyForPib(order.customerSnapshot.pib)),
+      ),
+      followUps: salesFollowUps(
+        customers.map((customer) => ({
+          id: customer.id,
+          code: customer.code,
+          businessName: customer.businessName,
+          email: customer.email,
+          phone: customer.phone,
+          createdAt: customer.createdAt,
+        })),
+        orders.map((order) => ({
+          customerId: order.customerId,
+          status: order.status,
+          totalPara: order.totalPara,
+          createdAt: order.createdAt,
+        })),
+      ),
       hasProducts: products.length > 0,
       hasOrders: orders.length > 0,
     };
@@ -1514,6 +1650,18 @@ async function assignDefaultSubscription(organizationId: string) {
   });
   if (inserted.error?.code === "23505") return;
   fail(inserted.error);
+}
+
+async function customerParties(organizationId: string) {
+  const { data, error } = await db().from("customers").select("id, party, pib").eq("organization_id", organizationId);
+  fail(error);
+  const parties = new Map<string, Customer["party"]>();
+  for (const row of (data ?? []) as Record<string, unknown>[]) {
+    const pib = String(row.pib ?? "");
+    const party = row.party === "fizicka" || row.party === "pravna" ? row.party : partyForPib(pib);
+    parties.set(String(row.id), party);
+  }
+  return parties;
 }
 
 async function loadOrders(organizationId: string) {

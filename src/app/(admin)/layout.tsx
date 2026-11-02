@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   );
   return (
     <AdminShell
-      session={session}
+      session={{ ...session, organization: { ...session.organization, efakturaApiKey: "" } }}
       demoShop={isDemoMode() && demoShopRole(session.organization.slug) ? session.organization.slug : null}
       setup={setup}
     >

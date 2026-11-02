@@ -1,6 +1,17 @@
 import { FieldError } from "@/components/ui/fields";
+import type { Audience } from "@/lib/data/types";
 
 export type BuyerKind = "fizicka" | "pravna";
+
+export function showsGuestPartySwitch(audience: Audience, buyer: unknown) {
+  return audience === "oba" && !buyer;
+}
+
+export function checkoutParty(audience: Audience, accountParty: BuyerKind | null, guestParty: BuyerKind): BuyerKind {
+  if (audience === "fizicka") return "fizicka";
+  if (audience === "pravna") return "pravna";
+  return accountParty ?? guestParty;
+}
 
 export function BuyerKindChoice({
   value,

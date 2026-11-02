@@ -168,13 +168,17 @@ export function Storefront({
         </div>
       </header>
       {showSwitch ? <AudienceSwitch slug={catalog.supplier.slug} mode="pravna" /> : null}
-      {catalog.supplier.slug === "mesara-pajic" ? (
-        <div className="relative h-52 overflow-hidden sm:h-64">
-          <img src="/products/mp-suvo.jpg" alt="" className="size-full object-cover" />
+      {catalog.supplier.coverUrl || catalog.supplier.description ? (
+        <div className="relative h-52 overflow-hidden bg-zinc-900 sm:h-64">
+          {catalog.supplier.coverUrl ? (
+            <img src={catalog.supplier.coverUrl} alt="" className="size-full object-cover" />
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/75 via-zinc-950/15 to-transparent" />
-          <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
-            Petrovački kulen, kobasice i suvo meso iz Bačkog Petrovca.
-          </p>
+          {catalog.supplier.description ? (
+            <p className="absolute bottom-5 left-0 right-0 mx-auto max-w-6xl px-4 text-sm text-white sm:px-6">
+              {catalog.supplier.description}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

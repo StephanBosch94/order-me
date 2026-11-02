@@ -23,8 +23,12 @@ test("demo catalog ids stay the same on every seed", async () => {
   const mesara = first.organizations.find((item) => item.slug === "mesara-pajic");
   assert.equal(mesara?.name, "Mesara Pajić");
   assert.equal(mesara?.city, "Bački Petrovac");
-  assert.equal(mesara?.brandColor, "#7a1f2b");
+  assert.equal(mesara?.brandColor, "#0c1f2e");
+  assert.equal(mesara?.logoUrl, "/suppliers/mesara-pajic-logo.jpg");
+  assert.equal(mesara?.coverUrl, "/products/mesara-pajic-cover.jpg");
   assert.equal(mesara?.audience, "pravna");
+  assert.equal(mesara?.trackStock, false);
+  assert.equal(butik?.trackStock, false);
   assert.equal(mesara?.slug, "mesara-pajic");
   assert.equal(mesara?.email, "porudzbine@mesarapajic.rs");
   assert.equal(butik?.name, "Mercis Atelier");
@@ -35,6 +39,9 @@ test("demo catalog ids stay the same on every seed", async () => {
     meat.every((product) => product.unit !== "kilogram" || product.minQuantity === 0.5),
     true,
   );
+  assert.equal(meat.every((product) => product.stockQuantity > 0), true);
+  assert.equal(meat.find((product) => product.sku === "MP-KUL")?.stockQuantity, 14);
+  assert.equal(meat.find((product) => product.sku === "MP-SKOB")?.stockQuantity, 18);
   const cancelled = first.orders.find((order) => order.organizationId === mesara?.id && order.number.endsWith("-1008"));
   assert.equal(cancelled?.status, "otkazana");
   const dunav = first.orders.find((order) => order.organizationId === mesara?.id && order.number.endsWith("-1001"));
@@ -104,6 +111,7 @@ test("an existing Pult database picks up the meat shop without a new generation"
     imageUrls: [],
     active: true,
     minQuantity: 100,
+    stockQuantity: 0,
     createdAt: org.createdAt,
     updatedAt: org.createdAt,
   });
@@ -112,7 +120,9 @@ test("an existing Pult database picks up the meat shop without a new generation"
   assert.equal(org.name, "Mesara Pajić");
   assert.equal(org.city, "Bački Petrovac");
   assert.equal(org.address, "Jarmočna 20");
-  assert.equal(org.brandColor, "#7a1f2b");
+  assert.equal(org.brandColor, "#0c1f2e");
+  assert.equal(org.logoUrl, "/suppliers/mesara-pajic-logo.jpg");
+  assert.equal(org.coverUrl, "/products/mesara-pajic-cover.jpg");
   assert.equal(org.audience, "pravna");
   assert.equal(org.slug, "mesara-pajic");
   assert.equal(org.email, "porudzbine@mesarapajic.rs");
@@ -151,4 +161,27 @@ test("an existing Mala mesara Pajić name becomes Mesara Pajić without replacin
   org.name = "Porodična mesara";
   assert.equal(await ensureRetailDemo(db), false);
   assert.equal(org.name, "Porodična mesara");
+});
+
+test("missing warehouse stock is filled without replacing the meat shop", async () => {
+  const db = await createSeedDatabase();
+  const org = db.organizations.find((item) => item.slug === "mesara-pajic");
+  assert.ok(org);
+  const cover = org.coverUrl;
+  const logo = org.logoUrl;
+  const description = org.description;
+  const kulen = db.products.find((product) => product.sku === "MP-KUL");
+  const but = db.products.find((product) => product.sku === "MP-BUT");
+  assert.ok(kulen && but);
+  kulen.stockQuantity = 0;
+  delete (but as { stockQuantity?: number }).stockQuantity;
+  assert.equal(await ensureRetailDemo(db), true);
+  assert.equal(org.name, "Mesara Pajić");
+  assert.equal(org.brandColor, "#0c1f2e");
+  assert.equal(org.coverUrl, cover);
+  assert.equal(org.logoUrl, logo);
+  assert.equal(org.description, description);
+  assert.equal(kulen.stockQuantity, 0);
+  assert.equal(but.stockQuantity, 48);
+  assert.equal(await ensureRetailDemo(db), false);
 });

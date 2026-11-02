@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/fields";
 import { requireSession } from "@/lib/auth";
 import { partyLabel } from "@/lib/customers";
@@ -50,7 +50,7 @@ export default async function CustomersPage({
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-muted-foreground">
               <tr>
@@ -60,12 +60,22 @@ export default async function CustomersPage({
                 <th className="px-4 py-3 font-medium">Porudžbine</th>
                 <th className="px-4 py-3 text-right font-medium">Vrednost</th>
                 <th className="hidden px-4 py-3 font-medium sm:table-cell">Poslednja</th>
+                <th className="px-4 py-3">
+                  <span className="sr-only">Radnje</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {customers.map((customer) => (
                 <tr key={customer.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-medium tabular-nums">{customer.code}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/customers/${customer.id}`}
+                      className="whitespace-nowrap font-medium tabular-nums underline decoration-zinc-300 underline-offset-2 hover:decoration-foreground"
+                    >
+                      {customer.code}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
                     <Link href={`/customers/${customer.id}`} className="font-medium hover:underline">
                       {customer.businessName}
@@ -80,9 +90,17 @@ export default async function CustomersPage({
                     <div className="text-muted-foreground">{customer.email}</div>
                   </td>
                   <td className="px-4 py-3 tabular-nums">{customer.orderCount}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{formatRsd(customer.totalPara)}</td>
-                  <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{formatRsd(customer.totalPara)}</td>
+                  <td className="hidden whitespace-nowrap px-4 py-3 text-muted-foreground sm:table-cell">
                     {customer.lastOrderAt ? formatDate(customer.lastOrderAt) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/customers/${customer.id}`}
+                      className={buttonVariants({ variant: "secondary", size: "sm" })}
+                    >
+                      Izmeni
+                    </Link>
                   </td>
                 </tr>
               ))}

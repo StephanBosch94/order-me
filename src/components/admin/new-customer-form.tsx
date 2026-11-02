@@ -34,6 +34,21 @@ export function NewCustomerForm() {
       }}
     >
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field name="businessName" label={party === "pravna" ? "Naziv firme" : "Ime i prezime"} />
+        <Field name="contactName" label="Kontakt osoba" />
+        <Field name="email" label="Email" type="email" />
+        <Field name="phone" label="Telefon" />
+        <Field name="pib" label="PIB" />
+        <Field name="city" label="Grad" />
+        <div className="sm:col-span-2">
+          <Field name="address" label="Adresa" />
+        </div>
+        <div className="sm:col-span-2">
+          <Label htmlFor="notes">Interna napomena</Label>
+          <Textarea id="notes" name="notes" className="mt-1.5" />
+        </div>
+      </div>
       <div className="max-w-[12rem]">
         <Field name="code" label="Šifra kupca" placeholder="K-0005" />
         <p className="mt-1.5 text-sm text-muted-foreground">Ako ostavite prazno, dodelićemo sledeću slobodnu šifru.</p>
@@ -80,21 +95,6 @@ export function NewCustomerForm() {
           />
         </div>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field name="businessName" label={party === "pravna" ? "Naziv firme" : "Ime i prezime"} />
-        <Field name="contactName" label="Kontakt osoba" />
-        <Field name="email" label="Email" type="email" />
-        <Field name="phone" label="Telefon" />
-        <Field name="pib" label="PIB" />
-        <Field name="city" label="Grad" />
-        <div className="sm:col-span-2">
-          <Field name="address" label="Adresa" />
-        </div>
-        <div className="sm:col-span-2">
-          <Label htmlFor="notes">Interna napomena</Label>
-          <Textarea id="notes" name="notes" className="mt-1.5" />
-        </div>
-      </div>
       <Button type="submit" disabled={pending}>
         {pending ? "Čuvanje…" : "Dodaj kupca"}
       </Button>

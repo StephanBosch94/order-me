@@ -10,7 +10,7 @@ import { StoreHeader } from "@/components/shop/store-header";
 import { Cart, Checkout } from "@/components/shop/shop";
 import { supplierTheme } from "@/lib/color";
 import type { DemoRole } from "@/lib/demo-shops";
-import { isBusinessStore, normalizeCartQuantity, ordersPath, storePath } from "@/lib/constants";
+import { normalizeCartQuantity, ordersPath, storePath } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara } from "@/lib/data/pricing";
 import type { Audience, BuyerAccount, Product } from "@/lib/data/types";
 
@@ -95,7 +95,7 @@ export function BuyerOrdersFrame({
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
           <Checkout
             slug={slug}
-            business={isBusinessStore(audience)}
+            audience={audience}
             buyer={buyer}
             lines={lines}
             total={total}

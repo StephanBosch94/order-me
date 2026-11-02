@@ -48,23 +48,12 @@ export default async function BuyerOrdersPage({
       demoRole={demoRole}
     >
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        {company ? (
-          <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1" role="tablist" aria-label="Prodavnica">
-            <Link href={shopHref} className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-foreground">
-              Prodavnica
-            </Link>
-            <span className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground" aria-current="page">
-              Porudžbine
-            </span>
-          </div>
-        ) : (
-          <Link
-            href={shopHref}
-            className="mb-3 inline-flex min-h-11 items-center py-2 text-base font-medium text-foreground underline decoration-foreground/40 underline-offset-4 hover:decoration-foreground"
-          >
-            Nazad na proizvode
-          </Link>
-        )}
+        <Link
+          href={shopHref}
+          className="mb-3 inline-flex min-h-11 items-center py-2 text-base font-medium text-foreground underline decoration-foreground/40 underline-offset-4 hover:decoration-foreground"
+        >
+          Nazad na proizvode
+        </Link>
         {company ? (
           <CompanyOrders orders={orders} repeatBase={shopHref} />
         ) : (

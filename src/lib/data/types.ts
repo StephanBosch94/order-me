@@ -89,11 +89,21 @@ export type Organization = {
   mb: string;
   logoUrl: string | null;
   brandColor: string | null;
+  coverUrl: string | null;
+  description: string;
   channel: StoreChannel;
   audience: Audience;
   orderPrefix: string;
   nextOrderNumber: number;
   active: boolean;
+  /** When true, products show warehouse stock and orders change it. */
+  trackStock: boolean;
+  /** SEF ApiKey. Kept on the organization and never written into the page. */
+  efakturaApiKey: string;
+  /** When true, a legal-entity invoice can be sent to SEF. */
+  efakturaEnabled: boolean;
+  /** demo uses the Ministry demo host. produkcija uses the live host. */
+  efakturaEnvironment: "demo" | "produkcija";
   createdAt: string;
   updatedAt: string;
 };
@@ -110,6 +120,8 @@ export type PublicSupplier = {
   mb: string;
   logoUrl: string | null;
   brandColor: string | null;
+  coverUrl: string | null;
+  description: string;
   channel: StoreChannel;
   audience: Audience;
 };
@@ -136,6 +148,8 @@ export type Product = {
   imageUrls: string[];
   active: boolean;
   minQuantity: number;
+  /** On-hand quantity in the product unit. Zero means the warehouse is empty. */
+  stockQuantity: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -194,6 +208,11 @@ export type Order = {
   customerEmailStatus: EmailDelivery;
   supplierEmailStatus: EmailDelivery;
   paymentMethod: PaymentMethod | null;
+  /** True while this order is holding warehouse quantities. Absent on older orders that never reserved stock. */
+  stockHeld?: boolean;
+  /** Sales invoice id returned by SEF. Empty until a send succeeds. */
+  sefInvoiceId: string | null;
+  sefStatus: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -237,6 +256,7 @@ export type OrderListItem = {
   itemCount: number;
   paymentMethod: PaymentMethod | null;
   pib: string;
+  party: CustomerParty;
 };
 
 export type CustomerSummary = {
@@ -296,6 +316,23 @@ export type OrderedQuantity = {
   imageUrl: string | null;
 };
 
+export type SalesFollowUpKind = "kasni" | "jedna" | "nije_narucio";
+
+export type SalesFollowUp = {
+  customerId: string;
+  code: string;
+  businessName: string;
+  email: string;
+  phone: string;
+  lastOrderAt: string | null;
+  orderCount: number;
+  /** Typical days between orders. Empty when there is no rhythm yet. */
+  intervalDays: number | null;
+  daysSince: number;
+  averagePara: number;
+  kind: SalesFollowUpKind;
+};
+
 export type DashboardData = {
   newOrders: number;
   awaitingConfirmation: number;
@@ -303,6 +340,7 @@ export type DashboardData = {
   monthValuePara: number;
   activeProducts: number;
   recentOrders: OrderListItem[];
+  followUps: SalesFollowUp[];
   hasProducts: boolean;
   hasOrders: boolean;
 };
@@ -327,6 +365,7 @@ export type ProductInput = {
   pricePara: number;
   salePricePara: number | null;
   minQuantity: number;
+  stockQuantity: number;
   active: boolean;
   imageUrl?: string | null;
   imageUrls?: string[];
@@ -344,7 +383,13 @@ export type OrganizationInput = {
   mb: string;
   logoUrl: string | null;
   brandColor: string | null;
+  coverUrl: string | null;
+  description: string;
   audience: Audience;
+  trackStock: boolean;
+  efakturaApiKey: string;
+  efakturaEnabled: boolean;
+  efakturaEnvironment: "demo" | "produkcija";
 };
 
 export type CustomerInput = {

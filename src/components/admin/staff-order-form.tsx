@@ -98,18 +98,7 @@ export function StaffOrderForm({
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Stavke</h2>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() =>
-              setLines((current) => [...current, { key: crypto.randomUUID(), productId: "", quantity: "1" }])
-            }
-          >
-            Dodaj stavku
-          </Button>
-        </div>
+        <h2 className="text-sm font-semibold">Stavke</h2>
         {lines.map((line) => {
           const product = products.find((item) => item.id === line.productId);
           return (
@@ -157,9 +146,20 @@ export function StaffOrderForm({
             </div>
           );
         })}
-        <p className="text-right text-sm">
-          Ukupno <span className="font-semibold tabular-nums">{formatRsd(total)}</span>
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() =>
+              setLines((current) => [...current, { key: crypto.randomUUID(), productId: "", quantity: "1" }])
+            }
+          >
+            Dodaj stavku
+          </Button>
+          <p className="text-sm">
+            Ukupno <span className="font-semibold tabular-nums">{formatRsd(total)}</span>
+          </p>
+        </div>
       </div>
 
       <div>

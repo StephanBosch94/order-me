@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { FollowUpBoard } from "@/components/admin/follow-up-board";
 import { CopyLink } from "@/components/admin/order-actions";
 import { EmptyState, Metric, PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -26,11 +27,11 @@ export default async function DashboardPage() {
         description={formatLongDate()}
         actions={
           <>
-            <Link href="/products/new">
-              <Button>Dodaj proizvod</Button>
+            <Link href="/orders/new">
+              <Button>Dodaj porudžbinu</Button>
             </Link>
-            <Link href={publicPath} target="_blank">
-              <Button variant="secondary">Pogledajte prodavnicu</Button>
+            <Link href="/customers/new">
+              <Button variant="secondary">Dodaj kupca</Button>
             </Link>
           </>
         }
@@ -105,15 +106,7 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      <section className="mt-8 flex items-center justify-between rounded-lg border border-border bg-card px-4 py-4">
-        <div>
-          <h2 className="text-sm font-semibold">Proizvodi</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{data.activeProducts} aktivnih proizvoda u katalogu.</p>
-        </div>
-        <Link href="/products" className="text-sm font-medium text-indigo-700 hover:underline">
-          Upravljajte proizvodima
-        </Link>
-      </section>
+      <FollowUpBoard items={data.followUps} />
     </div>
   );
 }

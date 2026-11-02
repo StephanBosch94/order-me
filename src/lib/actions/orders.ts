@@ -93,7 +93,14 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
   const slug = typeof input === "object" && input && "slug" in input ? String(input.slug ?? "") : "";
   const preview = slug ? await getCommerce().getPublicCatalog(slug) : null;
   if (preview?.closedMessage) return { ok: false, message: preview.closedMessage };
-  if (preview && isBusinessStore(preview.supplier.audience)) return placeBusinessOrder(input);
+  const session = await getSession();
+  const accountCompany = session?.kind === "buyer" && isCompanyBuyer(session);
+  if (
+    preview &&
+    (isBusinessStore(preview.supplier.audience) || (preview.supplier.audience === "oba" && accountCompany))
+  ) {
+    return placeBusinessOrder(input);
+  }
 
   const parsed = retailOrderSchema.safeParse(input);
   if (!parsed.success) {
@@ -107,11 +114,16 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
   const catalog = await getCommerce().getPublicCatalog(parsed.data.slug);
   if (!catalog) return { ok: false, message: "Prodavnica nije pronađena." };
   if (catalog.closedMessage) return { ok: false, message: catalog.closedMessage };
+  if (parsed.data.company && !sellsToBusinesses(catalog.supplier.audience)) {
+    return { ok: false, message: "Ova prodavnica prima kupovine fizičkih lica." };
+  }
+  if (session?.kind === "buyer" && catalog.supplier.audience === "oba" && !accountCompany && parsed.data.company) {
+    return { ok: false, message: "Ovaj nalog kupuje kao fizičko lice." };
+  }
 
   const headerStore = await headers();
   const forwarded = headerStore.get("x-forwarded-for");
   const ip = forwarded?.split(",")[0]?.trim() || headerStore.get("x-real-ip") || "local";
-  const session = await getSession();
   const result = await getCommerce().createPublicOrder(
     {
       slug: parsed.data.slug,
@@ -128,7 +140,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
       notes: parsed.data.notes,
       items: parsed.data.items,
       buyerUserId: session?.kind === "buyer" ? session.userId : null,
-      paymentMethod: parsed.data.paymentMethod,
+      paymentMethod: parsed.data.company ? "racun" : parsed.data.paymentMethod,
       confirmationEmail: session?.kind === "buyer" ? orderConfirmationEmail(session) : parsed.data.email,
     },
     ip,

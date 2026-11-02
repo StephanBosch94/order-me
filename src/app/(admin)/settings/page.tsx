@@ -26,7 +26,10 @@ export default async function SettingsPage() {
           <CopyLink path={path} />
         </div>
       </section>
-      <SettingsForm organization={session.organization} />
+      <SettingsForm
+        organization={{ ...session.organization, efakturaApiKey: "" }}
+        hasEfakturaApiKey={session.organization.efakturaApiKey.trim().length > 0}
+      />
       {usesPostgres() ? (
         <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
           Nalozi, katalog i porudžbine su u PostgreSQL bazi prodora. Server se pokreće naredbom npm run db.
