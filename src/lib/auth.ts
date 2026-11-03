@@ -7,7 +7,7 @@ import { getDataMode } from "@/lib/config";
 import { storePath } from "@/lib/constants";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
 import type { AccountContext, BuyerAccount, PlatformAccount, SessionAccount } from "@/lib/data/types";
-import { readDemoSession } from "@/lib/session-token";
+import { readDemoSession, readDemoSessionCarry } from "@/lib/session-token";
 
 export const SESSION_COOKIE = "poruci_session";
 
@@ -58,6 +58,11 @@ export async function getSession(): Promise<SessionAccount | null> {
     if (!token) return null;
     const userId = readDemoSession(token) ?? (await getDemoIdentity().getUserIdBySession(token));
     if (!userId) return null;
+    const account = await getDemoIdentity().resolveAccount(userId);
+    if (account) return account;
+    const carry = readDemoSessionCarry(token);
+    if (!carry) return null;
+    await getDemoIdentity().ensureCarriedAccount(carry);
     return getDemoIdentity().resolveAccount(userId);
   }
 

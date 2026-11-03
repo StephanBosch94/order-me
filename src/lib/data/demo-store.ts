@@ -3,9 +3,11 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { CsvProductRow } from "@/lib/csv";
+import { loadNetlifyDatabase, netlifyDemoEnabled, saveNetlifyDatabase } from "@/lib/db/netlify-state";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
+import type { SessionCarry } from "@/lib/session-token";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
@@ -246,6 +248,49 @@ export class DemoStore implements CommerceRepository {
   async deleteSession(token: string) {
     await this.exclusive(async (db) => {
       db.sessions = db.sessions.filter((session) => session.token !== token);
+    });
+  }
+
+  async sessionCarry(userId: string): Promise<SessionCarry | null> {
+    const db = await this.read();
+    const user = db.users.find((item) => item.id === userId);
+    if (!user) return null;
+    const member = db.members.find((item) => item.userId === userId);
+    const organization = member ? db.organizations.find((item) => item.id === member.organizationId) : undefined;
+    return {
+      user: { ...user },
+      member: member ? { ...member } : undefined,
+      organization: organization ? { ...organization, efakturaApiKey: "" } : undefined,
+    };
+  }
+
+  async ensureCarriedAccount(carry: SessionCarry) {
+    await this.exclusive(async (db) => {
+      const user = carry.user;
+      if (!db.users.some((item) => item.id === user.id)) {
+        if (db.users.some((item) => item.email.toLowerCase() === user.email.toLowerCase())) return;
+        db.users.push({ ...user });
+      }
+      const organization = carry.organization;
+      if (organization && !db.organizations.some((item) => item.id === organization.id)) {
+        let slug = organization.slug;
+        let suffix = 2;
+        while (db.organizations.some((item) => item.slug === slug)) {
+          slug = `${organization.slug}-${suffix}`;
+          suffix += 1;
+          if (suffix > 30) return;
+        }
+        db.organizations.push({ ...organization, slug, efakturaApiKey: "" });
+      }
+      const member = carry.member;
+      if (
+        member &&
+        db.users.some((item) => item.id === member.userId) &&
+        db.organizations.some((item) => item.id === member.organizationId) &&
+        !db.members.some((item) => item.userId === member.userId && item.organizationId === member.organizationId)
+      ) {
+        db.members.push({ ...member });
+      }
     });
   }
 
@@ -1272,24 +1317,25 @@ export class DemoStore implements CommerceRepository {
 
   private async read(): Promise<DemoDatabase> {
     if (this.options.postgres) return this.readPostgres();
+    if (netlifyDemoEnabled()) {
+      try {
+        const loaded = await loadNetlifyDatabase();
+        if (!loaded) {
+          const db = normalizeDatabase(this.options.seed === false ? emptyDatabase() : await createSeedDatabase());
+          await this.persist(db);
+          return db;
+        }
+        return await this.adopt(loaded);
+      } catch (error) {
+        if (error instanceof DataError) throw error;
+        console.error("Netlify baza nije dostupna.");
+      }
+    }
     await mkdir(path.dirname(this.filePath), { recursive: true });
     try {
       const raw = await readFile(this.filePath, "utf8");
       const parsed = JSON.parse(raw) as DemoDatabase;
-      if (parsed.version !== 1) {
-        throw new DataError("Demo baza ima nepoznatu verziju.", "validation");
-      }
-      let changed = false;
-      if (this.options.seed !== false) {
-        const retail = await ensureRetailDemo(parsed);
-        const photos = applyDemoPhotos(parsed);
-        const galleries = applyDemoGalleries(parsed);
-        changed = retail || photos || galleries;
-      }
-      changed = missingTrackStock(parsed) || changed;
-      const db = normalizeDatabase(parsed);
-      if (changed) await this.persist(db);
-      return db;
+      return await this.adopt(parsed);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
       const db = this.options.seed === false ? emptyDatabase() : await createSeedDatabase();
@@ -1335,10 +1381,35 @@ export class DemoStore implements CommerceRepository {
     return db;
   }
 
+  private async adopt(parsed: DemoDatabase) {
+    if (parsed.version !== 1) {
+      throw new DataError("Demo baza ima nepoznatu verziju.", "validation");
+    }
+    let changed = false;
+    if (this.options.seed !== false) {
+      const retail = await ensureRetailDemo(parsed);
+      const photos = applyDemoPhotos(parsed);
+      const galleries = applyDemoGalleries(parsed);
+      changed = retail || photos || galleries;
+    }
+    changed = missingTrackStock(parsed) || changed;
+    const db = normalizeDatabase(parsed);
+    if (changed) await this.persist(db);
+    return db;
+  }
+
   private async persist(db: DemoDatabase) {
     if (this.options.postgres) {
       await saveDatabase(db);
       return;
+    }
+    if (netlifyDemoEnabled()) {
+      try {
+        await saveNetlifyDatabase(db);
+        return;
+      } catch {
+        console.error("Netlify baza nije sačuvana.");
+      }
     }
     await mkdir(path.dirname(this.filePath), { recursive: true });
     const temporary = `${this.filePath}.${process.pid}.tmp`;

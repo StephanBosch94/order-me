@@ -34,7 +34,8 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
     if (!user) return { error: "Prijava nije uspela. Proverite email i lozinku." };
     const account = await getDemoIdentity().resolveAccount(user.id);
     if (!account) return { error: "Nalog nije završen. Završite registraciju." };
-    await setDemoSession(signDemoSession(user.id));
+    const carry = await getDemoIdentity().sessionCarry(user.id);
+    await setDemoSession(signDemoSession(user.id, Date.now(), carry));
     redirect(await landingPath(account, nextPath));
   }
 
@@ -122,7 +123,8 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           audience: parsed.data.audience,
         });
       }
-      await setDemoSession(signDemoSession(user.id));
+      const carry = await getDemoIdentity().sessionCarry(user.id);
+      await setDemoSession(signDemoSession(user.id, Date.now(), carry));
       redirect(parsed.data.kind === "buyer" ? await buyerDestination(requestedNext, user.id) : "/dashboard");
     }
 

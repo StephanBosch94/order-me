@@ -729,3 +729,37 @@ test("orders change warehouse stock only while tracking is on", async () => {
     assert.equal(await stock(), 7);
   });
 });
+
+test("a new account can be restored on a database that never saw the signup", async () => {
+  await withStore(async (origin) => {
+    const user = await origin.createUser({
+      name: "Proba Nalog",
+      email: "proba@example.com",
+      password: "lozinka123",
+    });
+    await origin.createOrganization({
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      name: "Proba Veleprodaja",
+      slug: "proba-veleprodaja",
+      phone: "",
+    });
+    const carry = await origin.sessionCarry(user.id);
+    if (!carry) throw new Error("Nalog nije sačuvan u sesiji.");
+    assert.equal(carry.organization?.efakturaApiKey, "");
+    await withStore(async (other) => {
+      assert.equal(await other.resolveAccount(user.id), null);
+      await other.ensureCarriedAccount(carry);
+      await other.ensureCarriedAccount(carry);
+      const account = await other.resolveAccount(user.id);
+      assert.equal(account?.kind, "supplier");
+      if (account?.kind !== "supplier") return;
+      assert.equal(account.organization.name, "Proba Veleprodaja");
+      const orders = await other.listOrders(account.organization.id, { pageSize: 10 });
+      assert.equal(orders.items.length, 0);
+      const again = await other.verifyCredentials("proba@example.com", "lozinka123");
+      assert.equal(again?.id, user.id);
+    });
+  });
+});
