@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
 import { invoiceStatusLabel } from "@/components/platform/copy";
 import { requireSession } from "@/lib/auth";
+import { isShopManager } from "@/lib/members";
 import { getCommerce } from "@/lib/data";
 import { belgradeMonthKey, formatDate, formatRsd, monthLabel } from "@/lib/format";
 
@@ -10,6 +12,7 @@ export const metadata: Metadata = { title: "Fakture od Prodore" };
 
 export default async function InvoicesPage() {
   const session = await requireSession();
+  if (!isShopManager(session.role)) redirect("/dashboard");
   const invoices = await getCommerce().listInvoices(session.organization.id);
 
   return (

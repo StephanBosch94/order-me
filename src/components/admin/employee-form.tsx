@@ -10,7 +10,7 @@ import { FieldError, Input, Label } from "@/components/ui/fields";
 
 const initial: EmployeeState = {};
 
-export function EmployeeAdd({ owner }: { owner: boolean }) {
+export function EmployeeAdd({ canAdd }: { canAdd: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -19,7 +19,7 @@ export function EmployeeAdd({ owner }: { owner: boolean }) {
         title="Zaposleni"
         description="Ljudi koji mogu da se prijave na administraciju ove prodavnice."
         actions={
-          owner ? (
+          canAdd ? (
             <Button
               size="icon"
               aria-label={open ? "Zatvori formu" : "Dodaj zaposlenog"}
@@ -31,10 +31,10 @@ export function EmployeeAdd({ owner }: { owner: boolean }) {
           ) : null
         }
       />
-      {owner && open ? <EmployeeForm /> : null}
-      {owner ? null : (
+      {canAdd && open ? <EmployeeForm /> : null}
+      {canAdd ? null : (
         <p className="mb-6 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-          Samo vlasnik može da dodaje zaposlene.
+          Samo vlasnik i admin mogu da dodaju zaposlene.
         </p>
       )}
     </>
@@ -53,7 +53,7 @@ function EmployeeForm() {
     <section className="mb-8 max-w-2xl rounded-lg border border-border bg-card p-4">
       <h2 className="text-sm font-semibold">Novi zaposleni</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Unesite ime, email i početnu lozinku. Pozivnica stiže na email. Zaposleni ulazi u istu prodavnicu i ne može da dodaje druge zaposlene.
+        Unesite ime, email, ulogu i početnu lozinku. Pozivnica stiže na email. Admin menja podešavanja i dodaje zaposlene. Korisnik radi sa porudžbinama, kupcima i proizvodima.
       </p>
       <form ref={formRef} action={action} className="mt-4 grid gap-4 sm:grid-cols-2">
       {state.error ? (
@@ -87,6 +87,30 @@ function EmployeeForm() {
         <FieldError message={state.fieldErrors?.password} />
         <p className="mt-1 text-xs text-muted-foreground">Najmanje 8 karaktera. Stiže u pozivnici i služi za prvu prijavu.</p>
       </div>
+      <fieldset className="sm:col-span-2">
+        <legend className="text-sm font-medium">Uloga</legend>
+        <div className="mt-2 flex flex-wrap gap-4">
+          {(
+            [
+              ["admin", "Admin"],
+              ["staff", "Korisnik"],
+            ] as const
+          ).map(([value, label]) => (
+            <label key={value} className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="role"
+                value={value}
+                defaultChecked={value === "staff"}
+                required
+                className="size-4 accent-primary"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        <FieldError message={state.fieldErrors?.role} />
+      </fieldset>
       <div>
         <Button type="submit" disabled={pending}>
           {pending ? "Dodavanje…" : "Dodaj zaposlenog"}

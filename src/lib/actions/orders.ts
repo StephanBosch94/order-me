@@ -10,7 +10,7 @@ import { parseCustomerCsv } from "@/lib/csv";
 import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import type { BuyerAccount, OrderStatus } from "@/lib/data/types";
-import { deliverOrderEmails } from "@/lib/email/order";
+import { deliverOrderEmails, deliverOrderStatusEmail } from "@/lib/email/order";
 import {
   businessOrderSchema,
   customerSchema,
@@ -257,6 +257,7 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
   const session = await requireSession();
   const parsed = statusSchema.safeParse({ status });
   if (!parsed.success) return { ok: false, message: "Izaberite status." };
+  const previous = await getCommerce().getOrder(session.organization.id, orderId);
   const order = await getCommerce().updateOrderStatus(
     session.organization.id,
     orderId,
@@ -264,6 +265,12 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
     session.name,
   );
   if (!order) return { ok: false, message: "Porudžbina nije pronađena." };
+  if (previous && previous.status !== order.status) {
+    await deliverOrderStatusEmail(order, {
+      name: session.organization.name,
+      slug: session.organization.slug,
+    }).catch(() => "failed" as const);
+  }
   revalidatePath("/orders");
   revalidatePath(`/orders/${orderId}`);
   revalidatePath("/dashboard");

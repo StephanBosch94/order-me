@@ -1,16 +1,24 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { CopyLink } from "@/components/admin/order-actions";
 import { PageHeader } from "@/components/admin/page-header";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { storePath } from "@/lib/constants";
 import { requireSession } from "@/lib/auth";
+import { isShopManager } from "@/lib/members";
 import { isDemoMode, usesPostgres } from "@/lib/config";
 
 export const metadata: Metadata = { title: "Podešavanja" };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const session = await requireSession();
+  if (!isShopManager(session.role)) redirect("/dashboard");
+  const { tab } = await searchParams;
   const path = storePath(session.organization.slug);
   return (
     <div>
@@ -29,6 +37,7 @@ export default async function SettingsPage() {
       <SettingsForm
         organization={{ ...session.organization, efakturaApiKey: "" }}
         hasEfakturaApiKey={session.organization.efakturaApiKey.trim().length > 0}
+        initialTab={tab === "izgled" ? "izgled" : "podaci"}
       />
       {usesPostgres() ? (
         <p className="mt-8 max-w-2xl text-sm text-muted-foreground">

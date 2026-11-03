@@ -18,7 +18,26 @@ export const employeeSchema = z.object({
   name: z.string().trim().min(2, "Unesite ime.").max(80),
   email: z.email("Unesite ispravnu email adresu."),
   password: z.string().min(8, "Lozinka mora imati bar 8 karaktera.").max(72, "Lozinka može imati najviše 72 karaktera."),
+  role: z.enum(["admin", "staff"], "Izaberite ulogu."),
 });
+
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Unesite trenutnu lozinku."),
+    nextPassword: z
+      .string()
+      .min(8, "Lozinka mora imati bar 8 karaktera.")
+      .max(72, "Lozinka može imati najviše 72 karaktera."),
+    confirmPassword: z.string().min(1, "Ponovite novu lozinku."),
+  })
+  .refine((value) => value.nextPassword === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Nova lozinka i potvrda se ne poklapaju.",
+  })
+  .refine((value) => value.currentPassword !== value.nextPassword, {
+    path: ["nextPassword"],
+    message: "Nova lozinka mora biti drugačija od trenutne.",
+  });
 
 export const loginSchema = z.object({
   email: z.email("Unesite ispravnu email adresu."),

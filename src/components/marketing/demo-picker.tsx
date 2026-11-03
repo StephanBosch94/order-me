@@ -15,7 +15,7 @@ const choices = [
   },
   {
     href: "/shop/mesara-pajic",
-    label: "Distribucija",
+    label: "Veleprodaja",
     title: "Mesara",
     shop: "Mesara Pajić",
     online: false,

@@ -83,7 +83,7 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Kreiranje…" : supplier ? "Otvorite distribuciju" : "Otvorite nalog"}
+        {pending ? "Kreiranje…" : supplier ? "Otvorite veleprodaju" : "Otvorite nalog"}
       </Button>
     </form>
   );

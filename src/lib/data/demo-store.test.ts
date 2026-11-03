@@ -425,8 +425,16 @@ test("owner adds a staff member to the same shop", async () => {
       name: "Petar Jović",
       email: "Petar@MesaraPajic.rs",
       password: "lozinka123",
+      role: "staff",
     });
     assert.equal(employee.role, "staff");
+    const admin = await store.addStaffMember(organization.id, {
+      name: "Ivana Admin",
+      email: "ivana.admin@mesarapajic.rs",
+      password: "lozinka123",
+      role: "admin",
+    });
+    assert.equal(admin.role, "admin");
     assert.equal(employee.email, "petar@mesarapajic.rs");
 
     const account = await store.resolveAccount(employee.userId);
@@ -440,11 +448,30 @@ test("owner adds a staff member to the same shop", async () => {
       members.map((member) => ({ email: member.email, role: member.role })),
       [
         { email: "ana@example.com", role: "owner" },
+        { email: "ivana.admin@mesarapajic.rs", role: "admin" },
         { email: "petar@mesarapajic.rs", role: "staff" },
       ],
     );
     const login = await store.verifyCredentials("petar@mesarapajic.rs", "lozinka123");
     assert.equal(login?.id, employee.userId);
+    const changed = await store.changePassword(employee.userId, "lozinka123", "nova-lozinka");
+    assert.equal(changed.email, "petar@mesarapajic.rs");
+    assert.equal(await store.verifyCredentials("petar@mesarapajic.rs", "lozinka123"), null);
+    assert.equal((await store.verifyCredentials("petar@mesarapajic.rs", "nova-lozinka"))?.id, employee.userId);
+    await assert.rejects(
+      () => store.changePassword(employee.userId, "pogresna", "jos-jedna-lozinka"),
+      (error: unknown) => error instanceof DataError && error.message === "Trenutna lozinka nije tačna.",
+    );
+    await store.changePassword(owner.id, "lozinka123", "vlasnik-lozinka");
+    assert.equal((await store.verifyCredentials("ana@example.com", "vlasnik-lozinka"))?.id, owner.id);
+    const buyer = await store.createUser({
+      name: "Marko Kupac",
+      email: "marko.kupac@example.com",
+      password: "lozinka123",
+      kind: "buyer",
+    });
+    await store.changePassword(buyer.id, "lozinka123", "kupac-lozinka");
+    assert.equal((await store.verifyCredentials("marko.kupac@example.com", "kupac-lozinka"))?.id, buyer.id);
 
     await assert.rejects(
       () =>
@@ -452,6 +479,7 @@ test("owner adds a staff member to the same shop", async () => {
           name: "Drugi Ana",
           email: "ANA@example.com",
           password: "lozinka123",
+          role: "staff",
         }),
       (error: unknown) => error instanceof DataError && error.message === "Nalog sa ovom email adresom već postoji.",
     );

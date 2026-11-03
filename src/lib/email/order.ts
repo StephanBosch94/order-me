@@ -2,17 +2,21 @@ import "server-only";
 
 import { orderConfirmationEmail } from "@/lib/buyer";
 import { getAppUrl } from "@/lib/config";
-import type { EmailDelivery, OrderDetail, Organization, PublicSupplier } from "@/lib/data/types";
+import { confirmationPath, paymentLabel, statusLabel, unitLabel } from "@/lib/constants";
+import type { EmailDelivery, OrderDetail, OrderStatus, Organization, PublicSupplier } from "@/lib/data/types";
+import { sendsOrderMail } from "@/lib/demo-shops";
 import { sendEmail } from "@/lib/email/send";
 import { formatQuantity, formatRsd } from "@/lib/format";
-import { paymentLabel, unitLabel } from "@/lib/constants";
 import { escapeHtml } from "@/lib/text";
+
+const skipped = { customer: "skipped" as const, supplier: "skipped" as const };
 
 export async function deliverOrderEmails(
   order: OrderDetail,
   supplier: PublicSupplier,
   organization: Organization,
 ): Promise<{ customer: EmailDelivery; supplier: EmailDelivery }> {
+  if (!sendsOrderMail(organization.slug)) return skipped;
   const pdfUrl = `${getAppUrl()}/api/confirmations/${order.confirmationToken}/pdf`;
   const adminUrl = `${getAppUrl()}/orders/${order.id}`;
   const lines = order.items
@@ -68,6 +72,40 @@ export async function deliverOrderEmails(
     : "skipped";
 
   return { customer, supplier: supplierStatus };
+}
+
+export async function deliverOrderStatusEmail(
+  order: OrderDetail,
+  supplier: Pick<PublicSupplier, "name" | "slug">,
+): Promise<EmailDelivery> {
+  if (!sendsOrderMail(supplier.slug) || order.status === "nova") return "skipped";
+  const to = orderConfirmationEmail(order.customerSnapshot);
+  if (!to) return "skipped";
+  const label = statusLabel(order.status);
+  const path = confirmationPath(supplier.slug, order.confirmationToken);
+  const url = path ? `${getAppUrl()}${path}` : "";
+  const lead = statusLead(order.status, order.number, supplier.name);
+  const text = [lead, "", `Ukupno: ${formatRsd(order.totalPara)}`, url ? `Porudžbina: ${url}` : ""]
+    .filter(Boolean)
+    .join("\n");
+  return sendEmail({
+    to,
+    subject: `Porudžbina ${order.number} je ${statusPhrase(order.status)}`,
+    text,
+    html: `<div style="font-family:Arial,sans-serif;color:#18181b"><h1 style="font-size:20px">${escapeHtml(label)}</h1><p>${escapeHtml(lead)}</p><p><strong>Ukupno: ${escapeHtml(formatRsd(order.totalPara))}</strong></p>${url ? `<p><a href="${url}">Otvorite porudžbinu</a></p>` : ""}</div>`,
+  }).catch(() => "failed" as const);
+}
+
+function statusPhrase(status: OrderStatus) {
+  if (status === "potvrdjena") return "potvrđena";
+  if (status === "u_pripremi") return "u pripremi";
+  if (status === "isporucena") return "isporučena";
+  if (status === "otkazana") return "otkazana";
+  return statusLabel(status).toLowerCase();
+}
+
+function statusLead(status: OrderStatus, number: string, supplier: string) {
+  return `${supplier}: porudžbina ${number} je ${statusPhrase(status)}.`;
 }
 
 function customerHtml(order: OrderDetail, supplier: PublicSupplier, pdfUrl: string) {

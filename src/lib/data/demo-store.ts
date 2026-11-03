@@ -7,6 +7,7 @@ import { loadNetlifyDatabase, netlifyDemoEnabled, saveNetlifyDatabase } from "@/
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
+import { compareMemberRoles } from "@/lib/members";
 import type { SessionCarry } from "@/lib/session-token";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
@@ -222,6 +223,24 @@ export class DemoStore implements CommerceRepository {
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) return null;
     return { id: user.id, email: user.email, name: user.name };
+  }
+
+  async changePassword(userId: string, currentPassword: string, nextPassword: string) {
+    const db = await this.read();
+    const user = db.users.find((item) => item.id === userId);
+    if (!user) throw new DataError("Nalog nije pronađen.", "not_found");
+    const valid = await verifyPassword(currentPassword, user.passwordHash);
+    if (!valid) throw new DataError("Trenutna lozinka nije tačna.", "validation");
+    if (currentPassword === nextPassword) {
+      throw new DataError("Nova lozinka mora biti drugačija od trenutne.", "validation");
+    }
+    const passwordHash = await hashPassword(nextPassword);
+    await this.exclusive(async (next) => {
+      const current = next.users.find((item) => item.id === userId);
+      if (!current) throw new DataError("Nalog nije pronađen.", "not_found");
+      current.passwordHash = passwordHash;
+    });
+    return { email: user.email, name: user.name };
   }
 
   async createSession(userId: string) {
@@ -452,7 +471,7 @@ export class DemoStore implements CommerceRepository {
 
   async addStaffMember(
     organizationId: string,
-    input: { name: string; email: string; password: string },
+    input: { name: string; email: string; password: string; role: "admin" | "staff" },
   ): Promise<OrganizationMember> {
     const passwordHash = await hashPassword(input.password);
     const email = input.email.trim().toLowerCase();
@@ -486,7 +505,7 @@ export class DemoStore implements CommerceRepository {
         id: randomUUID(),
         organizationId,
         userId: user.id,
-        role: "staff",
+        role: input.role === "admin" ? "admin" : "staff",
         createdAt: now,
       };
       db.users.push(user);
@@ -1663,7 +1682,8 @@ function platformSuppliers(db: DemoDatabase): PlatformSupplier[] {
 }
 
 function compareMembers(a: OrganizationMember, b: OrganizationMember) {
-  if (a.role !== b.role) return a.role === "owner" ? -1 : 1;
+  const byRole = compareMemberRoles(a.role, b.role);
+  if (byRole !== 0) return byRole;
   return a.name.localeCompare(b.name, "sr");
 }
 

@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
 import { deliverStaffInvite } from "@/lib/email/staff";
 import { DataError } from "@/lib/errors";
+import { isShopManager, memberRoleLabel } from "@/lib/members";
 import { employeeSchema, fieldErrors } from "@/lib/validators";
 
 export type EmployeeState = {
@@ -22,14 +23,15 @@ function text(formData: FormData, key: string) {
 
 export async function addEmployeeAction(_prev: EmployeeState, formData: FormData): Promise<EmployeeState> {
   const session = await requireSession();
-  if (session.role !== "owner") {
-    return { error: "Samo vlasnik može da dodaje zaposlene." };
+  if (!isShopManager(session.role)) {
+    return { error: "Samo vlasnik i admin mogu da dodaju zaposlene." };
   }
 
   const parsed = employeeSchema.safeParse({
     name: text(formData, "name"),
     email: text(formData, "email"),
     password: text(formData, "password"),
+    role: text(formData, "role"),
   });
   if (!parsed.success) {
     return {
@@ -44,12 +46,14 @@ export async function addEmployeeAction(_prev: EmployeeState, formData: FormData
       name: parsed.data.name,
       email,
       password: parsed.data.password,
+      role: parsed.data.role,
     });
     const delivery = await deliverStaffInvite({
       to: email,
       name: parsed.data.name.trim(),
       shopName: session.organization.name,
       password: parsed.data.password,
+      roleLabel: memberRoleLabel(parsed.data.role),
     });
     revalidatePath("/zaposleni");
     if (delivery === "failed") {

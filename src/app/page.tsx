@@ -16,20 +16,28 @@ export const metadata: Metadata = {
 
 const sharedBenefits = [
   {
-    title: "Vaša adresa, vaši kupci",
-    body: "Svaka firma dobija sopstvenu stranicu. Kupci dolaze kod vas, a porudžbine ostaju u vašem nalogu.",
+    title: "Ušteda vremena",
+    body: "Kupac sam bira proizvod, količinu i adresu. Vi ne ponavljate cenovnik u svakom pozivu i poruci.",
   },
   {
-    title: "Sve porudžbine na jednom mestu",
-    body: "Nova, potvrđena, u pripremi, isporučena ili otkazana. Svaka porudžbina ostaje u pregledu, sa statusom koji sami menjate.",
+    title: "Automatizacija",
+    body: "Porudžbina stiže u pregled, a kupac dobija potvrdu i PDF. Status menjate na jednom mestu.",
   },
   {
-    title: "Dinari i srpski jezik",
-    body: "Cene su u dinarima, datumi po beogradskom vremenu, a tekst na stranici je na srpskoj latinici.",
+    title: "Povećanje prodaje",
+    body: "Cenovnik je uvek pred kupcem. Naručuje i kad ste na isporuci, pa prodaja ne čeka da se javite.",
   },
   {
-    title: "Potvrda porudžbine",
-    body: "Kupac dobija potvrdu i PDF sa stavkama, količinama i ukupnim iznosom. Dokument se zove potvrda porudžbine.",
+    title: "Dostupnost 24/7",
+    body: "Stranica prima porudžbine noću, vikendom i dok ste u magacinu. Ujutru su već na listi.",
+  },
+  {
+    title: "Baza kupaca",
+    body: "Firma, telefon, adresa i istorija porudžbina ostaju kod vas. Sledeći put ne kucate iste podatke.",
+  },
+  {
+    title: "Unos porudžbine",
+    body: "Kad kupac ipak pozove, porudžbinu unesete vi. Isti kupac, ista lista, ista potvrda.",
   },
 ];
 
@@ -51,7 +59,7 @@ const catalogBenefits = [
 
 const steps = [
   {
-    title: "Otvorite distribuciju",
+    title: "Otvorite veleprodaju",
     body: "Naziv, telefon i adresa. To kupci vide na stranici.",
   },
   {
@@ -76,8 +84,8 @@ export default function HomePage() {
           <Logo />
           <nav className="hidden items-center gap-1 md:flex" aria-label="Sadržaj stranice">
             {showOnlineStore ? <Anchor href="#katalog">Katalog</Anchor> : null}
-            <Anchor href="#distribucija">Distribucija</Anchor>
-            <Anchor href="#koristi">Koristi</Anchor>
+            <Anchor href="#veleprodaja">Veleprodaja</Anchor>
+            <Anchor href="#benefiti">Benefiti</Anchor>
             <Anchor href="#kako">Kako radi</Anchor>
           </nav>
           <div className="flex items-center gap-2">
@@ -110,7 +118,7 @@ export default function HomePage() {
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButtonLg}>
-                  Otvorite distribuciju
+                  Otvorite veleprodaju
                   <Arrow />
                 </Link>
                 <DemoPicker className={outlineButtonLg} />
@@ -152,7 +160,7 @@ export default function HomePage() {
               <BenefitList items={shopBenefits} />
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButton}>
-                  Otvorite distribuciju
+                  Otvorite veleprodaju
                 </Link>
                 <DemoStoreLink href="/shop/mercis-atelier" className={secondaryButton}>
                   Pogledajte Mercis Atelier
@@ -162,18 +170,18 @@ export default function HomePage() {
           </div>
         </section> : null}
 
-        <section id="distribucija" className="scroll-mt-20 border-t border-[#e6ebf1] bg-[#f6f9fc]">
+        <section id="veleprodaja" className="scroll-mt-20 border-t border-[#e6ebf1] bg-[#f6f9fc]">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2">
             <div className="lg:order-1">
-              <p className="text-sm font-medium text-[#635bff]">Distribucija</p>
+              <p className="text-sm font-medium text-[#635bff]">Veleprodaja</p>
               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-balance">Manje telefonskih poziva i poruka, više vremena za Vas.</h2>
               <p className="mt-4 text-base leading-7 text-[#425466]">
-                Skratite vreme provedeno na telefonu i posvetite se rastu svog biznisa.
+                Stranica radi i kad ste na isporuci. Kupac poručuje sam, a poziv koji ipak stigne unesete u istu listu.
               </p>
               <BenefitList items={catalogBenefits} />
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButton}>
-                  Otvorite distribuciju
+                  Otvorite veleprodaju
                 </Link>
                 <DemoStoreLink href="/shop/mesara-pajic" className={secondaryButton}>
                   {distributionDemoLabel}
@@ -191,13 +199,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="koristi" className="scroll-mt-20">
+        <section id="benefiti" className="scroll-mt-20">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-            <h2 className="max-w-2xl text-4xl font-semibold tracking-[-0.03em]">Šta dobijate</h2>
+            <h2 className="max-w-2xl text-4xl font-semibold tracking-[-0.03em]">Prodaja koja ne čeka da se javite</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[#425466]">
-              Katalog, status porudžbine, cene u dinarima i potvrda u PDF-u.
+              Manje vremena na telefonu, porudžbine i kad ste zatvoreni, i kupci koji ostaju u vašoj evidenciji.
             </p>
-            <dl className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-[#e6ebf1] bg-[#e6ebf1] sm:grid-cols-2">
+            <dl className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-[#e6ebf1] bg-[#e6ebf1] sm:grid-cols-2 lg:grid-cols-3">
               {sharedBenefits.map((benefit) => (
                 <div key={benefit.title} className="bg-white px-6 py-6">
                   <dt className="text-base font-semibold">{benefit.title}</dt>
@@ -226,7 +234,7 @@ export default function HomePage() {
         <section className="border-t border-[#e6ebf1]">
           <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6 sm:py-24 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-balance">Otvorite distribuciju</h2>
+              <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-balance">Otvorite veleprodaju</h2>
               <p className="mt-4 max-w-xl text-base leading-7 text-[#425466]">
                 <DemoStoreLink href="/shop/mesara-pajic" className="font-medium text-[#635bff] hover:underline">
                   {distributionDemoLabel}
@@ -236,7 +244,7 @@ export default function HomePage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Link href="/signup" className={primaryButtonLg}>
-                Otvorite distribuciju
+                Otvorite veleprodaju
                 <Arrow />
               </Link>
             </div>
@@ -247,8 +255,8 @@ export default function HomePage() {
       <footer className="border-t border-[#e6ebf1] bg-[#f6f9fc]">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
           <Logo />
-          <FooterColumn title="Distribucija">
-            <FooterLink href="/signup">Otvorite distribuciju</FooterLink>
+          <FooterColumn title="Veleprodaja">
+            <FooterLink href="/signup">Otvorite veleprodaju</FooterLink>
             {showOnlineStore ? <FooterLink href="/shop/mercis-atelier" newTab>Mercis Atelier</FooterLink> : null}
             <FooterLink href="/shop/mesara-pajic" newTab>{distributionDemoLabel}</FooterLink>
           </FooterColumn>
@@ -315,7 +323,7 @@ function GradientField() {
 
 function Anchor({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a href={href} className="rounded-md px-3 py-2 text-sm text-[#425466] hover:text-[#0a2540]">
+    <a href={href} className="rounded-md px-3 py-2 text-sm font-semibold text-[#0a2540] hover:text-[#635bff]">
       {children}
     </a>
   );

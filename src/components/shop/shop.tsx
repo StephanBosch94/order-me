@@ -17,6 +17,7 @@ import {
   type BuyerKind,
 } from "@/components/shop/checkout-kind";
 import { updateBuyerAccountAction, type BuyerAccountState } from "@/lib/actions/account";
+import { PasswordForm } from "@/components/auth/password-form";
 import { placeShopOrderAction } from "@/lib/actions/orders";
 import { isCompanyBuyer } from "@/lib/buyer";
 import type { DemoRole } from "@/lib/demo-shops";
@@ -457,9 +458,16 @@ function LastOrder({
       ) : (
         <div className="min-w-0 flex-1">{summary}</div>
       )}
-      <Button type="button" size="sm" onClick={() => onRepeat(order.items)}>
-        Naruči opet
-      </Button>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <Button type="button" size="sm" onClick={() => onRepeat(order.items)}>
+          Naruči opet
+        </Button>
+        <Link href={ordersPath(order.supplierSlug)}>
+          <Button type="button" size="sm" variant="secondary">
+            Vidi sve porudžbine
+          </Button>
+        </Link>
+      </div>
     </section>
   );
 }
@@ -676,6 +684,9 @@ function AccountPanel({
           </Button>
         </div>
       </form>
+      <div className="mt-10 border-t border-border pt-8">
+        <PasswordForm />
+      </div>
     </section>
   );
 }

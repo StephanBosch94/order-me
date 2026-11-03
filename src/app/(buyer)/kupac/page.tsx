@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PasswordForm } from "@/components/auth/password-form";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireBuyerSession } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
@@ -100,6 +101,10 @@ export default async function BuyerHomePage() {
             })}
           </ul>
         )}
+      </section>
+
+      <section className="mt-10 border-t border-border pt-8">
+        <PasswordForm />
       </section>
     </div>
   );

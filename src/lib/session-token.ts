@@ -88,7 +88,7 @@ function readCarry(value: unknown, userId: string): SessionCarry | null {
       typeof row.id === "string" &&
       row.userId === userId &&
       typeof row.organizationId === "string" &&
-      (row.role === "owner" || row.role === "staff") &&
+      (row.role === "owner" || row.role === "admin" || row.role === "staff") &&
       typeof row.createdAt === "string" &&
       carry.organization?.id === row.organizationId
     ) {

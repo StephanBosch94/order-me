@@ -279,7 +279,7 @@ export function CsvImport({
           setOpen(true);
         }}
       >
-        Ubaci CSV
+        Import CSV
       </Button>
       {open ? (
         <div

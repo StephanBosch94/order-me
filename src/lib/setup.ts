@@ -2,14 +2,17 @@ import { normalizeMb } from "@/lib/buyer";
 import type { Organization } from "@/lib/data/types";
 
 export type SetupStep = {
-  id: "name" | "phone" | "address" | "product";
+  id: "name" | "phone" | "address" | "appearance" | "product";
   title: string;
   detail: string;
   href: string;
   done: boolean;
 };
 
-type SetupOrganization = Pick<Organization, "name" | "audience" | "phone" | "address" | "city" | "pib" | "mb">;
+type SetupOrganization = Pick<
+  Organization,
+  "name" | "audience" | "phone" | "address" | "city" | "pib" | "mb" | "logoUrl" | "coverUrl" | "brandColor"
+>;
 
 export function storeSetup(organization: SetupOrganization, activeProducts: number): SetupStep[] {
   const phone = organization.phone.trim();
@@ -41,6 +44,7 @@ export function storeSetup(organization: SetupOrganization, activeProducts: numb
       href: "/settings",
       done: identityDone,
     },
+    appearanceStep(organization),
   ];
 
   steps.push({
@@ -56,6 +60,27 @@ export function storeSetup(organization: SetupOrganization, activeProducts: numb
 
 export function setupReady(steps: SetupStep[]) {
   return steps.every((step) => step.done);
+}
+
+function appearanceStep(organization: SetupOrganization): SetupStep {
+  const logo = Boolean(organization.logoUrl?.trim());
+  const cover = Boolean(organization.coverUrl?.trim());
+  const color = /^#[0-9a-fA-F]{6}$/.test(organization.brandColor?.trim() ?? "");
+  return {
+    id: "appearance",
+    title: "Izgled",
+    detail: appearanceDetail(logo, cover, color),
+    href: "/settings?tab=izgled",
+    done: logo && cover && color,
+  };
+}
+
+function appearanceDetail(logo: boolean, cover: boolean, color: boolean) {
+  if (logo && cover && color) return "Logo, naslovna slika i boja su sačuvani.";
+  const missing = [!logo ? "logo" : "", !cover ? "naslovna slika" : "", !color ? "boja" : ""].filter(Boolean);
+  if (missing.length === 3) return "Dodajte logo, naslovnu sliku i boju.";
+  if (missing.length === 1) return `Još treba ${missing[0]}.`;
+  return `Još treba ${missing[0]} i ${missing[1]}.`;
 }
 
 function productPhrase(count: number) {

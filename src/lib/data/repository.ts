@@ -81,11 +81,16 @@ export interface CommerceRepository {
   listMembers(organizationId: string): Promise<OrganizationMember[]>;
   addStaffMember(
     organizationId: string,
-    input: { name: string; email: string; password: string },
+    input: { name: string; email: string; password: string; role: "admin" | "staff" },
   ): Promise<OrganizationMember>;
   resolveAccount(userId: string): Promise<SessionAccount | null>;
   saveBuyerBankAccount(userId: string, bankAccount: string): Promise<void>;
   updateBuyerProfile(userId: string, input: UpdateBuyerInput): Promise<void>;
+  changePassword(
+    userId: string,
+    currentPassword: string,
+    nextPassword: string,
+  ): Promise<{ email: string; name: string }>;
   saveBuyerCompanyDetails(userId: string, input: { mb: string; postalCode: string }): Promise<void>;
   listBuyerOrders(userId: string): Promise<BuyerOrder[]>;
   updateOrganization(id: string, input: OrganizationInput): Promise<Organization>;

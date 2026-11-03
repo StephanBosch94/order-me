@@ -10,6 +10,11 @@ export function demoShopRole(slug: string) {
   return null;
 }
 
+/** Demo shops stay local. Order mail is only for a supplier's own store. */
+export function sendsOrderMail(slug: string) {
+  return demoShopRole(slug) === null;
+}
+
 export function demoShopSlugFromPath(path: string) {
   const match = (path.split("?")[0] ?? "").match(/^\/(?:shop|s)\/([^/]+)/);
   const slug = match?.[1] ? decodeURIComponent(match[1]) : "";

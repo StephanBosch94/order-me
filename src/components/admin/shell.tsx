@@ -19,6 +19,7 @@ import { SetupGuide } from "@/components/admin/setup-guide";
 import { BuyerMenu } from "@/components/shop/buyer-menu";
 import { StoreHeader } from "@/components/shop/store-header";
 import { supplierTheme } from "@/lib/color";
+import { isShopManager } from "@/lib/members";
 import { storePath } from "@/lib/constants";
 import type { AccountContext } from "@/lib/data/types";
 import { setupReady, type SetupStep } from "@/lib/setup";
@@ -78,7 +79,9 @@ export function AdminShell({
   function renderNav() {
     return (
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pt-3" aria-label="Glavna navigacija">
-        {items.map((item) => {
+        {items
+          .filter((item) => isShopManager(session.role) || (item.href !== "/settings" && item.href !== "/invoices"))
+          .map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
           return (
@@ -123,7 +126,12 @@ export function AdminShell({
         >
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
-        <BuyerMenu name={session.name} ordersHref="/orders" accountHref="/settings" shopPath={shopPath} />
+        <BuyerMenu
+          name={session.name}
+          ordersHref="/orders"
+          accountHref="/nalog"
+          shopPath={shopPath}
+        />
       </StoreHeader>
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden h-full min-h-0 flex-col border-r border-border bg-sidebar lg:flex">

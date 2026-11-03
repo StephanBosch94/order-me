@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSession } from "@/lib/auth";
+import { isShopManager } from "@/lib/members";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
@@ -167,6 +168,9 @@ export async function importProductsAction(csvText: string): Promise<FormState &
 
 export async function updateSettingsAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const session = await requireSession();
+  if (!isShopManager(session.role)) {
+    return { error: "Samo vlasnik i admin mogu da menjaju podešavanja." };
+  }
   const parsed = organizationSchema.omit({ logoUrl: true }).safeParse({
     name: text(formData, "name"),
     slug: slugify(text(formData, "slug")),

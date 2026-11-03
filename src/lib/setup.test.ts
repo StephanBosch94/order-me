@@ -44,6 +44,10 @@ test("a new shop keeps the unfinished steps open and shows saved values", () => 
   assert.equal(byId.phone?.done, false);
   assert.equal(byId.phone?.detail, "123");
   assert.equal(byId.address?.done, false);
+  assert.equal(byId.appearance?.done, false);
+  assert.equal(byId.appearance?.title, "Izgled");
+  assert.equal(byId.appearance?.detail, "Dodajte logo, naslovnu sliku i boju.");
+  assert.equal(byId.appearance?.href, "/settings?tab=izgled");
   assert.equal(byId.product?.done, false);
   assert.equal(setupReady(steps), false);
 });
@@ -56,6 +60,9 @@ test("the guide is finished when the store can take orders", () => {
       city: "Beograd",
       pib: "123456789",
       mb: "21456789",
+      logoUrl: "/suppliers/logo.jpg",
+      coverUrl: "/products/cover.jpg",
+      brandColor: "#0c1f2e",
     }),
     2,
   );
@@ -74,4 +81,20 @@ test("the guide is finished when the store can take orders", () => {
     false,
   );
   assert.equal(steps.find((step) => step.id === "product")?.detail, "2 aktivna proizvoda");
+  assert.equal(steps.find((step) => step.id === "appearance")?.detail, "Logo, naslovna slika i boja su sačuvani.");
+  assert.equal(
+    storeSetup(
+      organization({
+        phone: "+381 11 555 0188",
+        address: "Gospodar Jevremova 28",
+        city: "Beograd",
+        pib: "123456789",
+        mb: "21456789",
+        logoUrl: "/suppliers/logo.jpg",
+        coverUrl: "/products/cover.jpg",
+      }),
+      2,
+    ).find((step) => step.id === "appearance")?.detail,
+    "Još treba boja.",
+  );
 });

@@ -10,7 +10,7 @@ export const UNIT_VALUES = ["komad", "paket", "kutija", "kilogram", "litar"] as 
 
 export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
 export type Unit = (typeof UNIT_VALUES)[number];
-export type MemberRole = "owner" | "staff";
+export type MemberRole = "owner" | "admin" | "staff";
 export type StoreChannel = "b2c" | "b2b";
 export type Audience = "fizicka" | "pravna" | "oba";
 export type PaymentMethod = "pouzecem" | "ips" | "kartica" | "racun";

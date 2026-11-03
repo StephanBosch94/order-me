@@ -63,7 +63,7 @@ export function CustomerForm({ customer }: { customer: Customer }) {
       <div className="max-w-[12rem]">
         <Field name="code" label="Šifra kupca" defaultValue={customer.code} />
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Ako ostavite prazno, postojeća šifra ostaje. Jedinstvena je unutar vaše distribucije.
+          Ako ostavite prazno, postojeća šifra ostaje. Jedinstvena je unutar vaše veleprodaje.
         </p>
       </div>
       <fieldset>

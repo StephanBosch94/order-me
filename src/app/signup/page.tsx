@@ -17,7 +17,7 @@ export default async function SignupPage() {
   }
 
   return (
-    <AuthShell title="Otvorite distribuciju" subtitle="Kupci firme same unose količine. Porudžbine stižu na vašu adresu.">
+    <AuthShell title="Otvorite veleprodaju" subtitle="Kupci firme same unose količine. Porudžbine stižu na vašu adresu.">
       <SignupForm mode="supplier" />
       <p className="mt-6 text-sm text-muted-foreground">
         Već imate nalog?{" "}

@@ -25,12 +25,14 @@ type SettingsTab = "podaci" | "izgled";
 export function SettingsForm({
   organization,
   hasEfakturaApiKey,
+  initialTab = "podaci",
 }: {
   organization: Organization;
   hasEfakturaApiKey: boolean;
+  initialTab?: SettingsTab;
 }) {
   const [state, action, pending] = useActionState(updateSettingsAction, initial);
-  const [tab, setTab] = useState<SettingsTab>("podaci");
+  const [tab, setTab] = useState<SettingsTab>(initialTab);
   const changes = useUnchangedForm();
 
   useEffect(() => {

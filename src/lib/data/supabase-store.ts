@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
 
+import { createClient } from "@supabase/supabase-js";
+
 import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
+import { compareMemberRoles, memberRole } from "@/lib/members";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
@@ -411,6 +414,32 @@ export const supabaseRepository: CommerceRepository = {
     fail(error);
   },
 
+  async changePassword(userId: string, currentPassword: string, nextPassword: string) {
+    const admin = db();
+    const existing = await admin.auth.admin.getUserById(userId);
+    const email = existing.data.user?.email?.trim().toLowerCase() ?? "";
+    if (existing.error || !email) throw new DataError("Nalog nije pronađen.", "not_found");
+    if (currentPassword === nextPassword) {
+      throw new DataError("Nova lozinka mora biti drugačija od trenutne.", "validation");
+    }
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+    if (!url || !anon) throw new DataError("Prijava nije dostupna.", "validation");
+    const checker = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+    const check = await checker.auth.signInWithPassword({ email, password: currentPassword });
+    if (check.error) throw new DataError("Trenutna lozinka nije tačna.", "validation");
+    const updated = await admin.auth.admin.updateUserById(userId, { password: nextPassword });
+    if (updated.error) {
+      const message = updated.error.message.toLowerCase();
+      if (message.includes("password")) throw new DataError("Lozinka mora imati bar 8 karaktera.", "validation");
+      throw new DataError("Lozinka nije promenjena. Pokušajte ponovo.", "validation");
+    }
+    const profile = await admin.from("profiles").select("name, email").eq("id", userId).maybeSingle();
+    fail(profile.error);
+    const row = profile.data as { name?: string; email?: string } | null;
+    return { email: String(row?.email ?? email), name: String(row?.name ?? "") };
+  },
+
   async updateBuyerProfile(userId, input: UpdateBuyerInput) {
     const { data, error } = await db()
       .from("profiles")
@@ -459,7 +488,7 @@ export const supabaseRepository: CommerceRepository = {
       userId,
       name: String(profileRow.name),
       email: String(profileRow.email),
-      role: String((member.data as Record<string, unknown>).role) as "owner" | "staff",
+      role: memberRole((member.data as Record<string, unknown>).role),
       organization,
     };
   },
@@ -1540,7 +1569,8 @@ function mapInvoice(row: Record<string, unknown>): PlatformInvoice {
 const DUPLICATE_EMAIL = "Nalog sa ovom email adresom već postoji.";
 
 function compareMembers(a: OrganizationMember, b: OrganizationMember) {
-  if (a.role !== b.role) return a.role === "owner" ? -1 : 1;
+  const byRole = compareMemberRoles(a.role, b.role);
+  if (byRole !== 0) return byRole;
   return a.name.localeCompare(b.name, "sr");
 }
 
@@ -1579,7 +1609,7 @@ async function listOrganizationMembers(organizationId: string): Promise<Organiza
     .flatMap((row) => {
       const profile = byId.get(String(row.user_id));
       if (!profile) return [];
-      const role = row.role === "owner" ? "owner" : "staff";
+      const role = memberRole(row.role);
       return [
         {
           id: String(row.id),
@@ -1596,7 +1626,7 @@ async function listOrganizationMembers(organizationId: string): Promise<Organiza
 
 async function insertStaffMember(
   organizationId: string,
-  input: { name: string; email: string; password: string },
+  input: { name: string; email: string; password: string; role: "admin" | "staff" },
 ): Promise<OrganizationMember> {
   const admin = db();
   const email = input.email.trim().toLowerCase();
@@ -1642,7 +1672,7 @@ async function insertStaffMember(
     .insert({
       organization_id: organizationId,
       user_id: userId,
-      role: "staff",
+      role: input.role === "admin" ? "admin" : "staff",
     })
     .select("id, created_at")
     .single();
@@ -1658,7 +1688,7 @@ async function insertStaffMember(
     userId,
     name,
     email,
-    role: "staff",
+    role: input.role === "admin" ? "admin" : "staff",
     createdAt: String(row.created_at),
   };
 }

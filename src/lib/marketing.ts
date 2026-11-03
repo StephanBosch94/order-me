@@ -1,7 +1,7 @@
 /** The online shop stays in the product. The public start shows distribution until this is on. */
 export const showOnlineStore = false;
 
-export const distributionDemoLabel = "Pogledajte demo distribucije";
+export const distributionDemoLabel = "Pogledajte demo veleprodaje";
 
 /** Public homepage hero uses the meat demo's own name and pictures. */
 export const distributionDemo = {

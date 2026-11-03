@@ -50,7 +50,7 @@ export type DemoMembership = {
   id: string;
   organizationId: string;
   userId: string;
-  role: "owner" | "staff";
+  role: "owner" | "admin" | "staff";
   createdAt: string;
 };
 
