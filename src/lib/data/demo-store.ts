@@ -9,7 +9,7 @@ import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } 
 import { salesFollowUps } from "@/lib/follow-ups";
 import { compareMemberRoles } from "@/lib/members";
 import type { SessionCarry } from "@/lib/session-token";
-import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
+import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
 import {
@@ -337,6 +337,7 @@ export class DemoStore implements CommerceRepository {
         orderPrefix: orderPrefixFromName(input.name),
         nextOrderNumber: 1001,
         active: true,
+        publicStore: true,
         trackStock: false,
         efakturaApiKey: "",
         efakturaEnabled: false,
@@ -1020,6 +1021,7 @@ export class DemoStore implements CommerceRepository {
       const organization = db.organizations.find((item) => item.slug === input.slug);
       if (!organization) return { ok: false, message: "Dobavljač nije pronađen." };
       if (!organization.active) return { ok: false, message: STORE_CLOSED_MESSAGE };
+      if (organization.publicStore === false) return { ok: false, message: STORE_MANUAL_MESSAGE };
 
       const existing = db.orders.find(
         (order) =>
@@ -1278,6 +1280,14 @@ export class DemoStore implements CommerceRepository {
         closedMessage: STORE_CLOSED_MESSAGE,
       };
     }
+    if (organization.publicStore === false) {
+      return {
+        supplier: toPublicSupplier(organization),
+        categories: [],
+        products: [],
+        closedMessage: STORE_MANUAL_MESSAGE,
+      };
+    }
     const categories = db.categories
       .filter((category) => category.organizationId === organization.id)
       .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "sr"));
@@ -1440,7 +1450,7 @@ export class DemoStore implements CommerceRepository {
       const galleries = applyDemoGalleries(loaded);
       changed = retail || photos || galleries;
     }
-    changed = missingTrackStock(loaded) || changed;
+    changed = missingTrackStock(loaded) || missingPublicStore(loaded) || changed;
     const db = normalizeDatabase(loaded);
     if (changed) await saveDatabase(db);
     return db;
@@ -1457,7 +1467,7 @@ export class DemoStore implements CommerceRepository {
       const galleries = applyDemoGalleries(parsed);
       changed = retail || photos || galleries;
     }
-    changed = missingTrackStock(parsed) || changed;
+    changed = missingTrackStock(parsed) || missingPublicStore(parsed) || changed;
     const db = normalizeDatabase(parsed);
     if (changed) await this.persist(db);
     return db;
@@ -1503,6 +1513,12 @@ function missingTrackStock(db: DemoDatabase) {
   );
 }
 
+function missingPublicStore(db: DemoDatabase) {
+  return (db.organizations ?? []).some(
+    (organization) => organization.publicStore !== true && organization.publicStore !== false,
+  );
+}
+
 function normalizeDatabase(db: DemoDatabase) {
   db.plans ??= [];
   db.subscriptions ??= [];
@@ -1539,6 +1555,7 @@ function normalizeDatabase(db: DemoDatabase) {
     organization.coverUrl ??= null;
     organization.description ??= "";
     if (organization.trackStock !== true) organization.trackStock = false;
+    if (organization.publicStore !== false) organization.publicStore = true;
     if (typeof organization.efakturaApiKey !== "string") organization.efakturaApiKey = "";
     else organization.efakturaApiKey = organization.efakturaApiKey.trim();
     if (organization.efakturaEnabled !== true) organization.efakturaEnabled = false;

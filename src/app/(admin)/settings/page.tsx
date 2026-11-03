@@ -28,7 +28,11 @@ export default async function SettingsPage({
       />
       <section className="mb-6 rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-semibold">Adresa prodavnice</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Pošaljite ovaj link kupcima.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {session.organization.publicStore === false
+            ? "Javna stranica je isključena. Porudžbine i kupce unosite ovde."
+            : "Pošaljite ovaj link kupcima."}
+        </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <code className="rounded-md bg-zinc-50 px-2 py-1 text-sm">{path}</code>
           <CopyLink path={path} />

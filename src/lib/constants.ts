@@ -55,6 +55,7 @@ export const RESERVED_SLUGS = new Set([
 ]);
 
 export const STORE_CLOSED_MESSAGE = "Ova prodavnica trenutno ne prima nove porudžbine.";
+export const STORE_MANUAL_MESSAGE = "Ova prodavnica ne prima porudžbine preko stranice.";
 
 export const ORDER_PAGE_SIZE = 10;
 

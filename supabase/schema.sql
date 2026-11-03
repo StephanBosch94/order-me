@@ -35,6 +35,7 @@ create table if not exists public.organizations (
   order_prefix text not null default 'POR',
   next_order_number integer not null default 1001,
   active boolean not null default true,
+  public_store boolean not null default true,
   track_stock boolean not null default false,
   efaktura_api_key text not null default '',
   efaktura_enabled boolean not null default false,
@@ -398,6 +399,7 @@ update public.customers
 set payment_term_days = case when party = 'pravna' then 15 else 0 end
 where payment_term_days is null;
 alter table public.organizations add column if not exists track_stock boolean not null default false;
+alter table public.organizations add column if not exists public_store boolean not null default true;
 alter table public.organizations add column if not exists efaktura_api_key text not null default '';
 alter table public.organizations add column if not exists efaktura_enabled boolean not null default false;
 alter table public.organizations add column if not exists efaktura_environment text not null default 'demo';

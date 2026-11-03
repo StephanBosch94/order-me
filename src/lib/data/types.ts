@@ -96,6 +96,8 @@ export type Organization = {
   orderPrefix: string;
   nextOrderNumber: number;
   active: boolean;
+  /** When false, buyers cannot order on the public page. Staff still enter orders and customers. */
+  publicStore: boolean;
   /** When true, products show warehouse stock and orders change it. */
   trackStock: boolean;
   /** SEF ApiKey. Kept on the organization and never written into the page. */
@@ -387,6 +389,7 @@ export type OrganizationInput = {
   description: string;
   audience: Audience;
   trackStock: boolean;
+  publicStore: boolean;
   efakturaApiKey: string;
   efakturaEnabled: boolean;
   efakturaEnvironment: "demo" | "produkcija";

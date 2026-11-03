@@ -11,7 +11,7 @@ export type SetupStep = {
 
 type SetupOrganization = Pick<
   Organization,
-  "name" | "audience" | "phone" | "address" | "city" | "pib" | "mb" | "logoUrl" | "coverUrl" | "brandColor"
+  "name" | "audience" | "phone" | "address" | "city" | "pib" | "mb" | "logoUrl" | "coverUrl" | "brandColor" | "publicStore"
 >;
 
 export function storeSetup(organization: SetupOrganization, activeProducts: number): SetupStep[] {
@@ -44,8 +44,8 @@ export function storeSetup(organization: SetupOrganization, activeProducts: numb
       href: "/settings",
       done: identityDone,
     },
-    appearanceStep(organization),
   ];
+  if (organization.publicStore !== false) steps.push(appearanceStep(organization));
 
   steps.push({
     id: "product",

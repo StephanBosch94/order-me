@@ -218,6 +218,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
       brandColor,
       coverUrl,
       trackStock: formData.get("trackStock") === "on",
+      publicStore: formData.get("publicStore") === "on",
       efakturaApiKey: submittedKey || stored?.efakturaApiKey || "",
       efakturaEnabled: formData.get("efakturaEnabled") === "on",
       efakturaEnvironment: environment === "produkcija" ? "produkcija" : "demo",

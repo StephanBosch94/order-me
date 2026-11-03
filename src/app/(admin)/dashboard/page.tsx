@@ -37,7 +37,7 @@ export default async function DashboardPage() {
         }
       />
 
-      {ready && !data.hasOrders ? (
+      {ready && !data.hasOrders && session.organization.publicStore !== false ? (
         <div className="mb-6 rounded-lg border border-border bg-card px-4 py-4">
           <h2 className="text-sm font-semibold">Podelite stranicu kupcima</h2>
           <p className="mt-1 text-sm text-muted-foreground">

@@ -62,6 +62,7 @@ test("a signed session can carry a new account for another server", () => {
       nextOrderNumber: 1001,
       active: true,
       trackStock: false,
+      publicStore: true,
       efakturaApiKey: "tajna",
       efakturaEnabled: false,
       efakturaEnvironment: "demo",

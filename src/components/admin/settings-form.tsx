@@ -60,6 +60,22 @@ export function SettingsForm({
         </SettingsTabButton>
       </div>
       <div className={tab === "podaci" ? "grid gap-4 sm:grid-cols-2" : "hidden"} role="tabpanel">
+        <div className="sm:col-span-2 rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="publicStore"
+              defaultChecked={organization.publicStore !== false}
+              className="mt-0.5 size-4 accent-zinc-950"
+            />
+            <span>
+              <span className="text-sm font-medium">Prodavnica</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Kupci sami poručuju na javnoj stranici. Isključite je ako porudžbine, kupce i ostalo unosite samo vi.
+              </span>
+            </span>
+          </label>
+        </div>
         <AudienceChoice
           className="sm:col-span-2"
           defaultValue={organization.audience}

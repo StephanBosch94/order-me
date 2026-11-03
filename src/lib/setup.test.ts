@@ -26,6 +26,7 @@ function organization(overrides: Partial<Organization> = {}): Organization {
     nextOrderNumber: 1001,
     active: true,
     trackStock: false,
+    publicStore: true,
     efakturaApiKey: "",
     efakturaEnabled: false,
     efakturaEnvironment: "demo",

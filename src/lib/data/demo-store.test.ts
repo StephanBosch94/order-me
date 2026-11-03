@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { orderConfirmationEmail } from "@/lib/buyer";
+import { STORE_MANUAL_MESSAGE } from "@/lib/constants";
 import { parseCustomerCsv } from "@/lib/csv";
 import { DemoStore } from "@/lib/data/demo-store";
 import { DataError } from "@/lib/errors";
@@ -697,6 +698,7 @@ test("orders change warehouse stock only while tracking is on", async () => {
       coverUrl: organization.coverUrl,
       description: organization.description,
       audience: organization.audience,
+      publicStore: organization.publicStore,
       efakturaApiKey: "",
       efakturaEnabled: false,
       efakturaEnvironment: "demo" as const,
@@ -837,5 +839,98 @@ test("CSV import adds customers and skips an email that already exists", async (
       ["K-0001", "K-0002"],
     );
     assert.equal(customers.find((customer) => customer.email === "milica@example.rs")?.party, "fizicka");
+  });
+});
+
+test("turning off the public store blocks the page and keeps staff orders", async () => {
+  await withStore(async (store) => {
+    const user = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    const organization = await store.createOrganization({
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      name: "Proba",
+      slug: "proba-rucno",
+      phone: "",
+    });
+    assert.equal(organization.publicStore, true);
+    const product = await store.createProduct(organization.id, {
+      name: "Kulen",
+      sku: "KUL",
+      description: "",
+      categoryId: null,
+      newCategory: "Meso",
+      unit: "kilogram",
+      pricePara: 185000,
+      salePricePara: null,
+      minQuantity: 1,
+      stockQuantity: 0,
+      active: true,
+    });
+    const customer = await store.createCustomer(organization.id, {
+      code: "",
+      businessName: "Restoran Dunav",
+      contactName: "Marko",
+      email: "marko@example.rs",
+      phone: "0631112200",
+      pib: "108765432",
+      address: "Bulevar 1",
+      city: "Beograd",
+      notes: "",
+      party: "pravna",
+      paymentTermDays: 15,
+    });
+    const closed = await store.updateOrganization(organization.id, {
+      name: organization.name,
+      slug: organization.slug,
+      email: organization.email,
+      notificationEmail: organization.notificationEmail,
+      phone: organization.phone,
+      address: organization.address,
+      city: organization.city,
+      pib: organization.pib,
+      mb: organization.mb,
+      logoUrl: null,
+      brandColor: null,
+      coverUrl: null,
+      description: "",
+      audience: organization.audience,
+      trackStock: false,
+      publicStore: false,
+      efakturaApiKey: "",
+      efakturaEnabled: false,
+      efakturaEnvironment: "demo",
+    });
+    assert.equal(closed.publicStore, false);
+    const catalog = await store.getPublicCatalog(organization.slug);
+    assert.equal(catalog?.closedMessage, STORE_MANUAL_MESSAGE);
+    const blocked = await store.createPublicOrder(
+      {
+        slug: organization.slug,
+        idempotencyKey: crypto.randomUUID(),
+        businessName: "Restoran Dunav",
+        contactName: "Marko",
+        email: "marko@example.rs",
+        phone: "0631112200",
+        pib: "108765432",
+        address: "Bulevar 1",
+        city: "Beograd",
+        notes: "",
+        items: [{ productId: product.id, quantity: 1 }],
+      },
+      "127.0.0.1",
+    );
+    assert.equal(blocked.ok, false);
+    const entered = await store.createStaffOrder(organization.id, {
+      customerId: customer.id,
+      notes: "",
+      actorName: "Ana Petrović",
+      items: [{ productId: product.id, quantity: 1 }],
+    });
+    assert.equal(entered.ok, true);
   });
 });

@@ -7,7 +7,7 @@ import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
 import { compareMemberRoles, memberRole } from "@/lib/members";
-import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, channelForAudience } from "@/lib/constants";
+import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
 import {
@@ -107,6 +107,7 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     orderPrefix: String(row.order_prefix),
     nextOrderNumber: Number(row.next_order_number),
     active: Boolean(row.active),
+    publicStore: row.public_store !== false,
     trackStock: row.track_stock === true,
     efakturaApiKey: typeof row.efaktura_api_key === "string" ? row.efaktura_api_key : "",
     efakturaEnabled: row.efaktura_enabled === true,
@@ -358,6 +359,7 @@ export const supabaseRepository: CommerceRepository = {
         channel: channelForAudience(input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna")),
         order_prefix: orderPrefixFromName(input.name),
         track_stock: false,
+        public_store: true,
       })
       .select("*")
       .single();
@@ -600,6 +602,7 @@ export const supabaseRepository: CommerceRepository = {
         audience: input.audience,
         channel: channelForAudience(input.audience),
         track_stock: input.trackStock,
+        public_store: input.publicStore !== false,
         efaktura_api_key: input.efakturaApiKey,
         efaktura_enabled: input.efakturaEnabled,
         efaktura_environment: input.efakturaEnvironment === "produkcija" ? "produkcija" : "demo",
@@ -1061,6 +1064,7 @@ export const supabaseRepository: CommerceRepository = {
     if (!orgResult.data) return { ok: false, message: "Dobavljač nije pronađen." };
     const organization = mapOrganization(orgResult.data as Record<string, unknown>);
     if (!organization.active) return { ok: false, message: STORE_CLOSED_MESSAGE };
+    if (organization.publicStore === false) return { ok: false, message: STORE_MANUAL_MESSAGE };
 
     const existing = await admin
       .from("orders")
@@ -1361,6 +1365,14 @@ export const supabaseRepository: CommerceRepository = {
         categories: [],
         products: [],
         closedMessage: STORE_CLOSED_MESSAGE,
+      };
+    }
+    if (organization.publicStore === false) {
+      return {
+        supplier: toPublic(organization),
+        categories: [],
+        products: [],
+        closedMessage: STORE_MANUAL_MESSAGE,
       };
     }
     const [categories, products] = await Promise.all([
