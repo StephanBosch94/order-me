@@ -85,11 +85,6 @@ export function SettingsForm({
         </div>
         <Setting name="pib" label="PIB" defaultValue={organization.pib} error={state.fieldErrors?.pib} />
         <Setting name="mb" label="Matični broj" defaultValue={organization.mb} error={state.fieldErrors?.mb} />
-        <AudienceChoice
-          className="sm:col-span-2"
-          defaultValue={organization.audience}
-          error={state.fieldErrors?.audience}
-        />
       </div>
       <div className={tab === "prodaja" ? "grid gap-4" : "hidden"} role="tabpanel">
         <div className="rounded-lg border border-border bg-card p-4">
@@ -107,6 +102,9 @@ export function SettingsForm({
               </span>
             </span>
           </label>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <AudienceChoice defaultValue={organization.audience} error={state.fieldErrors?.audience} />
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <label className="flex items-start gap-3">

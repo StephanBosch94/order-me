@@ -30,7 +30,7 @@ test("a customer appears once their usual gap has passed", () => {
   assert.equal(items[0]?.kind, "kasni");
   assert.equal(items[0]?.intervalDays, 3);
   assert.equal(items[0]?.daysSince, 3);
-  assert.match(followUpReason(items[0]!), /Van ritma/);
+  assert.match(followUpReason(items[0]!), /Frekvencija naručivanja je na oko 3 dana/);
 });
 
 test("a customer still inside the usual gap stays off the list", () => {

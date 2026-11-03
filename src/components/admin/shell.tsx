@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { SetupGuide } from "@/components/admin/setup-guide";
 import { BuyerMenu } from "@/components/shop/buyer-menu";
@@ -37,19 +37,7 @@ const items: {
   { href: "/products", label: "Proizvodi", icon: Package },
   { href: "/zaposleni", label: "Zaposleni", icon: UserPlus },
   { href: "/settings", label: "Podešavanja", icon: Settings },
-  { href: "/invoices", label: "Fakture", icon: Receipt },
 ];
-
-function PoweredBy() {
-  return (
-    <p className="flex items-center gap-1.5 px-2 pt-3 text-xs text-muted-foreground">
-      powered by
-      <Link href="/dashboard" className="text-foreground">
-        <Logo compact />
-      </Link>
-    </p>
-  );
-}
 
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href;
@@ -80,30 +68,51 @@ export function AdminShell({
     return (
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pt-3" aria-label="Glavna navigacija">
         {items
-          .filter((item) => isShopManager(session.role) || (item.href !== "/settings" && item.href !== "/invoices"))
+          .filter((item) => isShopManager(session.role) || item.href !== "/settings")
           .map((item) => {
           const active = isActive(pathname, item.href);
           const Icon = item.icon;
           return (
-            <Fragment key={item.href}>
-              {item.href === "/invoices" ? (
-                <hr className="mx-2.5 my-2 border-0 border-t border-border" />
-              ) : null}
-              <Link
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
-                  active && "bg-accent font-medium text-accent-foreground",
-                )}
-              >
-                <Icon className="size-4" aria-hidden="true" />
-                {item.label}
-              </Link>
-            </Fragment>
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
+                active && "bg-accent font-medium text-accent-foreground",
+              )}
+            >
+              <Icon className="size-4" aria-hidden="true" />
+              {item.label}
+            </Link>
           );
         })}
       </nav>
+    );
+  }
+
+  function renderFooter() {
+    const active = isActive(pathname, "/invoices");
+    return (
+      <div className="mt-auto shrink-0 px-3 pb-3">
+        <hr className="mx-2.5 border-0 border-t border-border" />
+        <Link href="/dashboard" className="mt-3 flex px-2.5 text-foreground">
+          <Logo medium />
+        </Link>
+        {isShopManager(session.role) ? (
+          <Link
+            href="/invoices"
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "mt-1 flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
+              active && "bg-accent font-medium text-accent-foreground",
+            )}
+          >
+            <Receipt className="size-4" aria-hidden="true" />
+            Fakture
+          </Link>
+        ) : null}
+      </div>
     );
   }
 
@@ -136,17 +145,13 @@ export function AdminShell({
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden h-full min-h-0 flex-col border-r border-border bg-sidebar lg:flex">
           {renderNav()}
-          <div className="mt-auto shrink-0 border-t border-border p-3">
-            <PoweredBy />
-          </div>
+          {renderFooter()}
         </aside>
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           {open ? (
             <div className="flex min-h-0 flex-1 flex-col border-b border-border bg-card px-2 py-3 lg:hidden">
               {renderNav()}
-              <div className="mt-auto px-3 pb-1">
-                <PoweredBy />
-              </div>
+              {renderFooter()}
             </div>
           ) : null}
           <div className={cn("flex min-h-0 flex-1", open && "hidden lg:flex")}>

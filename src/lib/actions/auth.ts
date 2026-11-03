@@ -62,6 +62,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
     kind === "buyer"
       ? {
           kind,
+          profile: person ? "osoba" : "firma",
           name: formData.get("name"),
           email: formData.get("email"),
           password: formData.get("password"),
@@ -69,8 +70,8 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           phone: formData.get("phone") ?? "",
           address: formData.get("address") ?? "",
           city: formData.get("city") ?? "",
-          pib: formData.get("pib") ?? "",
-          mb: formData.get("mb") ?? "",
+          pib: person ? "" : (formData.get("pib") ?? ""),
+          mb: person ? "" : (formData.get("mb") ?? ""),
           postalCode: formData.get("postalCode") ?? "",
           confirmationEmail: formData.get("confirmationEmail") ?? "",
         }

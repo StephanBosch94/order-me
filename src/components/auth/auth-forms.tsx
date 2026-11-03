@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { loginAction, signupAction, type AuthState } from "@/lib/actions/auth";
+import { BuyerKindChoice, type BuyerKind } from "@/components/shop/checkout-kind";
 import { AudienceChoice } from "@/components/supplier/audience-choice";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
@@ -35,7 +36,9 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
 
 export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "buyer-shop"; nextPath?: string }) {
   const [state, action, pending] = useActionState(signupAction, initial);
+  const [party, setParty] = useState<BuyerKind>("fizicka");
   const supplier = mode === "supplier";
+  const company = party === "pravna";
 
   return (
     <form action={action} className="space-y-4">
@@ -46,6 +49,8 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
       <Field name="email" label="Email" type="email" autoComplete="email" error={state.fieldErrors?.email} />
       {supplier ? null : (
         <>
+          <input type="hidden" name="profile" value={company ? "firma" : "osoba"} />
+          <BuyerKindChoice value={party} legend="Nalog je za" onChange={setParty} />
           <Field
             name="confirmationEmail"
             label="Email za potvrde"
@@ -73,13 +78,19 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
         </>
       ) : (
         <>
-          <Field name="businessName" label="Naziv firme" autoComplete="organization" error={state.fieldErrors?.businessName} />
+          {company ? (
+            <Field name="businessName" label="Naziv firme" autoComplete="organization" error={state.fieldErrors?.businessName} />
+          ) : null}
           <Field name="phone" label="Telefon" autoComplete="tel" error={state.fieldErrors?.phone} />
           <Field name="address" label="Adresa" autoComplete="street-address" error={state.fieldErrors?.address} />
           <Field name="city" label="Grad" autoComplete="address-level2" error={state.fieldErrors?.city} />
           <Field name="postalCode" label="Poštanski broj" autoComplete="postal-code" error={state.fieldErrors?.postalCode} />
-          <Field name="pib" label="PIB" error={state.fieldErrors?.pib} />
-          <Field name="mb" label="Matični broj" error={state.fieldErrors?.mb} />
+          {company ? (
+            <>
+              <Field name="pib" label="PIB" error={state.fieldErrors?.pib} />
+              <Field name="mb" label="Matični broj" error={state.fieldErrors?.mb} />
+            </>
+          ) : null}
         </>
       )}
       <Button type="submit" className="w-full" disabled={pending}>

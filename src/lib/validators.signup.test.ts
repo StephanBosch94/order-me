@@ -37,6 +37,25 @@ const buyer = {
   confirmationEmail: "",
 };
 
+test("a person can open an account without a company", () => {
+  const parsed = signupSchema.safeParse({
+    kind: "buyer",
+    profile: "osoba",
+    name: "Jovana Ilić",
+    email: "jovana@example.com",
+    password: "poruci-demo",
+    businessName: "Jovana Ilić",
+    phone: "0645550199",
+    address: "Knez Mihailova 18",
+    city: "Beograd",
+    pib: "",
+    mb: "",
+    postalCode: "11000",
+    confirmationEmail: "",
+  });
+  assert.equal(parsed.success, true);
+});
+
 test("buyer signup does not require a bank account", () => {
   const parsed = signupSchema.safeParse(buyer);
   assert.equal(parsed.success, true);

@@ -11,7 +11,7 @@ import { followUpReason } from "@/lib/follow-ups";
 import { formatDate, formatRsd } from "@/lib/format";
 
 const MEANING =
-  "Ritam je uobičajeni razmak između porudžbina. Ovde su samo kupci koji su taj ritam prešli, oni sa jednom starom porudžbinom i oni koji još nisu naručili.";
+  "Frekvencija naručivanja je uobičajeni razmak između porudžbina. Ovde su samo kupci koji su tu frekvenciju prešli, oni sa jednom starom porudžbinom i oni koji još nisu naručili.";
 
 export function FollowUpBoard({ items }: { items: SalesFollowUp[] }) {
   const visible = items.slice(0, 3);
@@ -29,18 +29,18 @@ export function FollowUpBoard({ items }: { items: SalesFollowUp[] }) {
       </div>
       {visible.length === 0 ? (
         <EmptyState
-          title="Svi kupci su u ritmu"
-          body="Kada neko preskoči uobičajeni razmak, pojaviće se ovde sa telefonom, emailom i datumom poslednje porudžbine."
+          title="Svi kupci naručuju po svojoj frekvenciji"
+          body="Kada neko preskoči frekvenciju naručivanja, pojaviće se ovde sa telefonom, emailom i datumom poslednje porudžbine."
         />
       ) : (
         <ul className="grid gap-3 lg:grid-cols-3">
           {visible.map((item) => (
             <li key={item.customerId} className="flex flex-col rounded-lg border border-border bg-card px-4 py-4">
-              <div className="flex flex-wrap items-baseline gap-x-2">
+              <div className="flex flex-wrap items-baseline gap-x-1">
                 <Link href={`/customers/${item.customerId}`} className="font-medium hover:underline">
                   {item.businessName}
                 </Link>
-                <span className="tabular-nums text-muted-foreground">({item.code})</span>
+                <span className="text-xs tabular-nums text-foreground">({item.code})</span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
                 {followUpReason(item)}

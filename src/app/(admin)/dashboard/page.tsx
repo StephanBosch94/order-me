@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { FollowUpBoard } from "@/components/admin/follow-up-board";
-import { CopyLink } from "@/components/admin/order-actions";
+import { ConfirmOrderButton, CopyLink } from "@/components/admin/order-actions";
 import { EmptyState, Metric, PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,9 @@ export default async function DashboardPage() {
                   <th className="px-4 py-3 font-medium">Kupac</th>
                   <th className="px-4 py-3 text-right font-medium">Ukupno</th>
                   <th className="hidden px-4 py-3 font-medium sm:table-cell">Datum</th>
+                  <th className="px-4 py-3 text-right font-medium">
+                    <span className="sr-only">Potvrda</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -98,6 +101,9 @@ export default async function DashboardPage() {
                     <td className="px-4 py-3">{order.businessName}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatRsd(order.totalPara)}</td>
                     <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">{formatDateTime(order.createdAt)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {order.status === "nova" ? <ConfirmOrderButton orderId={order.id} /> : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>

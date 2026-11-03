@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ClosedStore } from "@/components/shop/closed-store";
 import { Shop } from "@/components/shop/shop";
 import { getSession } from "@/lib/auth";
+import { supplierCheckoutAccount } from "@/lib/buyer";
 import { isDemoMode } from "@/lib/config";
 import { ordersPath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
@@ -41,6 +42,7 @@ export default async function ShopPage({
     <Shop
       catalog={catalog}
       buyer={buyer}
+      shopper={buyer ?? (session?.kind === "supplier" ? supplierCheckoutAccount(session) : null)}
       showAccount={session?.kind !== "supplier"}
       orders={orders}
       repeatOrderId={query.ponovi}

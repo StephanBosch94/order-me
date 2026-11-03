@@ -16,7 +16,7 @@ export default async function BuyerSignupPage() {
     redirect("/dashboard");
   }
   return (
-    <AuthShell title="Nalog kupca" subtitle="Firma vidi svoje porudžbine, statistiku i može da naruči isto kao prošli put.">
+      <AuthShell title="Nalog kupca" subtitle="Kupac bira da li je fizičko ili pravno lice, vidi svoje porudžbine i može da naruči isto kao prošli put.">
       <SignupForm mode="buyer" />
       <p className="mt-6 text-sm text-muted-foreground">
         Prodajete?{" "}

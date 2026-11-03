@@ -66,18 +66,47 @@ export const signupSchema = z.discriminatedUnion("kind", [
     organizationName: z.string().trim().min(2, "Unesite naziv firme.").max(120),
     phone: z.string().trim().max(30),
   }),
-  z.object({
-    kind: z.literal("buyer"),
-    ...signupIdentity,
-    businessName: z.string().trim().min(2, "Unesite naziv firme.").max(160),
-    phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
-    address: z.string().trim().min(3, "Unesite adresu.").max(200),
-    city: z.string().trim().min(2, "Unesite grad.").max(80),
-    pib: z.string().trim().regex(/^\d{9}$/, "PIB ima 9 cifara."),
-    mb: z.string().trim().refine((value) => normalizeMb(value) !== null, "Matični broj ima 8 cifara."),
-    postalCode: z.string().trim().refine((value) => normalizePostalCode(value) !== null, "Poštanski broj ima 5 cifara."),
-    confirmationEmail: confirmationEmailField,
-  }),
+  z
+    .object({
+      kind: z.literal("buyer"),
+      ...signupIdentity,
+      profile: z.enum(["osoba", "firma"]).optional(),
+      businessName: z.string().trim().max(160),
+      phone: z.string().trim().min(6, "Unesite broj telefona.").max(30),
+      address: z.string().trim().min(3, "Unesite adresu.").max(200),
+      city: z.string().trim().min(2, "Unesite grad.").max(80),
+      pib: z.string().trim(),
+      mb: z.string().trim(),
+      postalCode: z.string().trim(),
+      confirmationEmail: confirmationEmailField,
+    })
+    .superRefine((value, ctx) => {
+      if (!normalizePostalCode(value.postalCode)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["postalCode"],
+          message: value.postalCode ? "Poštanski broj ima 5 cifara." : "Unesite poštanski broj.",
+        });
+      }
+      if (value.profile === "osoba") return;
+      if (value.businessName.length < 2) {
+        ctx.addIssue({ code: "custom", path: ["businessName"], message: "Unesite naziv firme." });
+      }
+      if (!/^\d{9}$/.test(value.pib)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["pib"],
+          message: value.pib ? "PIB ima 9 cifara." : "Unesite PIB.",
+        });
+      }
+      if (!normalizeMb(value.mb)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["mb"],
+          message: value.mb ? "Matični broj ima 8 cifara." : "Unesite matični broj.",
+        });
+      }
+    }),
 ]);
 
 const buyerPhone = z.string().trim().min(6, "Unesite broj telefona.").max(30);

@@ -17,14 +17,16 @@ export function BuyerKindChoice({
   value,
   error,
   onChange,
+  legend = "Kupujete kao",
 }: {
   value: BuyerKind | "";
   error?: string;
   onChange: (value: BuyerKind) => void;
+  legend?: string;
 }) {
   return (
     <fieldset>
-      <legend className="text-sm font-medium">Kupujete kao</legend>
+      <legend className="text-sm font-medium">{legend}</legend>
       <div className="mt-2 space-y-2">
         <label className="flex items-center gap-2 text-sm">
           <input

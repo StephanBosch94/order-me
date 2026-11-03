@@ -1,3 +1,4 @@
+import { ChevronLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,7 +33,14 @@ export default async function ConfirmationPage({
 
   return (
     <main className="mx-auto min-h-dvh max-w-2xl px-4 py-10" style={supplierTheme(supplier.brandColor)}>
-      <div className="flex items-center gap-3">
+      <Link
+        href={storePath(supplier.slug)}
+        className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft className="size-4" aria-hidden="true" />
+        Nazad u prodavnicu
+      </Link>
+      <div className="mt-4 flex items-center gap-3">
         <SupplierLogo name={supplier.name} logoUrl={supplier.logoUrl} />
         <p className="text-sm font-medium">{supplier.name}</p>
       </div>
@@ -88,16 +96,10 @@ export default async function ConfirmationPage({
           : null}
         Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.
       </p>
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-6">
         <a href={`/api/confirmations/${order.confirmationToken}/pdf`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[var(--primary-hover)]">
           Preuzmi potvrdu
         </a>
-        <Link
-          href={storePath(supplier.slug)}
-          className="inline-flex h-11 items-center rounded-md border border-border bg-card px-4 text-sm font-medium"
-        >
-          Nazad u prodavnicu
-        </Link>
       </div>
     </main>
   );

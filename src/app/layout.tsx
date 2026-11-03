@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="sr" className={`${inter.variable} h-full antialiased`}>
+    <html lang="sr" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full bg-background font-sans text-foreground">
         <a href="#sadrzaj" className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2">
           Preskoči na sadržaj

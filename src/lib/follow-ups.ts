@@ -67,7 +67,7 @@ export function followUpReason(item: SalesFollowUp) {
   if (item.kind === "jedna") {
     return `Samo jedna porudžbina, pre ${item.daysSince} ${dayWord(item.daysSince)}.`;
   }
-  return `Van ritma. Naručuje na oko ${item.intervalDays} ${dayWord(item.intervalDays ?? 0)}. Prošlo je ${item.daysSince} ${dayWord(item.daysSince)}.`;
+  return `Frekvencija naručivanja je na oko ${item.intervalDays} ${dayWord(item.intervalDays ?? 0)}. Prošlo je ${item.daysSince} ${dayWord(item.daysSince)}.`;
 }
 
 function row(

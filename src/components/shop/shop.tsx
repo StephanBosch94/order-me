@@ -48,6 +48,7 @@ type Step = "browse" | "cart" | "checkout";
 export function Shop({
   catalog,
   buyer: buyerFromServer,
+  shopper = null,
   showAccount = true,
   orders = [],
   repeatOrderId,
@@ -58,6 +59,8 @@ export function Shop({
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
+  /** Signed-in shopper used at checkout. Guests stay null so the party switch and empty fields remain. */
+  shopper?: BuyerAccount | null;
   showAccount?: boolean;
   orders?: BuyerOrder[];
   repeatOrderId?: string;
@@ -289,7 +292,7 @@ export function Shop({
           <Checkout
             slug={catalog.supplier.slug}
             audience={catalog.supplier.audience}
-            buyer={buyer}
+            buyer={shopper ?? buyer}
             lines={lines}
             total={total}
             idempotencyStorage={idempotencyStorage}
