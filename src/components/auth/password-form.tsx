@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { changePasswordAction, type PasswordState } from "@/lib/actions/password";
+import { changePasswordAction, changePasswordFromLoginAction, type PasswordState } from "@/lib/actions/password";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/fields";
 import { useUnchangedForm } from "@/components/ui/use-unchanged-form";
@@ -80,6 +80,84 @@ function PasswordFields({
         <FieldError message={fieldErrors?.confirmPassword} />
       </div>
       <Button type="submit" disabled={pending || changes.unchanged}>
+        {pending ? "Čuvanje…" : "Promenite lozinku"}
+      </Button>
+    </form>
+  );
+}
+
+export function LoginPasswordForm() {
+  const [state, action, pending] = useActionState(changePasswordFromLoginAction, initial);
+
+  return (
+    <div className="space-y-4">
+      {state.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {state.error}
+        </p>
+      ) : null}
+      {state.ok && state.message ? <p className="text-sm text-emerald-700">{state.message}</p> : null}
+      <LoginPasswordFields key={state.savedAt ?? "new"} action={action} pending={pending} fieldErrors={state.fieldErrors} />
+    </div>
+  );
+}
+
+function LoginPasswordFields({
+  action,
+  pending,
+  fieldErrors,
+}: {
+  action: (formData: FormData) => void;
+  pending: boolean;
+  fieldErrors?: Record<string, string>;
+}) {
+  const changes = useUnchangedForm();
+  return (
+    <form ref={changes.ref} action={action} onInput={changes.onInput} onChange={changes.onChange} className="space-y-4">
+      <div>
+        <Label htmlFor="email">Email</Label>
+        <Input id="email" name="email" type="email" autoComplete="username" required className="mt-1.5" />
+        <FieldError message={fieldErrors?.email} />
+      </div>
+      <div>
+        <Label htmlFor="current-password">Trenutna lozinka</Label>
+        <Input
+          id="current-password"
+          name="currentPassword"
+          type="password"
+          autoComplete="current-password"
+          required
+          className="mt-1.5"
+        />
+        <FieldError message={fieldErrors?.currentPassword} />
+      </div>
+      <div>
+        <Label htmlFor="next-password">Nova lozinka</Label>
+        <Input
+          id="next-password"
+          name="nextPassword"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          className="mt-1.5"
+        />
+        <FieldError message={fieldErrors?.nextPassword} />
+      </div>
+      <div>
+        <Label htmlFor="confirm-password">Ponovite novu lozinku</Label>
+        <Input
+          id="confirm-password"
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          className="mt-1.5"
+        />
+        <FieldError message={fieldErrors?.confirmPassword} />
+      </div>
+      <Button type="submit" className="w-full" disabled={pending || changes.unchanged}>
         {pending ? "Čuvanje…" : "Promenite lozinku"}
       </Button>
     </form>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/auth-forms";
+import { LoginPasswordForm } from "@/components/auth/password-form";
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { getSession, landingPath } from "@/lib/auth";
@@ -17,25 +18,55 @@ export const metadata: Metadata = { title: "Prijava" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; lozinka?: string }>;
 }) {
   const params = await searchParams;
   const nextPath = safeNextPath(params.next);
+  const changingPassword = params.lozinka === "1";
   const session = await getSession();
   const demoAccount = Boolean(session && isDemoShopAccount(session.email));
   if (session && !demoAccount) redirect(await landingPath(session, nextPath));
   const store = await storeFromPath(nextPath);
   return (
-    <AuthShell title="Prijava" subtitle="Prijavite se na nalog prodavca ili kupca." store={store} showStoreBack={false}>
-      <LoginForm nextPath={nextPath} />
+    <AuthShell
+      title={changingPassword ? "Lozinka" : "Prijava"}
+      subtitle={
+        changingPassword
+          ? "Posle čuvanja šaljemo obaveštenje na email naloga."
+          : "Prijavite se na nalog prodavca ili kupca."
+      }
+      store={store}
+      showStoreBack={false}
+    >
+      {changingPassword ? <LoginPasswordForm /> : <LoginForm nextPath={nextPath} />}
       <p className="mt-6 text-sm text-muted-foreground">
-        Nemate nalog?{" "}
-        <Link href={accountHref(nextPath)} className="font-medium text-foreground underline-offset-2 hover:underline">
-          Otvorite nalog
-        </Link>
+        {changingPassword ? (
+          <Link href={loginHref(nextPath, false)} className="font-medium text-foreground underline-offset-2 hover:underline">
+            Nazad na prijavu
+          </Link>
+        ) : (
+          <>
+            Nemate nalog?{" "}
+            <Link href={accountHref(nextPath)} className="font-medium text-foreground underline-offset-2 hover:underline">
+              Otvorite nalog
+            </Link>
+            <span className="mx-2 text-border">·</span>
+            <Link href={loginHref(nextPath, true)} className="font-medium text-foreground underline-offset-2 hover:underline">
+              Promenite lozinku
+            </Link>
+          </>
+        )}
       </p>
     </AuthShell>
   );
+}
+
+function loginHref(nextPath: string, password: boolean) {
+  const params = new URLSearchParams();
+  if (nextPath) params.set("next", nextPath);
+  if (password) params.set("lozinka", "1");
+  const query = params.toString();
+  return query ? `/login?${query}` : "/login";
 }
 
 function accountHref(nextPath: string) {
