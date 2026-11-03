@@ -25,6 +25,7 @@ export function BuyerOrdersFrame({
   buyer,
   showAccount,
   products,
+  demoShop = false,
   demoRole = null,
   children,
 }: {
@@ -36,6 +37,7 @@ export function BuyerOrdersFrame({
   buyer: BuyerAccount;
   showAccount: boolean;
   products: Product[];
+  demoShop?: boolean;
   demoRole?: DemoRole | null;
   children: ReactNode;
 }) {
@@ -69,7 +71,7 @@ export function BuyerOrdersFrame({
         href={shopHref}
         name={name}
         logoUrl={logoUrl}
-        role={demoRole ? { slug, active: demoRole } : null}
+        role={demoShop ? { slug, active: demoRole } : null}
       >
         <StoreAccountLinks slug={slug} buyer={buyer} showAccount={showAccount} />
             <CartButton count={lines.length} onClick={() => setPanel((value) => (value === "orders" ? "cart" : "orders"))} />
@@ -78,6 +80,7 @@ export function BuyerOrdersFrame({
               accountHref={`${shopHref}?nalog=1`}
               ordersHref={ordersPath(slug)}
               shopPath={shopHref}
+              allowLogout={!demoShop}
             />
       </StoreHeader>
       {panel === "cart" ? (

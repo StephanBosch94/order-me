@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { DEMO_SLUGS, storePath } from "@/lib/constants";
+import { storePath } from "@/lib/constants";
 import type { BuyerAccount } from "@/lib/data/types";
 
 export function StoreAccountLinks({
@@ -12,25 +12,15 @@ export function StoreAccountLinks({
   buyer?: BuyerAccount | null;
   showAccount?: boolean;
 }) {
-  if (buyer) return null;
-  if (!showAccount) return null;
+  if (buyer || !showAccount) return null;
 
   const back = storePath(slug);
-  const register = `/shop/${slug}/nalog`;
-  if (!DEMO_SLUGS.has(slug)) {
-    return (
-      <Link href={register} className="text-sm font-medium underline-offset-2 hover:underline">
-        Otvorite nalog
-      </Link>
-    );
-  }
-
   return (
     <span className="flex items-center gap-3 text-sm font-medium">
       <Link href={`/login?next=${encodeURIComponent(back)}`} className="underline-offset-2 hover:underline">
         Prijava
       </Link>
-      <Link href={register} className="underline-offset-2 hover:underline">
+      <Link href={`/shop/${slug}/nalog`} className="underline-offset-2 hover:underline">
         Registracija
       </Link>
     </span>

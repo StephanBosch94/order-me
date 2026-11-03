@@ -8,7 +8,7 @@ import { requireSession } from "@/lib/auth";
 import { partyForPib, paymentTermFor } from "@/lib/customers";
 import { getCommerce } from "@/lib/data";
 import { buildSalesInvoiceUbl } from "@/lib/efaktura/ubl";
-import { postSalesInvoice, type EfakturaEnvironment } from "@/lib/efaktura/send";
+import { postSalesInvoice } from "@/lib/efaktura/send";
 import { addCalendarDays, belgradeDateKey } from "@/lib/format";
 
 export type EfakturaActionResult = {
@@ -16,10 +16,6 @@ export type EfakturaActionResult = {
   message: string;
   invoiceId?: string;
 };
-
-function environmentOf(value: string | undefined): EfakturaEnvironment {
-  return value === "produkcija" ? "produkcija" : "demo";
-}
 
 export async function sendEfakturaAction(orderId: string): Promise<EfakturaActionResult> {
   try {
@@ -105,7 +101,7 @@ export async function sendEfakturaAction(orderId: string): Promise<EfakturaActio
     });
 
     const posted = await postSalesInvoice({
-      environment: environmentOf(organization.efakturaEnvironment),
+      environment: "produkcija",
       apiKey,
       xml,
       requestId: randomUUID(),

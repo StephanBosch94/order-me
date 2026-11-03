@@ -52,7 +52,9 @@ export function Shop({
   orders = [],
   repeatOrderId,
   openAccount = false,
+  demoShop = false,
   demoRole = null,
+  accountName = null,
 }: {
   catalog: PublicCatalog;
   buyer?: BuyerAccount | null;
@@ -60,7 +62,9 @@ export function Shop({
   orders?: BuyerOrder[];
   repeatOrderId?: string;
   openAccount?: boolean;
+  demoShop?: boolean;
   demoRole?: DemoRole | null;
+  accountName?: string | null;
 }) {
   const router = useRouter();
   const [savedBuyer, setSavedBuyer] = useState<BuyerAccount | null>(null);
@@ -183,7 +187,7 @@ export function Shop({
         logoUrl={catalog.supplier.logoUrl}
         heading
         onNavigate={openCatalog}
-        role={demoRole ? { slug: catalog.supplier.slug, active: demoRole } : null}
+        role={demoShop ? { slug: catalog.supplier.slug, active: demoRole } : null}
       >
         <StoreAccountLinks slug={catalog.supplier.slug} buyer={buyer} showAccount={showAccount} />
         <CartButton count={count} onClick={() => setStep(step === "browse" ? "cart" : "browse")} />
@@ -192,11 +196,14 @@ export function Shop({
             buyer={buyer}
             shopPath={catalogHref}
             ordersHref={ordersPath(catalog.supplier.slug)}
+            allowLogout={!demoShop}
             onAccount={() => {
               setPane("account");
               setStep("browse");
             }}
           />
+        ) : demoShop && accountName ? (
+          <BuyerMenu name={accountName} ordersHref="/orders" accountHref="/nalog" allowLogout={false} />
         ) : null}
       </StoreHeader>
       <ShopCover imageUrl={catalog.supplier.coverUrl} text={catalog.supplier.description} />

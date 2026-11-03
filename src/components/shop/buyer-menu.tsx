@@ -15,6 +15,7 @@ export function BuyerMenu({
   onOrders,
   ordersHref,
   shopPath,
+  allowLogout = true,
 }: {
   buyer?: BuyerAccount;
   name?: string;
@@ -23,6 +24,7 @@ export function BuyerMenu({
   onOrders?: () => void;
   ordersHref?: string;
   shopPath?: string;
+  allowLogout?: boolean;
 }) {
   const router = useRouter();
   const company = buyer ? isCompanyBuyer(buyer) : false;
@@ -112,12 +114,14 @@ export function BuyerMenu({
               Moj nalog
             </button>
           ) : null}
-          <LogoutButton
-            icon={false}
-            role="menuitem"
-            shopPath={shopPath}
-            className="flex w-full cursor-pointer border-t border-border px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50"
-          />
+          {allowLogout ? (
+            <LogoutButton
+              icon={false}
+              role="menuitem"
+              shopPath={shopPath}
+              className="flex w-full cursor-pointer border-t border-border px-3 py-2.5 text-left text-sm font-medium hover:bg-zinc-50"
+            />
+          ) : null}
         </div>
       ) : null}
     </div>

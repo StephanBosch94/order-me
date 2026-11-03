@@ -25,7 +25,7 @@ export function StoreHeader({
   logoUrl: string | null;
   heading?: boolean;
   onNavigate?: (event: MouseEvent<HTMLAnchorElement>) => void;
-  role?: { slug: string; active: DemoRole } | null;
+  role?: { slug: string; active: DemoRole | null } | null;
   brandColor?: string | null;
   alignMenu?: boolean;
   children?: ReactNode;

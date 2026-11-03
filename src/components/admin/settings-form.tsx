@@ -140,38 +140,21 @@ export function SettingsForm({
               </span>
             </span>
           </label>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="efakturaApiKey">API ključ</Label>
-              <Input
-                id="efakturaApiKey"
-                name="efakturaApiKey"
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                className="mt-1.5"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                {hasEfakturaApiKey
-                  ? "API ključ je sačuvan. Prazno polje ga ne briše."
-                  : "Ključ iz portala eFaktura, Podešavanja, Upravljanje API. Nije obavezan za čuvanje podešavanja ni za štampu."}
-              </p>
-            </div>
-            <div>
-              <Label htmlFor="efakturaEnvironment">Okruženje</Label>
-              <select
-                id="efakturaEnvironment"
-                name="efakturaEnvironment"
-                defaultValue={organization.efakturaEnvironment === "produkcija" ? "produkcija" : "demo"}
-                className="mt-1.5 h-10 w-full rounded-md border border-input bg-card px-3 text-sm"
-              >
-                <option value="demo">Demo</option>
-                <option value="produkcija">Produkcija</option>
-              </select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Podrazumevano je demo okruženje Ministarstva finansija.
-              </p>
-            </div>
+          <div className="mt-4">
+            <Label htmlFor="efakturaApiKey">API ključ</Label>
+            <Input
+              id="efakturaApiKey"
+              name="efakturaApiKey"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              className="mt-1.5"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {hasEfakturaApiKey
+                ? "API ključ je sačuvan. Prazno polje ga ne briše."
+                : "Ključ iz portala eFaktura, Podešavanja, Upravljanje API. Nije obavezan za čuvanje podešavanja ni za štampu."}
+            </p>
           </div>
         </div>
       </div>

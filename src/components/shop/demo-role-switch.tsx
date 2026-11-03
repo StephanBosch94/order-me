@@ -6,7 +6,7 @@ import { switchDemoRoleAction } from "@/lib/actions/demo-role";
 import type { DemoRole } from "@/lib/demo-shops";
 import { cn } from "@/lib/utils";
 
-export function DemoRoleSwitch({ slug, active }: { slug: string; active: DemoRole }) {
+export function DemoRoleSwitch({ slug, active }: { slug: string; active: DemoRole | null }) {
   const [pending, start] = useTransition();
 
   function choose(role: DemoRole) {

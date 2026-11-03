@@ -25,7 +25,9 @@ export function ProductFrame({
   buyer,
   showAccount,
   products,
+  demoShop = false,
   demoRole = null,
+  accountName = null,
   children,
 }: {
   slug: string;
@@ -36,7 +38,9 @@ export function ProductFrame({
   buyer: BuyerAccount | null;
   showAccount: boolean;
   products: Product[];
+  demoShop?: boolean;
   demoRole?: DemoRole | null;
+  accountName?: string | null;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -70,7 +74,7 @@ export function ProductFrame({
         href={backHref}
         name={name}
         logoUrl={logoUrl}
-        role={demoRole ? { slug, active: demoRole } : null}
+        role={demoShop ? { slug, active: demoRole } : null}
       >
         <StoreAccountLinks slug={slug} buyer={buyer} showAccount={showAccount} />
             <CartButton count={count} onClick={() => setPanel((value) => (value === "product" ? "cart" : "product"))} />
@@ -80,7 +84,10 @@ export function ProductFrame({
                 accountHref={`${backHref}?nalog=1`}
                 ordersHref={ordersPath(slug)}
                 shopPath={backHref}
+                allowLogout={!demoShop}
               />
+            ) : demoShop && accountName ? (
+              <BuyerMenu name={accountName} ordersHref="/orders" accountHref="/nalog" allowLogout={false} />
             ) : null}
       </StoreHeader>
       {panel === "cart" ? (

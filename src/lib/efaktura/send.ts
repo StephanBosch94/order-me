@@ -1,6 +1,6 @@
 export type EfakturaEnvironment = "demo" | "produkcija";
 
-/** Hosts from the Ministry API connection guide. Demo is the default. */
+/** Hosts from the Ministry API connection guide. The app sends to production. */
 export const SEF_HOSTS: Record<EfakturaEnvironment, string> = {
   demo: "https://demoefaktura.mfin.gov.rs",
   produkcija: "https://efaktura.mfin.gov.rs",
@@ -11,7 +11,7 @@ export type SefPostResult =
   | { ok: false; message: string };
 
 export function salesInvoiceUrl(environment: EfakturaEnvironment, requestId: string) {
-  const host = SEF_HOSTS[environment] ?? SEF_HOSTS.demo;
+  const host = SEF_HOSTS[environment] ?? SEF_HOSTS.produkcija;
   const url = new URL("/api/publicApi/sales-invoice/ubl", host);
   url.searchParams.set("requestId", requestId);
   url.searchParams.set("sendToCir", "No");

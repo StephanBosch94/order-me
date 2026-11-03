@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { ClosedStore } from "@/components/shop/closed-store";
 import { ProductDetail } from "@/components/shop/product-detail";
@@ -45,9 +45,8 @@ export default async function ProductPage({
 
   const session = await getSession();
   const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
-  if (demo && !session) redirect(`/demo/ulaz?slug=${encodeURIComponent(catalog.supplier.slug)}&role=prodavac`);
   const buyer = session?.kind === "buyer" ? session : null;
-  const demoRole: DemoRole | null = demo ? (buyer ? "kupac" : "prodavac") : null;
+  const demoRole: DemoRole | null = demo && session ? (buyer ? "kupac" : "prodavac") : null;
   const backHref = storePath(catalog.supplier.slug);
   const category = catalog.categories.find((item) => item.id === product.categoryId);
 
@@ -61,7 +60,9 @@ export default async function ProductPage({
       buyer={buyer}
       showAccount={session?.kind !== "supplier"}
       products={catalog.products}
+      demoShop={demo}
       demoRole={demoRole}
+      accountName={session?.kind === "supplier" ? session.name : null}
     >
       <ProductDetail
         key={product.id}

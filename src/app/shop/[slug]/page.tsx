@@ -32,9 +32,8 @@ export default async function ShopPage({
   }
   const session = await getSession();
   const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
-  if (demo && !session) redirect(`/demo/ulaz?slug=${encodeURIComponent(catalog.supplier.slug)}&role=prodavac`);
   const buyer = session?.kind === "buyer" ? session : null;
-  const demoRole: DemoRole | null = demo ? (buyer ? "kupac" : "prodavac") : null;
+  const demoRole: DemoRole | null = demo && session ? (buyer ? "kupac" : "prodavac") : null;
   const orders = buyer
     ? (await getCommerce().listBuyerOrders(buyer.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
     : [];
@@ -46,7 +45,9 @@ export default async function ShopPage({
       orders={orders}
       repeatOrderId={query.ponovi}
       openAccount={query.nalog === "1"}
+      demoShop={demo}
       demoRole={demoRole}
+      accountName={session?.kind === "supplier" ? session.name : null}
     />
   );
 }

@@ -25,7 +25,6 @@ export default async function BuyerOrdersPage({
   const next = ordersPath(catalog.supplier.slug);
   const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
   if (session?.kind !== "buyer") {
-    if (demo && !session) redirect(`/demo/ulaz?slug=${encodeURIComponent(catalog.supplier.slug)}&role=prodavac`);
     redirect(session ? "/dashboard" : `/login?next=${encodeURIComponent(next)}`);
   }
   const demoRole: DemoRole | null = demo ? "kupac" : null;
@@ -45,6 +44,7 @@ export default async function BuyerOrdersPage({
       buyer={session}
       showAccount={true}
       products={catalog.products}
+      demoShop={demo}
       demoRole={demoRole}
     >
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">

@@ -211,7 +211,6 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
       return { error: "API ključ nije ispravan." };
     }
     const stored = await getCommerce().getOrganization(session.organization.id);
-    const environment = text(formData, "efakturaEnvironment");
     await getCommerce().updateOrganization(session.organization.id, {
       ...parsed.data,
       logoUrl,
@@ -221,7 +220,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
       publicStore: formData.get("publicStore") === "on",
       efakturaApiKey: submittedKey || stored?.efakturaApiKey || "",
       efakturaEnabled: formData.get("efakturaEnabled") === "on",
-      efakturaEnvironment: environment === "produkcija" ? "produkcija" : "demo",
+      efakturaEnvironment: "produkcija",
     });
   } catch (error) {
     if (error instanceof DataError) {
