@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { CsvProductRow } from "@/lib/csv";
+import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
 import { loadNetlifyDatabase, netlifyDemoEnabled, saveNetlifyDatabase } from "@/lib/db/netlify-state";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
@@ -688,6 +688,52 @@ export class DemoStore implements CommerceRepository {
             active: row.active,
             minQuantity: row.minQuantity,
             stockQuantity: 0,
+            createdAt: now,
+            updatedAt: now,
+          });
+          result.created += 1;
+        } catch (error) {
+          result.errors.push({
+            row: row.row,
+            message: error instanceof Error ? error.message : "Red nije uvezen.",
+          });
+        }
+      }
+      return result;
+    });
+  }
+
+  async importCustomers(organizationId: string, rows: CsvCustomerRow[]) {
+    return this.exclusive(async (db) => {
+      const result: ImportResult = { created: 0, errors: [] };
+      const own = () => db.customers.filter((item) => item.organizationId === organizationId);
+      for (const row of rows) {
+        try {
+          const email = row.email.toLowerCase();
+          if (own().some((item) => item.email.toLowerCase() === email)) {
+            throw new DataError("Kupac sa ovom email adresom već postoji.", "conflict");
+          }
+          const code = row.code.trim()
+            ? row.code.trim().toUpperCase()
+            : nextCustomerCode(own().map((item) => item.code));
+          if (own().some((item) => item.code.toUpperCase() === code)) {
+            throw new DataError("Ova šifra je već dodeljena drugom kupcu.", "conflict");
+          }
+          const now = new Date().toISOString();
+          db.customers.push({
+            id: randomUUID(),
+            organizationId,
+            businessName: row.businessName,
+            contactName: row.contactName,
+            email,
+            phone: row.phone,
+            pib: row.pib,
+            address: row.address,
+            city: row.city,
+            notes: row.notes,
+            party: row.party,
+            paymentTermDays: row.paymentTermDays,
+            code,
             createdAt: now,
             updatedAt: now,
           });

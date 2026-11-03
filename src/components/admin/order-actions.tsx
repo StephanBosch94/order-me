@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { importProductsAction, setProductActiveAction } from "@/lib/actions/catalog";
 import { sendEfakturaAction } from "@/lib/actions/efaktura";
-import { updateOrderStatusAction } from "@/lib/actions/orders";
+import { importCustomersAction, updateOrderStatusAction } from "@/lib/actions/orders";
 import { ORDER_STATUSES, statusLabel } from "@/lib/constants";
 import type { OrderStatus } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
@@ -228,7 +228,34 @@ export function ProductActiveButton({ productId, active }: { productId: string; 
   );
 }
 
-export function CsvImport() {
+export function CustomerCsvImport() {
+  return (
+    <CsvImport
+      title="Uvoz kupaca"
+      titleId="customer-csv-title"
+      inputId="customer-csv-file"
+      description="Kolone: naziv, kontakt, email, telefon, pib, adresa, grad, vrsta, odlozeno_placanje, sifra, napomena. Separator može biti zarez ili tačka-zarez. Vrsta je Pravno lice ili Fizičko lice. Prazna šifra dobija sledeći broj."
+      templateHref="/sablon-kupaca.csv"
+      action={importCustomersAction}
+    />
+  );
+}
+
+export function CsvImport({
+  title = "Uvoz proizvoda",
+  titleId = "csv-import-title",
+  inputId = "csv-file",
+  description = "Kolone: naziv, sku, kategorija, jedinica, cena, opis, min_kolicina, aktivan. Separator može biti zarez ili tačka-zarez. Jedinice: komad, paket, kutija, kilogram, litar.",
+  templateHref = "/sablon-proizvoda.csv",
+  action = importProductsAction,
+}: {
+  title?: string;
+  titleId?: string;
+  inputId?: string;
+  description?: string;
+  templateHref?: string;
+  action?: (csvText: string) => Promise<{ ok?: boolean; message?: string; error?: string }>;
+} = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -262,17 +289,15 @@ export function CsvImport() {
           <div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="csv-import-title"
+            aria-labelledby={titleId}
             className="w-full max-w-lg rounded-xl border border-border bg-card p-5 text-foreground shadow-lg"
             onClick={(event) => event.stopPropagation()}
           >
-            <h2 id="csv-import-title" className="text-base font-semibold">
-              Uvoz proizvoda
+            <h2 id={titleId} className="text-base font-semibold">
+              {title}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Kolone: naziv, sku, kategorija, jedinica, cena, opis, min_kolicina, aktivan. Separator može biti zarez ili tačka-zarez. Jedinice: komad, paket, kutija, kilogram, litar.
-            </p>
-            <a href="/sablon-proizvoda.csv" download className="mt-3 inline-block text-sm font-medium text-indigo-700 underline-offset-2 hover:underline">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+            <a href={templateHref} download className="mt-3 inline-block text-sm font-medium text-indigo-700 underline-offset-2 hover:underline">
               Preuzmite šablon
             </a>
             <form
@@ -287,7 +312,7 @@ export function CsvImport() {
                 const reader = new FileReader();
                 reader.onload = () => {
                   startTransition(async () => {
-                    const result = await importProductsAction(String(reader.result ?? ""));
+                    const result = await action(String(reader.result ?? ""));
                     setMessage(result.message ?? result.error ?? "");
                     if (result.ok) {
                       toast.success(result.message ?? "Uvoz je završen.");
@@ -300,7 +325,7 @@ export function CsvImport() {
               }}
             >
               <FileDropzone
-                id="csv-file"
+                id={inputId}
                 name="file"
                 accept=".csv,text/csv"
                 heading="Prevucite CSV ovde"

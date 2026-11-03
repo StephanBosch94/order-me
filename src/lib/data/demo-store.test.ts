@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { orderConfirmationEmail } from "@/lib/buyer";
+import { parseCustomerCsv } from "@/lib/csv";
 import { DemoStore } from "@/lib/data/demo-store";
 import { DataError } from "@/lib/errors";
 
@@ -761,5 +762,52 @@ test("a new account can be restored on a database that never saw the signup", as
       const again = await other.verifyCredentials("proba@example.com", "lozinka123");
       assert.equal(again?.id, user.id);
     });
+  });
+});
+
+test("CSV import adds customers and skips an email that already exists", async () => {
+  await withStore(async (store) => {
+    const user = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    const organization = await store.createOrganization({
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      name: "Proba",
+      slug: "proba-csv",
+      phone: "",
+    });
+    await store.createCustomer(organization.id, {
+      code: "",
+      businessName: "Pekara Zrno",
+      contactName: "Marko",
+      email: "pekara@example.rs",
+      phone: "060111222",
+      pib: "123456789",
+      address: "",
+      city: "Niš",
+      notes: "",
+      party: "pravna",
+      paymentTermDays: 15,
+    });
+    const parsed = parseCustomerCsv(
+      [
+        "naziv;email;telefon;vrsta",
+        "Pekara Zrno;pekara@example.rs;060111222;Pravno lice",
+        "Milica Radić;milica@example.rs;0694412280;Fizičko lice",
+      ].join("\n"),
+    );
+    const result = await store.importCustomers(organization.id, parsed.rows);
+    assert.equal(result.created, 1);
+    assert.equal(result.errors.length, 1);
+    const customers = await store.listCustomers(organization.id);
+    assert.deepEqual(
+      customers.map((customer) => customer.code).sort(),
+      ["K-0001", "K-0002"],
+    );
+    assert.equal(customers.find((customer) => customer.email === "milica@example.rs")?.party, "fizicka");
   });
 });

@@ -1,4 +1,4 @@
-import type { CsvProductRow } from "@/lib/csv";
+import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
 import type {
   AccountContext,
   BuyerOrder,
@@ -100,6 +100,7 @@ export interface CommerceRepository {
     input: ProductInput,
   ): Promise<Product | null>;
   importProducts(organizationId: string, rows: CsvProductRow[]): Promise<ImportResult>;
+  importCustomers(organizationId: string, rows: CsvCustomerRow[]): Promise<ImportResult>;
   listCustomers(organizationId: string, query?: string): Promise<CustomerSummary[]>;
   getCustomer(organizationId: string, customerId: string): Promise<CustomerDetail | null>;
   updateCustomer(

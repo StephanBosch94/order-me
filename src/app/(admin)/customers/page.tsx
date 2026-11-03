@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CustomerCsvImport } from "@/components/admin/order-actions";
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/fields";
@@ -26,9 +27,12 @@ export default async function CustomersPage({
         title="Kupci"
         description="Dodajte kupca ili sačekajte da se pojavi kada pošalje porudžbinu."
         actions={
-          <Link href="/customers/new">
-            <Button>Novi kupac</Button>
-          </Link>
+          <>
+            <CustomerCsvImport />
+            <Link href="/customers/new">
+              <Button>Novi kupac</Button>
+            </Link>
+          </>
         }
       />
       <form className="mb-4 flex gap-2" method="get">
@@ -40,7 +44,7 @@ export default async function CustomersPage({
       {customers.length === 0 ? (
         <EmptyState
           title={q ? "Nema kupaca za ovu pretragu" : "Još nema kupaca"}
-          body="Dodajte kupca ručno ili sačekajte prvu porudžbinu sa javne stranice."
+          body="Dodajte kupca ručno, ubacite CSV ili sačekajte prvu porudžbinu sa javne stranice."
           action={
             q ? undefined : (
               <Link href="/customers/new">

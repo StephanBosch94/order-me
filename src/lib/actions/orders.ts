@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { getSession, requireSession } from "@/lib/auth";
 import { isCompanyBuyer, normalizeBankAccount, normalizeMb, normalizePostalCode, orderConfirmationEmail } from "@/lib/buyer";
 import { isBusinessStore, sellsToBusinesses } from "@/lib/constants";
+import { parseCustomerCsv } from "@/lib/csv";
 import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import type { BuyerAccount, OrderStatus } from "@/lib/data/types";
@@ -326,6 +327,34 @@ export async function createCustomerAction(formData: FormData) {
     if (error instanceof DataError) return { ok: false as const, message: error.message };
     throw error;
   }
+}
+
+export async function importCustomersAction(csvText: string) {
+  const session = await requireSession();
+  const parsed = parseCustomerCsv(csvText);
+  if (parsed.rows.length === 0) {
+    return { ok: false as const, error: parsed.errors[0]?.message ?? "Nijedan kupac nije prepoznat." };
+  }
+  const result = await getCommerce().importCustomers(session.organization.id, parsed.rows);
+  revalidatePath("/customers");
+  const skipped = [...parsed.errors, ...result.errors];
+  const label = customerCountLabel(result.created);
+  return {
+    ok: true as const,
+    created: result.created,
+    message:
+      skipped.length > 0
+        ? `Uvezeno je ${result.created} ${label}. Preskočeno redova: ${skipped.length}.`
+        : `Uvezeno je ${result.created} ${label}.`,
+  };
+}
+
+function customerCountLabel(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "kupac";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "kupca";
+  return "kupaca";
 }
 
 export async function createStaffOrderAction(input: {

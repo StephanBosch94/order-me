@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { CsvProductRow } from "@/lib/csv";
+import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
@@ -698,6 +698,34 @@ export const supabaseRepository: CommerceRepository = {
           minQuantity: row.minQuantity,
           stockQuantity: 0,
           active: row.active,
+        });
+        result.created += 1;
+      } catch (error) {
+        result.errors.push({
+          row: row.row,
+          message: error instanceof Error ? error.message : "Red nije uvezen.",
+        });
+      }
+    }
+    return result;
+  },
+
+  async importCustomers(organizationId, rows: CsvCustomerRow[]) {
+    const result: ImportResult = { created: 0, errors: [] };
+    for (const row of rows) {
+      try {
+        await this.createCustomer(organizationId, {
+          code: row.code,
+          businessName: row.businessName,
+          contactName: row.contactName,
+          email: row.email,
+          phone: row.phone,
+          pib: row.pib,
+          address: row.address,
+          city: row.city,
+          notes: row.notes,
+          party: row.party,
+          paymentTermDays: row.paymentTermDays,
         });
         result.created += 1;
       } catch (error) {
