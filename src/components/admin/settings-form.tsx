@@ -20,7 +20,7 @@ import {
 import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
 
 const initial: FormState = {};
-type SettingsTab = "podaci" | "izgled";
+type SettingsTab = "podaci" | "prodaja" | "izgled";
 
 export function SettingsForm({
   organization,
@@ -55,32 +55,14 @@ export function SettingsForm({
         <SettingsTabButton selected={tab === "podaci"} onClick={() => setTab("podaci")}>
           Podaci
         </SettingsTabButton>
+        <SettingsTabButton selected={tab === "prodaja"} onClick={() => setTab("prodaja")}>
+          Prodaja
+        </SettingsTabButton>
         <SettingsTabButton selected={tab === "izgled"} onClick={() => setTab("izgled")}>
           Izgled stranice
         </SettingsTabButton>
       </div>
       <div className={tab === "podaci" ? "grid gap-4 sm:grid-cols-2" : "hidden"} role="tabpanel">
-        <div className="sm:col-span-2 rounded-lg border border-border bg-card p-4">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              name="publicStore"
-              defaultChecked={organization.publicStore !== false}
-              className="mt-0.5 size-4 accent-zinc-950"
-            />
-            <span>
-              <span className="text-sm font-medium">Prodavnica</span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Kupci sami poručuju na javnoj stranici. Isključite je ako porudžbine, kupce i ostalo unosite samo vi.
-              </span>
-            </span>
-          </label>
-        </div>
-        <AudienceChoice
-          className="sm:col-span-2"
-          defaultValue={organization.audience}
-          error={state.fieldErrors?.audience}
-        />
         <Setting name="name" label="Naziv firme" defaultValue={organization.name} error={state.fieldErrors?.name} />
         <SlugSetting
           key={organization.slug}
@@ -103,7 +85,30 @@ export function SettingsForm({
         </div>
         <Setting name="pib" label="PIB" defaultValue={organization.pib} error={state.fieldErrors?.pib} />
         <Setting name="mb" label="Matični broj" defaultValue={organization.mb} error={state.fieldErrors?.mb} />
-        <div className="sm:col-span-2 rounded-lg border border-border bg-card p-4">
+        <AudienceChoice
+          className="sm:col-span-2"
+          defaultValue={organization.audience}
+          error={state.fieldErrors?.audience}
+        />
+      </div>
+      <div className={tab === "prodaja" ? "grid gap-4" : "hidden"} role="tabpanel">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="publicStore"
+              defaultChecked={organization.publicStore !== false}
+              className="mt-0.5 size-4 accent-zinc-950"
+            />
+            <span>
+              <span className="text-sm font-medium">Prodavnica</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Kupci sami poručuju na javnoj stranici. Isključite je ako porudžbine, kupce i ostalo unosite samo vi.
+              </span>
+            </span>
+          </label>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
           <label className="flex items-start gap-3">
             <input
               type="checkbox"
@@ -120,7 +125,7 @@ export function SettingsForm({
             </span>
           </label>
         </div>
-        <div className="sm:col-span-2 rounded-lg border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <label className="flex items-start gap-3">
             <input
               type="checkbox"

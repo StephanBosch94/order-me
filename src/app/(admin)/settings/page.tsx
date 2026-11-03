@@ -41,7 +41,7 @@ export default async function SettingsPage({
       <SettingsForm
         organization={{ ...session.organization, efakturaApiKey: "" }}
         hasEfakturaApiKey={session.organization.efakturaApiKey.trim().length > 0}
-        initialTab={tab === "izgled" ? "izgled" : "podaci"}
+        initialTab={tab === "izgled" || tab === "prodaja" ? tab : "podaci"}
       />
       {usesPostgres() ? (
         <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
