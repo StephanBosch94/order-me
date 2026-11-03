@@ -25,6 +25,7 @@ export default async function CustomersPage({
     <div>
       <PageHeader
         title="Kupci"
+        count={customers.length}
         description="Dodajte kupca ili sačekajte da se pojavi kada pošalje porudžbinu."
         actions={
           <>
