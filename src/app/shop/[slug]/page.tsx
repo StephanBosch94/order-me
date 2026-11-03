@@ -33,7 +33,7 @@ export default async function ShopPage({
   const session = await getSession();
   const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
   const buyer = session?.kind === "buyer" ? session : null;
-  const demoRole: DemoRole | null = demo && session ? (buyer ? "kupac" : "prodavac") : null;
+  const demoRole: DemoRole | null = demo ? (buyer ? "kupac" : "prodavac") : null;
   const orders = buyer
     ? (await getCommerce().listBuyerOrders(buyer.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
     : [];

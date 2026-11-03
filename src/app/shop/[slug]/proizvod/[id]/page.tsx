@@ -46,7 +46,7 @@ export default async function ProductPage({
   const session = await getSession();
   const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
   const buyer = session?.kind === "buyer" ? session : null;
-  const demoRole: DemoRole | null = demo && session ? (buyer ? "kupac" : "prodavac") : null;
+  const demoRole: DemoRole | null = demo ? (buyer ? "kupac" : "prodavac") : null;
   const backHref = storePath(catalog.supplier.slug);
   const category = catalog.categories.find((item) => item.id === product.categoryId);
 
