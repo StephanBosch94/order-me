@@ -140,6 +140,7 @@ export function AdminShell({
           ordersHref="/orders"
           accountHref="/nalog"
           shopPath={shopPath}
+          allowLogout={!demoShop}
         />
       </StoreHeader>
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
