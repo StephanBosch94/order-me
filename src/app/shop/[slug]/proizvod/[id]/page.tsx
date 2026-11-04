@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ClosedStore } from "@/components/shop/closed-store";
 import { ProductDetail } from "@/components/shop/product-detail";
@@ -8,7 +8,7 @@ import { getSession } from "@/lib/auth";
 import { isDemoMode } from "@/lib/config";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
-import { demoShopRole, type DemoRole } from "@/lib/demo-shops";
+import { demoShopRole, publishedDemoEntry, type DemoRole } from "@/lib/demo-shops";
 import type { Product } from "@/lib/data/types";
 
 function otherProducts(products: Product[], current: Product) {
@@ -45,8 +45,9 @@ export default async function ProductPage({
 
   const session = await getSession();
   const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
+  if (demo && session?.kind !== "buyer") redirect(publishedDemoEntry(catalog.supplier.slug));
   const buyer = session?.kind === "buyer" ? session : null;
-  const demoRole: DemoRole | null = demo ? (buyer ? "kupac" : "prodavac") : null;
+  const demoRole: DemoRole | null = demo ? "kupac" : null;
   const backHref = storePath(catalog.supplier.slug);
   const category = catalog.categories.find((item) => item.id === product.categoryId);
 

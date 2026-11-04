@@ -25,6 +25,10 @@ export function accountMailRecipient(email: string) {
   return email.trim();
 }
 
+export function publishedDemoEntry(slug: string) {
+  return `/demo/ulaz?slug=${encodeURIComponent(slug)}&role=kupac`;
+}
+
 export function demoShopSlugFromPath(path: string) {
   const match = (path.split("?")[0] ?? "").match(/^\/(?:shop|s)\/([^/]+)/);
   const slug = match?.[1] ? decodeURIComponent(match[1]) : "";

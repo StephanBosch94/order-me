@@ -6,7 +6,8 @@ import { LoginForm } from "@/components/auth/auth-forms";
 import { LoginPasswordForm } from "@/components/auth/password-form";
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
-import { listProductionLoginChoices, signInProductionAccount } from "@/lib/actions/production-login";
+import { listProductionLoginChoices } from "@/lib/actions/production-login";
+import { ProductionAccounts } from "@/components/auth/production-accounts";
 import { getSession, landingPath } from "@/lib/auth";
 import { supplierTheme } from "@/lib/color";
 import { storePath } from "@/lib/constants";
@@ -41,29 +42,7 @@ export default async function LoginPage({
       showStoreBack={false}
     >
       {changingPassword ? <LoginPasswordForm /> : <LoginForm nextPath={nextPath} />}
-      {accounts.length > 0 ? (
-        <div className="mt-6">
-          <p className="text-sm font-medium">Nalozi</p>
-          <div className="mt-2 grid gap-2">
-            {accounts.map((account) => (
-              <form key={account.email} action={signInProductionAccount}>
-                <input type="hidden" name="email" value={account.email} />
-                <input type="hidden" name="next" value={nextPath} />
-                <button
-                  type="submit"
-                  className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left hover:bg-zinc-50"
-                >
-                  <span>
-                    <span className="block text-sm font-medium">{account.name}</span>
-                    <span className="block text-xs text-muted-foreground">{account.shop}</span>
-                  </span>
-                  <span className="shrink-0 text-sm text-muted-foreground">{account.roleLabel}</span>
-                </button>
-              </form>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <ProductionAccounts accounts={accounts} nextPath={nextPath} />
       {changingPassword ? (
         <p className="mt-6 text-sm text-muted-foreground">
           <Link href={loginHref(nextPath, false)} className="font-medium text-foreground underline-offset-2 hover:underline">

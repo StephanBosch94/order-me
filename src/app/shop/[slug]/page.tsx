@@ -8,7 +8,7 @@ import { supplierCheckoutAccount } from "@/lib/buyer";
 import { isDemoMode } from "@/lib/config";
 import { ordersPath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
-import { demoShopRole, type DemoRole } from "@/lib/demo-shops";
+import { demoShopRole, publishedDemoEntry, type DemoRole } from "@/lib/demo-shops";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -33,8 +33,9 @@ export default async function ShopPage({
   }
   const session = await getSession();
   const demo = isDemoMode() && Boolean(demoShopRole(catalog.supplier.slug));
+  if (demo && session?.kind !== "buyer") redirect(publishedDemoEntry(catalog.supplier.slug));
   const buyer = session?.kind === "buyer" ? session : null;
-  const demoRole: DemoRole | null = demo ? (buyer ? "kupac" : "prodavac") : null;
+  const demoRole: DemoRole | null = demo ? "kupac" : null;
   const orders = buyer
     ? (await getCommerce().listBuyerOrders(buyer.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
     : [];

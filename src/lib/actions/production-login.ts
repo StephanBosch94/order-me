@@ -11,6 +11,7 @@ import { safeNextPath } from "@/lib/text";
 
 export type ProductionLoginChoice = {
   email: string;
+  password: string;
   name: string;
   roleLabel: string;
   shop: string;
@@ -30,6 +31,7 @@ export async function listProductionLoginChoices(): Promise<ProductionLoginChoic
     if (account.role === "kupac" && resolved.kind !== "buyer") continue;
     available.push({
       email: account.email,
+      password,
       name: account.name,
       roleLabel: account.roleLabel,
       shop: account.shop,

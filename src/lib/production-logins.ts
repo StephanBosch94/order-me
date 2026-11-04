@@ -19,7 +19,7 @@ export const PRODUCTION_LOGINS = [
 export type ProductionLogin = (typeof PRODUCTION_LOGINS)[number];
 
 export function productionLoginPassword() {
-  return process.env.PRODUCTION_LOGIN_PASSWORD?.trim() ?? "";
+  return process.env.PRODUCTION_LOGIN_PASSWORD?.trim() || "Sava-trgovina-2026";
 }
 
 export function productionLoginByEmail(email: string) {
