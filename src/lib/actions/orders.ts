@@ -269,6 +269,7 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
     await deliverOrderStatusEmail(order, {
       name: session.organization.name,
       slug: session.organization.slug,
+      logoUrl: session.organization.logoUrl,
     }).catch(() => "failed" as const);
   }
   revalidatePath("/orders");

@@ -1,12 +1,13 @@
 import "server-only";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getDataMode } from "@/lib/config";
 import { storePath } from "@/lib/constants";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
 import type { AccountContext, BuyerAccount, PlatformAccount, SessionAccount } from "@/lib/data/types";
+import { buyerOrderDestination, REQUEST_PATH_HEADER } from "@/lib/order-link";
 import { readDemoSession, readDemoSessionCarry } from "@/lib/session-token";
 
 export const SESSION_COOKIE = "poruci_session";
@@ -27,6 +28,10 @@ export async function buyerHomePath(userId: string) {
 }
 
 export async function buyerDestination(nextPath: string, userId?: string) {
+  if (userId) {
+    const orderPath = buyerOrderDestination(nextPath, await getCommerce().listBuyerOrders(userId));
+    if (orderPath) return orderPath;
+  }
   if (nextPath.startsWith("/s/") || nextPath.startsWith("/shop/")) return nextPath;
   if (userId) {
     const home = await buyerHomePath(userId);
@@ -76,7 +81,10 @@ export async function getSession(): Promise<SessionAccount | null> {
 export async function requireSession(): Promise<AccountContext> {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.kind === "buyer") redirect(await buyerDestination("", session.userId));
+  if (session.kind === "buyer") {
+    const path = (await headers()).get(REQUEST_PATH_HEADER) ?? "";
+    redirect(await buyerDestination(path, session.userId));
+  }
   if (session.kind === "platform") redirect("/platform");
   return session;
 }

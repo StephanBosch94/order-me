@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { REQUEST_PATH_HEADER } from "@/lib/order-link";
+
 const protectedRoots = ["/dashboard", "/orders", "/products", "/customers", "/zaposleni", "/settings", "/invoices", "/nalog", "/kupac", "/platform"];
 
 export function proxy(request: NextRequest) {
@@ -27,7 +29,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(REQUEST_PATH_HEADER, pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {

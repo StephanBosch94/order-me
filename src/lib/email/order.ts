@@ -2,11 +2,12 @@ import "server-only";
 
 import { orderConfirmationEmail } from "@/lib/buyer";
 import { getAppUrl } from "@/lib/config";
-import { confirmationPath, paymentLabel, statusLabel, unitLabel } from "@/lib/constants";
+import { confirmationPath, paymentLabel, statusLabel } from "@/lib/constants";
 import type { EmailDelivery, OrderDetail, OrderStatus, Organization, PublicSupplier } from "@/lib/data/types";
 import { mailRecipient } from "@/lib/demo-shops";
 import { sendEmail } from "@/lib/email/send";
-import { formatQuantity, formatRsd } from "@/lib/format";
+import { emailDocument, emailLogoUrl, orderLinesHtml, orderLinesText } from "@/lib/email/template";
+import { formatRsd } from "@/lib/format";
 import { escapeHtml } from "@/lib/text";
 
 export async function deliverOrderEmails(
@@ -14,14 +15,11 @@ export async function deliverOrderEmails(
   supplier: PublicSupplier,
   organization: Organization,
 ): Promise<{ customer: EmailDelivery; supplier: EmailDelivery }> {
-  const pdfUrl = `${getAppUrl()}/api/confirmations/${order.confirmationToken}/pdf`;
-  const adminUrl = `${getAppUrl()}/orders/${order.id}`;
-  const lines = order.items
-    .map(
-      (item) =>
-        `${item.name} · ${formatQuantity(item.quantity)} ${unitLabel(item.unit).toLowerCase()} · ${formatRsd(item.lineTotalPara)}`,
-    )
-    .join("\n");
+  const appUrl = getAppUrl();
+  const pdfUrl = `${appUrl}/api/confirmations/${order.confirmationToken}/pdf`;
+  const adminUrl = `${appUrl}/orders/${order.id}`;
+  const logoUrl = emailLogoUrl(supplier.logoUrl, appUrl);
+  const lines = orderLinesText(order.items);
 
   const customer = await sendEmail({
     to: mailRecipient(organization.slug, orderConfirmationEmail(order.customerSnapshot)),
@@ -39,7 +37,7 @@ export async function deliverOrderEmails(
       "Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.",
       `PDF: ${pdfUrl}`,
     ].join("\n"),
-    html: customerHtml(order, supplier, pdfUrl),
+    html: customerHtml(order, supplier, pdfUrl, logoUrl),
   }).catch(() => "failed" as const);
 
   const supplierTo = mailRecipient(organization.slug, organization.notificationEmail);
@@ -65,7 +63,7 @@ export async function deliverOrderEmails(
         ]
           .filter(Boolean)
           .join("\n"),
-        html: `<p><strong>${escapeHtml(order.customerSnapshot.businessName)}</strong> je poslala porudžbinu ${escapeHtml(order.number)}.</p><p>Ukupno: ${escapeHtml(formatRsd(order.totalPara))}</p><p><a href="${adminUrl}">Otvorite porudžbinu</a></p>`,
+        html: supplierHtml(order, supplier, adminUrl, logoUrl),
       }).catch(() => "failed" as const)
     : "skipped";
 
@@ -74,23 +72,31 @@ export async function deliverOrderEmails(
 
 export async function deliverOrderStatusEmail(
   order: OrderDetail,
-  supplier: Pick<PublicSupplier, "name" | "slug">,
+  supplier: Pick<PublicSupplier, "name" | "slug" | "logoUrl">,
 ): Promise<EmailDelivery> {
   if (order.status === "nova") return "skipped";
   const to = mailRecipient(supplier.slug, orderConfirmationEmail(order.customerSnapshot));
   if (!to) return "skipped";
   const label = statusLabel(order.status);
   const path = confirmationPath(supplier.slug, order.confirmationToken);
-  const url = path ? `${getAppUrl()}${path}` : "";
+  const appUrl = getAppUrl();
+  const url = path ? `${appUrl}${path}` : "";
   const lead = statusLead(order.status, order.number, supplier.name);
-  const text = [lead, "", `Ukupno: ${formatRsd(order.totalPara)}`, url ? `Porudžbina: ${url}` : ""]
+  const lines = orderLinesText(order.items);
+  const text = [lead, "", lines, "", `Ukupno: ${formatRsd(order.totalPara)}`, url ? `Porudžbina: ${url}` : ""]
     .filter(Boolean)
     .join("\n");
+  const html = emailDocument({
+    name: supplier.name,
+    logoUrl: emailLogoUrl(supplier.logoUrl, appUrl),
+    title: label,
+    bodyHtml: `<p style="margin:12px 0 0">${escapeHtml(lead)}</p>${orderLinesHtml(order.items, order.totalPara)}${url ? `<p style="margin:16px 0 0"><a href="${url}">Otvorite porudžbinu</a></p>` : ""}`,
+  });
   return sendEmail({
     to,
     subject: `Porudžbina ${order.number} je ${statusPhrase(order.status)}`,
     text,
-    html: `<div style="font-family:Arial,sans-serif;color:#18181b"><h1 style="font-size:20px">${escapeHtml(label)}</h1><p>${escapeHtml(lead)}</p><p><strong>Ukupno: ${escapeHtml(formatRsd(order.totalPara))}</strong></p>${url ? `<p><a href="${url}">Otvorite porudžbinu</a></p>` : ""}</div>`,
+    html,
   }).catch(() => "failed" as const);
 }
 
@@ -106,19 +112,35 @@ function statusLead(status: OrderStatus, number: string, supplier: string) {
   return `${supplier}: porudžbina ${number} je ${statusPhrase(status)}.`;
 }
 
-function customerHtml(order: OrderDetail, supplier: PublicSupplier, pdfUrl: string) {
-  const rows = order.items
-    .map(
-      (item) =>
-        `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(formatQuantity(item.quantity))} ${escapeHtml(unitLabel(item.unit).toLowerCase())}</td><td>${escapeHtml(formatRsd(item.lineTotalPara))}</td></tr>`,
-    )
-    .join("");
+function customerHtml(order: OrderDetail, supplier: PublicSupplier, pdfUrl: string, logoUrl: string | null) {
   const payment = [
     order.paymentMethod && order.paymentMethod !== "racun" ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
     order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
   ]
     .filter(Boolean)
-    .map((line) => `<p>${escapeHtml(line)}</p>`)
+    .map((line) => `<p style="margin:8px 0 0">${escapeHtml(line)}</p>`)
     .join("");
-  return `<div style="font-family:Arial,sans-serif;color:#18181b"><h1 style="font-size:20px">Potvrda porudžbine ${escapeHtml(order.number)}</h1><p>${escapeHtml(supplier.name)} je primio vašu porudžbinu.</p><table cellpadding="6">${rows}</table><p><strong>Ukupno: ${escapeHtml(formatRsd(order.totalPara))}</strong></p>${payment}<p>Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.</p><p><a href="${pdfUrl}">Preuzmite PDF</a></p></div>`;
+  return emailDocument({
+    name: supplier.name,
+    logoUrl,
+    title: `Potvrda porudžbine ${order.number}`,
+    bodyHtml: `<p style="margin:12px 0 0">${escapeHtml(supplier.name)} je primio vašu porudžbinu.</p>${orderLinesHtml(order.items, order.totalPara)}${payment}<p style="margin:16px 0 0">Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.</p><p style="margin:16px 0 0"><a href="${pdfUrl}">Preuzmite PDF</a></p>`,
+  });
+}
+
+function supplierHtml(order: OrderDetail, supplier: PublicSupplier, adminUrl: string, logoUrl: string | null) {
+  const payment = [
+    order.paymentMethod && order.paymentMethod !== "racun" ? `Način plaćanja: ${paymentLabel(order.paymentMethod)}` : "",
+    order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
+    order.notes ? `Napomena: ${order.notes}` : "",
+  ]
+    .filter(Boolean)
+    .map((line) => `<p style="margin:8px 0 0">${escapeHtml(line)}</p>`)
+    .join("");
+  return emailDocument({
+    name: supplier.name,
+    logoUrl,
+    title: `Nova porudžbina ${order.number}`,
+    bodyHtml: `<p style="margin:12px 0 0"><strong>${escapeHtml(order.customerSnapshot.businessName)}</strong> je poslala porudžbinu ${escapeHtml(order.number)}.</p>${orderLinesHtml(order.items, order.totalPara)}${payment}<p style="margin:16px 0 0"><a href="${adminUrl}">Otvorite porudžbinu</a></p>`,
+  });
 }
