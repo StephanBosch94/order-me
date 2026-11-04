@@ -3,6 +3,36 @@ import test from "node:test";
 
 import { isCompanyBuyer } from "@/lib/buyer";
 import { createSeedDatabase, ensureRetailDemo } from "@/lib/data/seed";
+import { verifyPassword } from "@/lib/password";
+import { productionLoginByEmail } from "@/lib/production-logins";
+
+test("the production shop is published beside the demo shops", async () => {
+  const db = await createSeedDatabase();
+  const shop = db.organizations.find((item) => item.slug === "sava-trade");
+  assert.ok(shop);
+  assert.equal(shop.name, "Sava Trade");
+  assert.equal(shop.publicStore, true);
+  assert.equal(shop.audience, "oba");
+  assert.equal(db.products.filter((item) => item.organizationId === shop.id && item.active).length, 16);
+  const milan = db.users.find((item) => item.email === "milan.kostic@savatrade.rs");
+  const petar = db.users.find((item) => item.email === "petar@restoranmorava.rs");
+  assert.equal(milan?.kind, "supplier");
+  assert.equal(petar?.kind, "buyer");
+  assert.equal(
+    db.members.some((item) => item.userId === milan?.id && item.organizationId === shop.id && item.role === "owner"),
+    true,
+  );
+  const login = productionLoginByEmail("milan.kostic@savatrade.rs");
+  assert.ok(milan && login);
+  assert.equal(await verifyPassword(login.password, milan.passwordHash), true);
+  shop.name = "Sava";
+  const flour = db.products.find((item) => item.organizationId === shop.id && item.sku === "ST-BR500");
+  assert.ok(flour);
+  flour.name = "Brašno";
+  assert.equal(await ensureRetailDemo(db), false);
+  assert.equal(shop.name, "Sava");
+  assert.equal(flour.name, "Brašno");
+});
 
 test("demo catalog ids stay the same on every seed", async () => {
   const first = await createSeedDatabase();

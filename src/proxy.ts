@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { REQUEST_PATH_HEADER } from "@/lib/order-link";
+import { readDemoSessionCarry } from "@/lib/session-token";
 
 const protectedRoots = ["/dashboard", "/orders", "/products", "/customers", "/zaposleni", "/settings", "/invoices", "/nalog", "/kupac", "/platform"];
 
@@ -27,6 +28,18 @@ export function proxy(request: NextRequest) {
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
+  }
+
+  const orderId = pathname.match(/^\/orders\/([^/]+)$/)?.[1];
+  if (orderId && !supabaseConfigured) {
+    const token = request.cookies.get("poruci_session")?.value ?? "";
+    const carry = token ? readDemoSessionCarry(token) : null;
+    if (carry?.user.kind === "buyer") {
+      const url = request.nextUrl.clone();
+      url.pathname = `/narudzbina/${orderId}`;
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   const requestHeaders = new Headers(request.headers);

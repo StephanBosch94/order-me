@@ -17,7 +17,8 @@ export async function deliverOrderEmails(
 ): Promise<{ customer: EmailDelivery; supplier: EmailDelivery }> {
   const appUrl = getAppUrl();
   const pdfUrl = `${appUrl}/api/confirmations/${order.confirmationToken}/pdf`;
-  const adminUrl = `${appUrl}/orders/${order.id}`;
+  const confirmation = confirmationPath(organization.slug, order.confirmationToken);
+  const orderUrl = confirmation ? `${appUrl}${confirmation}` : `${appUrl}/orders/${order.id}`;
   const logoUrl = emailLogoUrl(supplier.logoUrl, appUrl);
   const lines = orderLinesText(order.items);
 
@@ -59,11 +60,11 @@ export async function deliverOrderEmails(
           order.customerSnapshot.bankAccount ? `Račun: ${order.customerSnapshot.bankAccount}` : "",
           order.notes ? `Napomena: ${order.notes}` : "",
           "",
-          adminUrl,
+          orderUrl,
         ]
           .filter(Boolean)
           .join("\n"),
-        html: supplierHtml(order, supplier, adminUrl, logoUrl),
+        html: supplierHtml(order, supplier, orderUrl, logoUrl),
       }).catch(() => "failed" as const)
     : "skipped";
 

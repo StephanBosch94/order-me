@@ -5,6 +5,7 @@ import { DEMO_INBOX } from "@/lib/demo-shops";
 import { effectivePricePara } from "@/lib/data/pricing";
 import { belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { hashPassword } from "@/lib/password";
+import { PRODUCTION_LOGINS } from "@/lib/production-logins";
 import type {
   Category,
   Customer,
@@ -1304,6 +1305,146 @@ function ensureMeatPhysicalBuyers(db: DemoDatabase) {
   return changed;
 }
 
+const SAVA_PRODUCTS: Array<{
+  sku: string;
+  name: string;
+  unit: Unit;
+  pricePara: number;
+  minQuantity: number;
+  description: string;
+}> = [
+  { sku: "ST-MAJ", name: "Majonez", unit: "kilogram", pricePara: 28900, minQuantity: 4, description: "Majonez za kuhinju, doza od 1 kg." },
+  { sku: "ST-KAF", name: "Kafa mlevena", unit: "kilogram", pricePara: 148000, minQuantity: 1, description: "Mlevena kafa, mešavina za espreso, pakovanje 1 kg." },
+  { sku: "ST-VOD", name: "Mineralna voda 1,5 l", unit: "komad", pricePara: 5800, minQuantity: 12, description: "Negazirana mineralna voda, flaša 1,5 l." },
+  { sku: "ST-UBR", name: "Ubrus beli", unit: "paket", pricePara: 17500, minQuantity: 5, description: "Beli ubrus 100/1, jednoslojni." },
+  { sku: "ST-DET", name: "Deterdžent za sudove", unit: "komad", pricePara: 92000, minQuantity: 1, description: "Tečni deterdžent za mašinsko pranje sudova, kanister 5 l." },
+  { sku: "ST-TES", name: "Testenina špagete", unit: "kutija", pricePara: 9800, minQuantity: 12, description: "Špagete 500 g, kutija." },
+  { sku: "ST-ULJ", name: "Ulje suncokretovo", unit: "litar", pricePara: 18900, minQuantity: 6, description: "Rafinisano suncokretovo ulje, flaša od 1 l." },
+  { sku: "ST-PEL", name: "Paradajz pelat", unit: "kutija", pricePara: 34500, minQuantity: 4, description: "Pelat od paradajza, limenka 2,5 kg." },
+  { sku: "ST-SOK", name: "Sok od jabuke", unit: "litar", pricePara: 14900, minQuantity: 6, description: "Bistri sok od jabuke, tetrapak 1 l." },
+  { sku: "ST-BR400", name: "Brašno T-400", unit: "kilogram", pricePara: 9600, minQuantity: 10, description: "Brašno tip 400, mekše, za kolače i lisnato testo." },
+  { sku: "ST-SEC", name: "Šećer kristal", unit: "kilogram", pricePara: 12400, minQuantity: 10, description: "Beli kristal šećer, džak od 25 kg." },
+  { sku: "ST-BR500", name: "Brašno T-500", unit: "kilogram", pricePara: 8900, minQuantity: 10, description: "Pšenično brašno tip 500, džak od 25 kg. Za hleb, peciva i testeninu." },
+  { sku: "ST-PIR", name: "Pirinač dugi", unit: "kilogram", pricePara: 17800, minQuantity: 5, description: "Dugi pirinač, kesa od 5 kg." },
+  { sku: "ST-SO", name: "So kuhinjska", unit: "kilogram", pricePara: 4800, minQuantity: 5, description: "Sitna kuhinjska so, kesa od 1 kg." },
+  { sku: "ST-SIR", name: "Sirće alkoholno", unit: "litar", pricePara: 9900, minQuantity: 6, description: "Alkoholno sirće 9%, flaša od 1 l." },
+  { sku: "ST-KEC", name: "Kečap blagi", unit: "kilogram", pricePara: 21500, minQuantity: 4, description: "Blagi kečap, doza od 1 kg." },
+];
+
+/** Sava Trade is the production shop. It is created only when missing, so an existing shop is left as it is. */
+async function ensureProductionShop(db: DemoDatabase) {
+  if (db.organizations.some((item) => item.slug === "sava-trade")) return false;
+  const now = "2026-04-18T07:20:00.000Z";
+  const password = PRODUCTION_LOGINS.find((account) => account.email === "milan.kostic@savatrade.rs")?.password ?? "";
+  const passwordHash = await hashPassword(password);
+  const organization: Organization = {
+    id: seedId("org:sava-trade"),
+    name: "Sava Trade",
+    slug: "sava-trade",
+    email: "porudzbine@savatrade.rs",
+    notificationEmail: DEMO_INBOX,
+    phone: "+381 11 412 8800",
+    address: "Autoput za Zagreb 18",
+    city: "Beograd",
+    pib: "101998877",
+    mb: "20887766",
+    logoUrl: null,
+    brandColor: "#1e3a2f",
+    coverUrl: null,
+    description: "Namirnice za restorane, hotele i markete. Isporuka radnim danima po Beogradu i okolini.",
+    trade: "namirnice",
+    channel: "b2c",
+    audience: "oba",
+    orderPrefix: "ST",
+    nextOrderNumber: 1001,
+    active: true,
+    publicStore: true,
+    trackStock: false,
+    efakturaApiKey: "",
+    efakturaEnabled: false,
+    efakturaEnvironment: "demo",
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.organizations.push(organization);
+
+  let milan = db.users.find((item) => item.email === "milan.kostic@savatrade.rs");
+  if (!milan) {
+    milan = {
+      id: seedId("user:milan.kostic@savatrade.rs"),
+      email: "milan.kostic@savatrade.rs",
+      name: "Milan Kostić",
+      passwordHash,
+      kind: "supplier",
+      businessName: "Sava Trade d.o.o.",
+      phone: "+381 11 412 8800",
+      address: "Autoput za Zagreb 18",
+      city: "Beograd",
+      pib: "101998877",
+      mb: "20887766",
+      postalCode: "11080",
+      bankAccount: "",
+      confirmationEmail: "",
+      createdAt: now,
+    };
+    db.users.push(milan);
+  }
+  if (!db.members.some((item) => item.organizationId === organization.id && item.userId === milan.id)) {
+    db.members.push({
+      id: seedId("member:sava-trade:milan"),
+      organizationId: organization.id,
+      userId: milan.id,
+      role: "owner",
+      createdAt: now,
+    });
+  }
+
+  let petar = db.users.find((item) => item.email === "petar@restoranmorava.rs");
+  if (!petar) {
+    petar = {
+      id: seedId("user:petar@restoranmorava.rs"),
+      email: "petar@restoranmorava.rs",
+      name: "Petar Marković",
+      passwordHash,
+      kind: "buyer",
+      businessName: "Restoran Morava",
+      phone: "+381 63 555 0190",
+      address: "Knez Mihailova 28",
+      city: "Beograd",
+      pib: "104455667",
+      mb: "21334455",
+      postalCode: "11000",
+      bankAccount: "",
+      confirmationEmail: DEMO_INBOX,
+      createdAt: "2026-05-18T12:20:00.000Z",
+    };
+    db.users.push(petar);
+  }
+
+  for (const item of SAVA_PRODUCTS) {
+    if (db.products.some((product) => product.organizationId === organization.id && product.sku === item.sku)) continue;
+    db.products.push({
+      id: seedId(`product:sava-trade:${item.sku}`),
+      organizationId: organization.id,
+      categoryId: null,
+      name: item.name,
+      sku: item.sku,
+      description: item.description,
+      unit: item.unit,
+      pricePara: item.pricePara,
+      salePricePara: null,
+      imageUrl: null,
+      imageUrls: [],
+      active: true,
+      minQuantity: item.minQuantity,
+      stockQuantity: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+  return true;
+}
+
 export async function ensureRetailDemo(db: DemoDatabase) {
   let changed = renameUserEmail(db, "ana@gastrosupply.rs", DEMO_EMAIL);
   changed = renameUserEmail(db, "vera@butikvera.rs", RETAIL_DEMO_EMAIL) || changed;
@@ -1314,9 +1455,10 @@ export async function ensureRetailDemo(db: DemoDatabase) {
   changed = applyDemoStock(db) || changed;
   const ownerChanged = await ensureBoutiqueOwner(db);
   const buyersChanged = await ensureDemoBuyers(db);
+  const productionChanged = await ensureProductionShop(db);
   const platformChanged = await ensurePlatformAdmin(db);
   const inboxChanged = ensureSampleInboxes(db);
-  return ownerChanged || buyersChanged || platformChanged || inboxChanged || changed;
+  return ownerChanged || buyersChanged || productionChanged || platformChanged || inboxChanged || changed;
 }
 
 const PLAN_OSNOVNI_ID = seedId("plan:osnovni");
