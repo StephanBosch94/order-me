@@ -277,11 +277,11 @@ export function Storefront({
             total={total}
             idempotencyStorage={idempotencyStorage}
             onBack={() => setStep("browse")}
-            onSuccess={(token) => {
+            onSuccess={(token, orderSlug) => {
               localStorage.removeItem(storageKey);
               sessionStorage.removeItem(idempotencyStorage);
               window.dispatchEvent(new Event("poruci-cart"));
-              router.push(`/s/${catalog.supplier.slug}/potvrda/${token}`);
+              router.push(`/s/${orderSlug || catalog.supplier.slug}/potvrda/${token}`);
             }}
           />
         )}
@@ -493,7 +493,7 @@ function Checkout({
   total: number;
   idempotencyStorage: string;
   onBack: () => void;
-  onSuccess: (token: string) => void;
+  onSuccess: (token: string, slug?: string) => void;
 }) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -552,7 +552,7 @@ function Checkout({
       setErrors(result.fieldErrors ?? {});
       return;
     }
-    onSuccess(result.token);
+    onSuccess(result.token, result.slug);
   }
 
   const who = kind === "fizicka" ? buyer?.name : kind === "pravna" ? buyer?.businessName : "";

@@ -104,11 +104,11 @@ export function BuyerOrdersFrame({
             total={total}
             idempotencyStorage={idempotencyStorage}
             onBack={() => setPanel("cart")}
-            onSuccess={(token) => {
+            onSuccess={(token, orderSlug) => {
               localStorage.removeItem(storageKey);
               sessionStorage.removeItem(idempotencyStorage);
               window.dispatchEvent(new Event("poruci-cart"));
-              router.push(`/s/${slug}/potvrda/${token}`);
+              router.push(`/s/${orderSlug || slug}/potvrda/${token}`);
             }}
           />
         </div>

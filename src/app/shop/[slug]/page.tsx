@@ -21,7 +21,7 @@ export default async function ShopPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ponovi?: string; nalog?: string; porudzbine?: string }>;
+  searchParams: Promise<{ ponovi?: string; nalog?: string; porudzbine?: string; kategorija?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
@@ -48,6 +48,7 @@ export default async function ShopPage({
       orders={orders}
       repeatOrderId={query.ponovi}
       openAccount={query.nalog === "1"}
+      categoryQuery={query.kategorija}
       demoShop={demo}
       demoRole={demoRole}
       accountName={session?.kind === "supplier" ? session.name : null}

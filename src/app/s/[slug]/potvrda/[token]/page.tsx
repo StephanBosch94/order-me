@@ -2,6 +2,7 @@ import { ChevronLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -13,15 +14,31 @@ import { getCommerce } from "@/lib/data";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Potvrda porudžbine" };
+export const dynamic = "force-dynamic";
 
 export default async function ConfirmationPage({
   params,
 }: {
   params: Promise<{ slug: string; token: string }>;
 }) {
+  await connection();
   const { slug, token } = await params;
   const view = await getCommerce().getOrderByToken(token);
-  if (!view || !confirmationShopMatches(slug, view.supplier.slug)) notFound();
+  if (!view || !confirmationShopMatches(slug, view.supplier.slug)) {
+    const catalog = await getCommerce().getPublicCatalog(slug);
+    if (!catalog) notFound();
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4">
+        <h1 className="text-2xl font-semibold">Porudžbina nije pronađena</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Link ne vodi do porudžbine. Vratite se u prodavnicu.
+        </p>
+        <Link href={storePath(catalog.supplier.slug)} className="mt-6 text-sm font-medium underline-offset-2 hover:underline">
+          Nazad u prodavnicu
+        </Link>
+      </main>
+    );
+  }
   const { order, supplier } = view;
   const emailNote =
     order.customerEmailStatus === "sent"

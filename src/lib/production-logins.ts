@@ -16,22 +16,6 @@ export const PRODUCTION_LOGINS = [
     shop: "Restoran Morava",
     password: "Sava-trgovina-2026",
   },
-  {
-    email: "ana@mesarapajic.rs",
-    name: "Ana Petrović",
-    role: "prodavac",
-    roleLabel: "Prodavac",
-    shop: "Mesara Pajić",
-    password: "poruci-demo",
-  },
-  {
-    email: "marko@restorandunav.rs",
-    name: "Marko Jović",
-    role: "kupac",
-    roleLabel: "Kupac",
-    shop: "Restoran Dunav",
-    password: "poruci-demo",
-  },
 ] as const;
 
 export type ProductionLogin = (typeof PRODUCTION_LOGINS)[number];

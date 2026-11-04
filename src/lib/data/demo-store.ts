@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
-import { loadNetlifyDatabase, netlifyDemoEnabled, saveNetlifyDatabase } from "@/lib/db/netlify-state";
+import { loadNetlifySnapshot, netlifyDemoEnabled, saveNetlifyDatabase } from "@/lib/db/netlify-state";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
@@ -1415,18 +1415,7 @@ export class DemoStore implements CommerceRepository {
   private async read(): Promise<DemoDatabase> {
     if (this.options.postgres) return this.readPostgres();
     if (netlifyDemoEnabled()) {
-      try {
-        const loaded = await loadNetlifyDatabase();
-        if (!loaded) {
-          const db = normalizeDatabase(this.options.seed === false ? emptyDatabase() : await createSeedDatabase());
-          await this.persist(db);
-          return db;
-        }
-        return await this.adopt(loaded);
-      } catch (error) {
-        if (error instanceof DataError) throw error;
-        console.error("Netlify baza nije dostupna.");
-      }
+      return (await this.loadNetlify()).db;
     }
     await mkdir(path.dirname(this.filePath), { recursive: true });
     try {
@@ -1479,6 +1468,12 @@ export class DemoStore implements CommerceRepository {
   }
 
   private async adopt(parsed: DemoDatabase) {
+    const changed = await this.migrate(parsed);
+    if (changed) await this.persist(parsed);
+    return parsed;
+  }
+
+  private async migrate(parsed: DemoDatabase) {
     if (parsed.version !== 1) {
       throw new DataError("Demo baza ima nepoznatu verziju.", "validation");
     }
@@ -1490,9 +1485,27 @@ export class DemoStore implements CommerceRepository {
       changed = retail || photos || galleries;
     }
     changed = missingTrackStock(parsed) || missingPublicStore(parsed) || missingTrade(parsed) || changed;
-    const db = normalizeDatabase(parsed);
-    if (changed) await this.persist(db);
-    return db;
+    normalizeDatabase(parsed);
+    return changed;
+  }
+
+  private async loadNetlify() {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const snapshot = await loadNetlifySnapshot();
+      if (!snapshot.db) {
+        const db = normalizeDatabase(this.options.seed === false ? emptyDatabase() : await createSeedDatabase());
+        const written = await saveNetlifyDatabase(db, snapshot.etag);
+        if (written.modified) return { db, etag: written.etag };
+        continue;
+      }
+      const changed = await this.migrate(snapshot.db);
+      if (!changed) return snapshot;
+      const written = snapshot.etag
+        ? await saveNetlifyDatabase(snapshot.db, snapshot.etag)
+        : await saveNetlifyDatabase(snapshot.db);
+      if (written.modified) return { db: snapshot.db, etag: written.etag ?? snapshot.etag };
+    }
+    throw new Error("Netlify baza je zauzeta. Pokušajte ponovo.");
   }
 
   private async persist(db: DemoDatabase) {
@@ -1501,12 +1514,9 @@ export class DemoStore implements CommerceRepository {
       return;
     }
     if (netlifyDemoEnabled()) {
-      try {
-        await saveNetlifyDatabase(db);
-        return;
-      } catch {
-        console.error("Netlify baza nije sačuvana.");
-      }
+      const written = await saveNetlifyDatabase(db);
+      if (!written.modified) throw new Error("Netlify baza nije sačuvana.");
+      return;
     }
     await mkdir(path.dirname(this.filePath), { recursive: true });
     const temporary = `${this.filePath}.${process.pid}.tmp`;
@@ -1516,10 +1526,21 @@ export class DemoStore implements CommerceRepository {
 
   private async exclusive<T>(fn: (db: DemoDatabase) => Promise<T> | T): Promise<T> {
     const job = this.chain.then(async () => {
-      const db = await this.read();
-      const result = await fn(db);
-      await this.persist(db);
-      return result;
+      if (!netlifyDemoEnabled()) {
+        const db = await this.read();
+        const result = await fn(db);
+        await this.persist(db);
+        return result;
+      }
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const loaded = await this.loadNetlify();
+        const result = await fn(loaded.db);
+        const written = loaded.etag
+          ? await saveNetlifyDatabase(loaded.db, loaded.etag)
+          : await saveNetlifyDatabase(loaded.db);
+        if (written.modified) return result;
+      }
+      throw new Error("Netlify baza je zauzeta. Pokušajte ponovo.");
     });
     this.chain = job.then(
       () => undefined,

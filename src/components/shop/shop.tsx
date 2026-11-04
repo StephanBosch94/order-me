@@ -45,6 +45,13 @@ import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fiel
 
 type Step = "browse" | "cart" | "checkout";
 
+function categoryFromQueryString(catalog: PublicCatalog, value: string | undefined) {
+  if (!value || value === "sve") return "all";
+  if (value === "akcija" && catalog.products.some((product) => salePricePara(product))) return "sale";
+  if (catalog.categories.some((category) => category.id === value)) return value;
+  return "all";
+}
+
 export function Shop({
   catalog,
   buyer: buyerFromServer,
@@ -53,6 +60,7 @@ export function Shop({
   orders = [],
   repeatOrderId,
   openAccount = false,
+  categoryQuery,
   demoShop = false,
   demoRole = null,
   accountName = null,
@@ -65,6 +73,7 @@ export function Shop({
   orders?: BuyerOrder[];
   repeatOrderId?: string;
   openAccount?: boolean;
+  categoryQuery?: string;
   demoShop?: boolean;
   demoRole?: DemoRole | null;
   accountName?: string | null;
@@ -82,7 +91,8 @@ export function Shop({
   const idempotencyStorage = `poruci-shop-idem:${catalog.supplier.slug}`;
   const [step, setStep] = useState<Step>("browse");
   const [pane, setPane] = useState<"catalog" | "account">(openAccount ? "account" : "catalog");
-  const [categoryId, setCategoryId] = useState("all");
+  const categoryFromQuery = categoryFromQueryString(catalog, categoryQuery);
+  const [categoryId, setCategoryId] = useState(categoryFromQuery);
   const [query, setQuery] = useState("");
   const storedCart = useSyncExternalStore(subscribeCart, () => readCartRaw(storageKey), () => "{}");
   const quantities = useMemo(() => parseCart(storedCart), [storedCart]);
@@ -105,6 +115,15 @@ export function Shop({
   const count = lines.length;
   const companyBuyer = buyer && isCompanyBuyer(buyer) ? buyer : null;
   const catalogHref = storePath(catalog.supplier.slug);
+
+  function selectCategory(next: string) {
+    setCategoryId(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next === "all") params.delete("kategorija");
+    else params.set("kategorija", next === "sale" ? "akcija" : next);
+    const query = params.toString();
+    router.replace(query ? `${catalogHref}?${query}` : catalogHref, { scroll: false });
+  }
 
   function openCatalog(event: { preventDefault: () => void }) {
     if (!buyer) return;
@@ -166,6 +185,14 @@ export function Shop({
   }
 
   useEffect(() => {
+    setCategoryId(categoryFromQuery);
+  }, [categoryFromQuery]);
+
+  useEffect(() => {
+    setPane(openAccount ? "account" : "catalog");
+  }, [openAccount]);
+
+  useEffect(() => {
     if (!repeatOrderId) return;
     const order = orders.find((entry) => entry.id === repeatOrderId);
     if (!order) return;
@@ -178,7 +205,7 @@ export function Shop({
   }, [repeatOrderId]);
 
   return (
-    <div className="min-h-dvh bg-background pb-24" style={supplierTheme(catalog.supplier.brandColor)}>
+    <div className="min-h-dvh bg-background" style={supplierTheme(catalog.supplier.brandColor)}>
       <StoreHeader
         href={catalogHref}
         name={catalog.supplier.name}
@@ -212,7 +239,14 @@ export function Shop({
             <button
               type="button"
               className="mb-3 inline-flex min-h-11 cursor-pointer items-center py-2 text-base font-medium text-foreground underline decoration-foreground/40 underline-offset-4 hover:decoration-foreground"
-              onClick={() => setPane("catalog")}
+              onClick={() => {
+                setPane("catalog");
+                const params = new URLSearchParams(window.location.search);
+                if (!params.has("nalog")) return;
+                params.delete("nalog");
+                const query = params.toString();
+                router.replace(query ? `${catalogHref}?${query}` : catalogHref, { scroll: false });
+              }}
             >
               Nazad na proizvode
             </button>
@@ -228,11 +262,11 @@ export function Shop({
             {companyBuyer ? <LastOrder order={latestOrder(orders)} onRepeat={addOrderToCart} /> : null}
             <div className="flex items-center gap-3">
               <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1" role="toolbar" aria-label="Kategorije">
-                <CategoryButton active={categoryId === "all"} onClick={() => setCategoryId("all")}>
+                <CategoryButton active={categoryId === "all"} onClick={() => selectCategory("all")}>
                   Sve
                 </CategoryButton>
                 {hasSales ? (
-                  <CategoryButton active={categoryId === "sale"} onClick={() => setCategoryId("sale")}>
+                  <CategoryButton active={categoryId === "sale"} onClick={() => selectCategory("sale")}>
                     Akcija
                   </CategoryButton>
                 ) : null}
@@ -240,7 +274,7 @@ export function Shop({
                   <CategoryButton
                     key={category.id}
                     active={categoryId === category.id}
-                    onClick={() => setCategoryId(category.id)}
+                    onClick={() => selectCategory(category.id)}
                   >
                     {category.name}
                   </CategoryButton>
@@ -298,11 +332,11 @@ export function Shop({
             total={total}
             idempotencyStorage={idempotencyStorage}
             onBack={() => setStep("cart")}
-            onSuccess={(token) => {
+            onSuccess={(token, orderSlug) => {
               localStorage.removeItem(storageKey);
               sessionStorage.removeItem(idempotencyStorage);
               window.dispatchEvent(new Event("poruci-cart"));
-              router.push(`/s/${catalog.supplier.slug}/potvrda/${token}`);
+              router.push(`/s/${orderSlug || catalog.supplier.slug}/potvrda/${token}`);
             }}
           />
         ) : null}
@@ -773,7 +807,7 @@ export function Checkout({
   total: number;
   idempotencyStorage: string;
   onBack: () => void;
-  onSuccess: (token: string) => void;
+  onSuccess: (token: string, slug?: string) => void;
 }) {
   const detailsRef = useRef<HTMLFormElement>(null);
   const accountParty: BuyerKind | null = buyer ? (isCompanyBuyer(buyer) ? "pravna" : "fizicka") : null;
@@ -887,7 +921,7 @@ export function Checkout({
       if (result.fieldErrors && !result.fieldErrors.paymentMethod) setPhase("details");
       return;
     }
-    onSuccess(result.token);
+    onSuccess(result.token, result.slug);
   }
 
   if (audience === "pravna" && !company) {
