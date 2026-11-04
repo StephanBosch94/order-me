@@ -41,8 +41,8 @@ export default async function LoginPage({
       store={store}
       showStoreBack={false}
     >
-      {changingPassword ? <LoginPasswordForm /> : <LoginForm nextPath={nextPath} />}
-      <ProductionAccounts accounts={accounts} nextPath={nextPath} />
+      {changingPassword ? <LoginPasswordForm /> : <ProductionAccounts accounts={accounts} nextPath={nextPath} />}
+      {changingPassword ? null : <div className="mt-6"><LoginForm nextPath={nextPath} /></div>}
       {changingPassword ? (
         <p className="mt-6 text-sm text-muted-foreground">
           <Link href={loginHref(nextPath, false)} className="font-medium text-foreground underline-offset-2 hover:underline">

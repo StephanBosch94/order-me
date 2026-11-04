@@ -20,8 +20,10 @@ export default async function BuyerSignupPage() {
   const accounts = await listProductionLoginChoices();
   return (
       <AuthShell title="Nalog kupca" subtitle="Kupac bira da li je fizičko ili pravno lice, vidi svoje porudžbine i može da naruči isto kao prošli put.">
-      <SignupForm mode="buyer" />
       <ProductionAccounts accounts={accounts} />
+      <div className="mt-6">
+        <SignupForm mode="buyer" />
+      </div>
       <p className="mt-6 text-sm text-muted-foreground">
         Prodajete?{" "}
         <Link href="/signup" className="font-medium text-foreground underline-offset-2 hover:underline">

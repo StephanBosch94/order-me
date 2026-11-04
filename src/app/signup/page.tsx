@@ -21,8 +21,10 @@ export default async function SignupPage() {
   const accounts = await listProductionLoginChoices();
   return (
     <AuthShell title="Otvorite veleprodaju" subtitle="Kupci firme same unose količine. Porudžbine stižu na vašu adresu.">
-      <SignupForm mode="supplier" />
       <ProductionAccounts accounts={accounts} />
+      <div className="mt-6">
+        <SignupForm mode="supplier" />
+      </div>
       <p className="mt-6 text-sm text-muted-foreground">
         Već imate nalog?{" "}
         <Link href="/login" className="font-medium text-foreground underline-offset-2 hover:underline">

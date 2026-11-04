@@ -10,7 +10,7 @@ export function ProductionAccounts({
   if (accounts.length === 0) return null;
   return (
     <div className="mt-6">
-      <p className="text-sm font-medium">Nalozi</p>
+      <p className="text-sm font-medium">Prijavite se bez registracije</p>
       <div className="mt-2 grid gap-2">
         {accounts.map((account) => (
           <form key={account.email} action={signInProductionAccount}>
