@@ -47,6 +47,7 @@ import type {
   OrderListItem,
   OrderListQuery,
   OrderStatus,
+  MarketplaceStore,
   Organization,
   OrganizationInput,
   OrganizationMember,
@@ -71,6 +72,7 @@ import { loadDatabase, saveDatabase } from "@/lib/db/postgres-state";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { getDataMode, getLocalDataDir } from "@/lib/config";
 import { fold, orderPrefixFromName } from "@/lib/text";
+import { isTrade, tradeOrDefault } from "@/lib/trades";
 
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 10 * 60 * 1000;
@@ -332,6 +334,7 @@ export class DemoStore implements CommerceRepository {
         brandColor: null,
         coverUrl: null,
         description: "",
+        trade: "",
         audience: input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna"),
         channel: channelForAudience(input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna")),
         orderPrefix: orderPrefixFromName(input.name),
@@ -1297,6 +1300,25 @@ export class DemoStore implements CommerceRepository {
     return { supplier: toPublicSupplier(organization), categories, products };
   }
 
+  async listMarketplaceStores(): Promise<MarketplaceStore[]> {
+    const db = await this.read();
+    return db.organizations
+      .filter((organization) => organization.active && organization.publicStore !== false)
+      .map((organization) => ({
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        city: organization.city,
+        description: organization.description,
+        trade: isTrade(organization.trade) ? organization.trade : "",
+        logoUrl: organization.logoUrl,
+        coverUrl: organization.coverUrl,
+        brandColor: organization.brandColor,
+        productCount: db.products.filter((product) => product.organizationId === organization.id && product.active).length,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, "sr"));
+  }
+
   async listPlatformSuppliers(): Promise<PlatformSupplier[]> {
     const db = await this.read();
     return platformSuppliers(db);
@@ -1467,7 +1489,7 @@ export class DemoStore implements CommerceRepository {
       const galleries = applyDemoGalleries(parsed);
       changed = retail || photos || galleries;
     }
-    changed = missingTrackStock(parsed) || missingPublicStore(parsed) || changed;
+    changed = missingTrackStock(parsed) || missingPublicStore(parsed) || missingTrade(parsed) || changed;
     const db = normalizeDatabase(parsed);
     if (changed) await this.persist(db);
     return db;
@@ -1519,6 +1541,12 @@ function missingPublicStore(db: DemoDatabase) {
   );
 }
 
+function missingTrade(db: DemoDatabase) {
+  return (db.organizations ?? []).some(
+    (organization) => typeof organization.trade !== "string" || (organization.trade !== "" && !isTrade(organization.trade)),
+  );
+}
+
 function normalizeDatabase(db: DemoDatabase) {
   db.plans ??= [];
   db.subscriptions ??= [];
@@ -1554,6 +1582,9 @@ function normalizeDatabase(db: DemoDatabase) {
   for (const organization of db.organizations) {
     organization.coverUrl ??= null;
     organization.description ??= "";
+    if (typeof organization.trade !== "string" || (organization.trade !== "" && !isTrade(organization.trade))) {
+      organization.trade = tradeOrDefault(undefined, organization.slug);
+    }
     if (organization.trackStock !== true) organization.trackStock = false;
     if (organization.publicStore !== false) organization.publicStore = true;
     if (typeof organization.efakturaApiKey !== "string") organization.efakturaApiKey = "";

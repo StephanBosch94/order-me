@@ -37,6 +37,7 @@ export default async function BuyerHomePage() {
         <div className="rounded-lg border border-border bg-card px-4 py-3">
           <dt className="text-xs text-muted-foreground">Porudžbine</dt>
           <dd className="mt-1 text-lg font-semibold tabular-nums">{active.length}</dd>
+          <p className="mt-1 text-xs text-muted-foreground">Ukupan broj porudžbina</p>
         </div>
         <div className="rounded-lg border border-border bg-card px-4 py-3">
           <dt className="text-xs text-muted-foreground">Ukupno</dt>

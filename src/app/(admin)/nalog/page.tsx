@@ -13,12 +13,16 @@ export default async function AccountPage() {
       <PageHeader title="Moj nalog" description="Podaci za prijavu na ovu prodavnicu." />
       <dl className="mb-8 max-w-xl space-y-3 text-sm">
         <div>
-          <dt className="font-medium">Ime</dt>
+          <dt className="font-medium">Ime i prezime</dt>
           <dd className="mt-1">{session.name}</dd>
         </div>
         <div>
           <dt className="font-medium">Email</dt>
           <dd className="mt-1">{session.email}</dd>
+        </div>
+        <div>
+          <dt className="font-medium">Telefon</dt>
+          <dd className="mt-1">{session.organization.phone || "—"}</dd>
         </div>
       </dl>
       <PasswordForm />

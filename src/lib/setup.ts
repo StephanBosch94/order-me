@@ -62,6 +62,31 @@ export function setupReady(steps: SetupStep[]) {
   return steps.every((step) => step.done);
 }
 
+export const SETUP_GUIDE_COOKIE = "poruci_setup_closed";
+
+export function isSetupGuideClosed(value: string | undefined, organizationId: string) {
+  return readSetupGuideClosed(value).includes(organizationId);
+}
+
+export function withSetupGuideClosed(value: string | undefined, organizationId: string) {
+  const ids = readSetupGuideClosed(value);
+  if (ids.includes(organizationId)) return ids.map(encodeURIComponent).join(",");
+  return [...ids, organizationId].map(encodeURIComponent).join(",");
+}
+
+function readSetupGuideClosed(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .filter(Boolean)
+    .map((item) => {
+      try {
+        return decodeURIComponent(item);
+      } catch {
+        return item;
+      }
+    });
+}
+
 function appearanceStep(organization: SetupOrganization): SetupStep {
   const logo = Boolean(organization.logoUrl?.trim());
   const cover = Boolean(organization.coverUrl?.trim());

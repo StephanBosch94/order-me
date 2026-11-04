@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { Info } from "lucide-react";
 
 import { loginAction, signupAction, type AuthState } from "@/lib/actions/auth";
 import { BuyerKindChoice, type BuyerKind } from "@/components/shop/checkout-kind";
@@ -65,16 +66,26 @@ export function SignupForm({ mode, nextPath }: { mode: "supplier" | "buyer" | "b
         </>
       )}
       <Field name="password" label="Lozinka" type="password" autoComplete="new-password" error={state.fieldErrors?.password} />
+      <Field
+        name="confirmPassword"
+        label="Potvrda lozinke"
+        type="password"
+        autoComplete="new-password"
+        error={state.fieldErrors?.confirmPassword}
+      />
       {supplier ? (
         <>
-          <Field name="organizationName" label="Naziv prodavnice" error={state.fieldErrors?.organizationName} />
-          <p className="text-sm text-muted-foreground">Adresa stranice pravi se od naziva. Možete je promeniti u podešavanjima.</p>
+          <Field
+            name="organizationName"
+            label="Naziv prodavnice"
+            info="Adresa stranice pravi se od naziva. Možete je promeniti u podešavanjima."
+            error={state.fieldErrors?.organizationName}
+          />
           {showOnlineStore ? (
             <AudienceChoice defaultValue="oba" error={state.fieldErrors?.audience} />
           ) : (
             <input type="hidden" name="audience" value="pravna" />
           )}
-          <Field name="phone" label="Telefon" autoComplete="tel" required={false} error={state.fieldErrors?.phone} />
         </>
       ) : (
         <>
@@ -107,6 +118,7 @@ function Field({
   autoComplete,
   error,
   required = true,
+  info,
   onChange,
 }: {
   name: string;
@@ -115,11 +127,15 @@ function Field({
   autoComplete?: string;
   error?: string;
   required?: boolean;
+  info?: string;
   onChange?: (value: string) => void;
 }) {
   return (
     <div>
-      <Label htmlFor={name}>{label}</Label>
+      <div className="flex items-center gap-1">
+        <Label htmlFor={name}>{label}</Label>
+        {info ? <InfoTip text={info} label={label} /> : null}
+      </div>
       <Input
         id={name}
         name={name}
@@ -130,6 +146,52 @@ function Field({
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
       />
       <FieldError message={error} />
+    </div>
+  );
+}
+
+function InfoTip({ text, label }: { text: string; label: string }) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointer(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <button
+        type="button"
+        className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-zinc-100 hover:text-foreground"
+        aria-label={`Više o polju ${label}`}
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <Info className="size-4" aria-hidden="true" />
+      </button>
+      {open ? (
+        <p
+          id={panelId}
+          role="note"
+          className="absolute top-8 left-0 z-20 w-64 rounded-md border border-border bg-card p-3 text-sm text-muted-foreground shadow-md"
+        >
+          {text}
+        </p>
+      ) : null}
     </div>
   );
 }

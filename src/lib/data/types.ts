@@ -91,6 +91,8 @@ export type Organization = {
   brandColor: string | null;
   coverUrl: string | null;
   description: string;
+  /** Marketplace category. Empty until the supplier picks one. */
+  trade: string;
   channel: StoreChannel;
   audience: Audience;
   orderPrefix: string;
@@ -289,6 +291,19 @@ export type PublicCatalog = {
   closedMessage?: string;
 };
 
+export type MarketplaceStore = {
+  id: string;
+  name: string;
+  slug: string;
+  city: string;
+  description: string;
+  trade: string;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  brandColor: string | null;
+  productCount: number;
+};
+
 export type Paginated<T> = {
   items: T[];
   total: number;
@@ -387,6 +402,7 @@ export type OrganizationInput = {
   brandColor: string | null;
   coverUrl: string | null;
   description: string;
+  trade: string;
   audience: Audience;
   trackStock: boolean;
   publicStore: boolean;

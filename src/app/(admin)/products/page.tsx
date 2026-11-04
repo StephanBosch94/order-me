@@ -5,7 +5,7 @@ import { ProductFilters } from "@/components/admin/live-filters";
 import { CsvImport, ProductActiveButton } from "@/components/admin/order-actions";
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
 import { ProductImage } from "@/components/catalog/product-image";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth";
 import { unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
@@ -115,7 +115,7 @@ export default async function ProductsPage({
                   <td className="px-4 py-3">{product.active ? "Aktivan" : "Neaktivan"}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <Link href={`/products/${product.id}`} className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-[13px]">
+                      <Link href={`/products/${product.id}`} className={buttonVariants({ variant: "secondary", size: "sm" })}>
                         Izmeni
                       </Link>
                       <ProductActiveButton productId={product.id} active={product.active} />

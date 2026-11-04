@@ -5,6 +5,7 @@ import { RESERVED_SLUGS } from "@/lib/constants";
 import { normalizeQuantity, normalizeStockQuantity } from "@/lib/data/pricing";
 import { ORDER_STATUS_VALUES, UNIT_VALUES, type ProductInput } from "@/lib/data/types";
 import { parseRsdToPara } from "@/lib/format";
+import { isTrade } from "@/lib/trades";
 
 const slugSchema = z
   .string()
@@ -56,16 +57,28 @@ const signupIdentity = {
   name: z.string().trim().min(2, "Unesite ime i prezime.").max(80),
   email: z.email("Unesite ispravnu email adresu."),
   password: z.string().min(8, "Lozinka mora imati bar 8 karaktera.").max(72),
+  confirmPassword: z.string().min(1, "Ponovite lozinku."),
 };
 
+function passwordsMatch(
+  value: { password: string; confirmPassword: string },
+  ctx: { addIssue: (issue: { code: "custom"; path: (string | number)[]; message: string }) => void },
+) {
+  if (value.password !== value.confirmPassword) {
+    ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: "Lozinka i potvrda se ne poklapaju." });
+  }
+}
+
 export const signupSchema = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("supplier"),
-    ...signupIdentity,
-    audience: z.enum(["fizicka", "pravna", "oba"], "Izaberite kome prodajete."),
-    organizationName: z.string().trim().min(2, "Unesite naziv firme.").max(120),
-    phone: z.string().trim().max(30),
-  }),
+  z
+    .object({
+      kind: z.literal("supplier"),
+      ...signupIdentity,
+      audience: z.enum(["fizicka", "pravna", "oba"], "Izaberite kome prodajete."),
+      organizationName: z.string().trim().min(2, "Unesite naziv firme.").max(120),
+      phone: z.string().trim().max(30),
+    })
+    .superRefine(passwordsMatch),
   z
     .object({
       kind: z.literal("buyer"),
@@ -81,6 +94,7 @@ export const signupSchema = z.discriminatedUnion("kind", [
       confirmationEmail: confirmationEmailField,
     })
     .superRefine((value, ctx) => {
+      passwordsMatch(value, ctx);
       if (!normalizePostalCode(value.postalCode)) {
         ctx.addIssue({
           code: "custom",
@@ -208,6 +222,7 @@ export const organizationSchema = z.object({
     .trim()
     .refine((value) => value === "" || /^#[0-9a-fA-F]{6}$/.test(value), "Unesite boju u formatu #RRGGBB."),
   description: z.string().trim().max(240, "Opis može imati najviše 240 karaktera."),
+  trade: z.string().trim().refine((value) => value === "" || isTrade(value), "Izaberite delatnost."),
   audience: z.enum(["fizicka", "pravna", "oba"], "Izaberite kome prodajete."),
 });
 

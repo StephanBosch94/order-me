@@ -52,6 +52,8 @@ export const RESERVED_SLUGS = new Set([
   "platform",
   "invoices",
   "fakture",
+  "marketplace",
+  "prodavnice",
 ]);
 
 export const STORE_CLOSED_MESSAGE = "Ova prodavnica trenutno ne prima nove porudžbine.";
@@ -190,4 +192,31 @@ export function subtractCartQuantity(unit: Unit, current: number, minQuantity: n
   const min = measuredUnit(unit) ? cartMinimum(unit, minQuantity) : minQuantity;
   const next = Math.round((shown - quantityStep(unit)) * 1000) / 1000;
   return next < min ? 0 : next;
+}
+
+/** Plus and minus move by one, including the first click from an empty field. */
+export function stepCartQuantity(current: number, direction: "up" | "down") {
+  const base = Number.isFinite(current) && current > 0 ? current : 0;
+  if (direction === "up") return Math.min(9999, Math.round((base + 1) * 1000) / 1000);
+  const next = Math.round((base - 1) * 1000) / 1000;
+  return next > 0 ? next : 0;
+}
+
+/** Keeps a typed or stepped quantity. Does not raise it to the product minimum. */
+export function storeCartQuantity(unit: Unit, quantity: number) {
+  if (!Number.isFinite(quantity) || quantity <= 0) return 0;
+  if (measuredUnit(unit)) return Math.min(9999, Math.round(quantity * 1000) / 1000);
+  const whole = Math.floor(quantity + 1e-9);
+  return whole > 0 ? Math.min(9999, whole) : 0;
+}
+
+/** Reads a typed quantity. Empty clears the line. Invalid text is ignored. */
+export function quantityFromInput(unit: Unit, raw: string) {
+  const text = raw.trim().replace(/\s/g, "").replace(",", ".");
+  if (!text) return 0;
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  if (parsed === 0) return 0;
+  const capped = Math.min(9999, measuredUnit(unit) ? Math.round(parsed * 1000) / 1000 : Math.floor(parsed + 1e-9));
+  return capped > 0 ? capped : 0;
 }

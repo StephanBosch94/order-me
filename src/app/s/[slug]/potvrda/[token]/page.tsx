@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { orderConfirmationEmail } from "@/lib/buyer";
+import { mailRecipient } from "@/lib/demo-shops";
 import { supplierTheme } from "@/lib/color";
 import { confirmationShopMatches, paymentLabel, storePath, unitLabel } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
@@ -24,7 +25,7 @@ export default async function ConfirmationPage({
   const { order, supplier } = view;
   const emailNote =
     order.customerEmailStatus === "sent"
-      ? `Poslali smo potvrdu na ${orderConfirmationEmail(order.customerSnapshot)}.`
+      ? `Poslali smo potvrdu na ${mailRecipient(supplier.slug, orderConfirmationEmail(order.customerSnapshot))}.`
       : order.customerEmailStatus === "outbox"
         ? "Porudžbina je sačuvana. Email servis nije podešen, pa je poruka upisana lokalno."
         : order.customerEmailStatus === "failed"

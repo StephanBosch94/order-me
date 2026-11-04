@@ -24,6 +24,7 @@ import type {
   PlatformSupplier,
   Product,
   ProductInput,
+  MarketplaceStore,
   PublicCatalog,
   PublicOrderInput,
   PublicOrderView,
@@ -133,6 +134,7 @@ export interface CommerceRepository {
   setEmailStatus(orderId: string, customer: EmailDelivery, supplier: EmailDelivery): Promise<void>;
   getDashboard(organizationId: string): Promise<DashboardData>;
   getPublicCatalog(slug: string): Promise<PublicCatalog | null>;
+  listMarketplaceStores(): Promise<MarketplaceStore[]>;
   listPlatformSuppliers(): Promise<PlatformSupplier[]>;
   setOrganizationActive(organizationId: string, active: boolean): Promise<void>;
   listPlans(): Promise<SubscriptionPlan[]>;

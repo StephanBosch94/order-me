@@ -1,11 +1,11 @@
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import Link from "next/link";
 
 import type { SetupStep } from "@/lib/setup";
 import { setupReady } from "@/lib/setup";
 import { cn } from "@/lib/utils";
 
-export function SetupGuide({ steps }: { steps: SetupStep[] }) {
+export function SetupGuide({ steps, onClose }: { steps: SetupStep[]; onClose: () => void }) {
   if (setupReady(steps)) return null;
   const done = steps.filter((step) => step.done).length;
 
@@ -20,9 +20,19 @@ export function SetupGuide({ steps }: { steps: SetupStep[] }) {
             Vodič stoji ovde dok ne završite sve korake. Štiklira se čim sačuvate podatak.
           </p>
         </div>
-        <p className="shrink-0 text-sm font-medium tabular-nums">
-          {done} od {steps.length}
-        </p>
+        <div className="flex shrink-0 items-center gap-1">
+          <p className="text-sm font-medium tabular-nums">
+            {done} od {steps.length}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Zatvorite vodič"
+            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-zinc-100 hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-100" aria-hidden="true">
         <div className="h-full rounded-full bg-primary" style={{ width: `${(done / steps.length) * 100}%` }} />

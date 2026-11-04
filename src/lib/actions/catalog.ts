@@ -183,6 +183,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
     mb: text(formData, "mb"),
     brandColor: text(formData, "brandColor"),
     description: text(formData, "description"),
+    trade: text(formData, "trade"),
     audience: text(formData, "audience"),
   });
   if (!parsed.success) {
@@ -234,6 +235,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
   revalidatePath("/products");
   revalidatePath("/dashboard");
   revalidatePath("/orders");
+  revalidatePath("/marketplace");
   revalidatePath(storePath(session.organization.slug));
   revalidatePath(storePath(parsed.data.slug));
   return { ok: true, message: "Podešavanja su sačuvana." };

@@ -4,19 +4,16 @@ import { orderConfirmationEmail } from "@/lib/buyer";
 import { getAppUrl } from "@/lib/config";
 import { confirmationPath, paymentLabel, statusLabel, unitLabel } from "@/lib/constants";
 import type { EmailDelivery, OrderDetail, OrderStatus, Organization, PublicSupplier } from "@/lib/data/types";
-import { sendsOrderMail } from "@/lib/demo-shops";
+import { mailRecipient } from "@/lib/demo-shops";
 import { sendEmail } from "@/lib/email/send";
 import { formatQuantity, formatRsd } from "@/lib/format";
 import { escapeHtml } from "@/lib/text";
-
-const skipped = { customer: "skipped" as const, supplier: "skipped" as const };
 
 export async function deliverOrderEmails(
   order: OrderDetail,
   supplier: PublicSupplier,
   organization: Organization,
 ): Promise<{ customer: EmailDelivery; supplier: EmailDelivery }> {
-  if (!sendsOrderMail(organization.slug)) return skipped;
   const pdfUrl = `${getAppUrl()}/api/confirmations/${order.confirmationToken}/pdf`;
   const adminUrl = `${getAppUrl()}/orders/${order.id}`;
   const lines = order.items
@@ -27,7 +24,7 @@ export async function deliverOrderEmails(
     .join("\n");
 
   const customer = await sendEmail({
-    to: orderConfirmationEmail(order.customerSnapshot),
+    to: mailRecipient(organization.slug, orderConfirmationEmail(order.customerSnapshot)),
     subject: `Potvrda porudžbine ${order.number}`,
     text: [
       `Porudžbina ${order.number} je primljena.`,
@@ -45,9 +42,10 @@ export async function deliverOrderEmails(
     html: customerHtml(order, supplier, pdfUrl),
   }).catch(() => "failed" as const);
 
-  const supplierStatus = organization.notificationEmail
+  const supplierTo = mailRecipient(organization.slug, organization.notificationEmail);
+  const supplierStatus = supplierTo
     ? await sendEmail({
-        to: organization.notificationEmail,
+        to: supplierTo,
         subject: `Nova porudžbina ${order.number}`,
         text: [
           `${order.customerSnapshot.businessName} je poslala porudžbinu ${order.number}.`,
@@ -78,8 +76,8 @@ export async function deliverOrderStatusEmail(
   order: OrderDetail,
   supplier: Pick<PublicSupplier, "name" | "slug">,
 ): Promise<EmailDelivery> {
-  if (!sendsOrderMail(supplier.slug) || order.status === "nova") return "skipped";
-  const to = orderConfirmationEmail(order.customerSnapshot);
+  if (order.status === "nova") return "skipped";
+  const to = mailRecipient(supplier.slug, orderConfirmationEmail(order.customerSnapshot));
   if (!to) return "skipped";
   const label = statusLabel(order.status);
   const path = confirmationPath(supplier.slug, order.confirmationToken);

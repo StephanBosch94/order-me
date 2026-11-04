@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Minus, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -9,6 +9,7 @@ import { StoreAccountLinks } from "@/components/shop/account-links";
 import { BuyerMenu } from "@/components/shop/buyer-menu";
 import { CartButton } from "@/components/shop/cart-button";
 import { StoreHeader } from "@/components/shop/store-header";
+import { QuantityInput } from "@/components/shop/quantity-input";
 import {
   BuyerKindChoice,
   PaymentMethodChoice,
@@ -23,13 +24,12 @@ import { isCompanyBuyer } from "@/lib/buyer";
 import type { DemoRole } from "@/lib/demo-shops";
 import { supplierTheme } from "@/lib/color";
 import {
-  addCartQuantity,
   confirmationPath,
   normalizeCartQuantity,
   ordersPath,
   productPath,
+  storeCartQuantity,
   storePath,
-  subtractCartQuantity,
   unitLabel,
 } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara, salePricePara } from "@/lib/data/pricing";
@@ -41,7 +41,7 @@ import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
 import { useUnchangedForm } from "@/components/ui/use-unchanged-form";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
+import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fields";
 
 type Step = "browse" | "cart" | "checkout";
 
@@ -98,7 +98,7 @@ export function Shop({
   const lines = catalog.products
     .map((product) => ({
       product,
-      quantity: normalizeCartQuantity(product.unit, quantities[product.id] ?? 0, product.minQuantity),
+      quantity: storeCartQuantity(product.unit, quantities[product.id] ?? 0),
     }))
     .filter((line) => line.quantity > 0);
   const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
@@ -119,16 +119,11 @@ export function Shop({
 
   function setQuantity(product: Product, quantity: number) {
     const next = { ...quantities };
-    const stored = quantity <= 0 ? 0 : normalizeCartQuantity(product.unit, quantity, product.minQuantity);
+    const stored = storeCartQuantity(product.unit, quantity);
     if (stored <= 0) delete next[product.id];
     else next[product.id] = stored;
     localStorage.setItem(storageKey, JSON.stringify(next));
     window.dispatchEvent(new Event("poruci-cart"));
-  }
-
-  function add(product: Product) {
-    const current = quantities[product.id] ?? 0;
-    setQuantity(product, addCartQuantity(product.unit, current, product.minQuantity));
   }
 
   function writeCart(next: Record<string, number>) {
@@ -270,7 +265,13 @@ export function Shop({
               <section className="mt-4">
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {products.map((product) => (
-                    <ProductCard key={product.id} product={product} href={productPath(catalog.supplier.slug, product.id)} onAdd={() => add(product)} />
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      href={productPath(catalog.supplier.slug, product.id)}
+                      quantity={storeCartQuantity(product.unit, quantities[product.id] ?? 0)}
+                      onCommit={(quantity) => setQuantity(product, quantity)}
+                    />
                   ))}
                 </ul>
               </section>
@@ -370,7 +371,7 @@ export function CompanyOrders({
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Porudžbine" value={String(active.length)} />
+        <Stat label="Porudžbine" value={String(active.length)} hint="Ukupan broj porudžbina" />
         <Stat label="Ukupno" value={formatRsd(spent)} />
         <Stat label="Ovog meseca" value={formatRsd(monthSpent)} hint={`${thisMonth.length} ${orderWord(thisMonth.length)}`} />
       </div>
@@ -381,17 +382,17 @@ export function CompanyOrders({
           </h2>
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             Mesec
-            <select
+            <Select
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
-              className="h-9 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+              className="h-9 w-auto text-foreground"
             >
               {months.map((key) => (
                 <option key={key} value={key}>
                   {monthLabel(key)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         </div>
         {bought.length === 0 ? (
@@ -733,32 +734,13 @@ export function Cart({
                   <p className="text-sm text-muted-foreground tabular-nums">{formatRsd(effectivePricePara(line.product))}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex size-9 items-center justify-center rounded-md border border-border"
-                  aria-label={`Smanji ${line.product.name}`}
-                  onClick={() =>
-                    onChange(
-                      line.product,
-                      subtractCartQuantity(line.product.unit, line.quantity, line.product.minQuantity),
-                    )
-                  }
-                >
-                  <Minus className="size-4" />
-                </button>
-                <span className="w-8 text-center text-sm tabular-nums">{line.quantity}</span>
-                <button
-                  type="button"
-                  className="inline-flex size-9 items-center justify-center rounded-md border border-border"
-                  aria-label={`Povećaj ${line.product.name}`}
-                  onClick={() =>
-                    onChange(line.product, addCartQuantity(line.product.unit, line.quantity, line.product.minQuantity))
-                  }
-                >
-                  <Plus className="size-4" />
-                </button>
-              </div>
+              <QuantityInput
+                name={line.product.name}
+                unit={line.product.unit}
+                quantity={line.quantity}
+                size="sm"
+                onCommit={(quantity) => onChange(line.product, quantity)}
+              />
             </li>
           ))}
         </ul>
@@ -1152,7 +1134,17 @@ function Field({
   );
 }
 
-function ProductCard({ product, href, onAdd }: { product: Product; href: string; onAdd: () => void }) {
+function ProductCard({
+  product,
+  href,
+  quantity,
+  onCommit,
+}: {
+  product: Product;
+  href: string;
+  quantity: number;
+  onCommit: (quantity: number) => void;
+}) {
   const sale = salePricePara(product);
   const photos = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : [];
   return (
@@ -1175,10 +1167,13 @@ function ProductCard({ product, href, onAdd }: { product: Product; href: string;
           {sale ? <p className="text-xs text-muted-foreground line-through tabular-nums">{formatRsd(product.pricePara)}</p> : null}
           <p className="text-sm font-semibold tabular-nums">{formatRsd(sale ?? product.pricePara)}</p>
         </div>
-        <Button size="sm" onClick={onAdd}>
-          <Plus className="size-4" aria-hidden="true" />
-          Dodaj
-        </Button>
+        <QuantityInput
+          name={product.name}
+          unit={product.unit}
+          quantity={quantity}
+          size="sm"
+          onCommit={onCommit}
+        />
       </div>
       </div>
     </li>

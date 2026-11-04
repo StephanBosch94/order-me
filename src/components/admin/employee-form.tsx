@@ -1,6 +1,5 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/admin/page-header";
@@ -21,12 +20,10 @@ export function EmployeeAdd({ canAdd }: { canAdd: boolean }) {
         actions={
           canAdd ? (
             <Button
-              size="icon"
-              aria-label={open ? "Zatvori formu" : "Dodaj zaposlenog"}
               aria-expanded={open}
               onClick={() => setOpen((value) => !value)}
             >
-              <Plus className={open ? "size-4 rotate-45" : "size-4"} aria-hidden="true" />
+              Novi zaposleni
             </Button>
           ) : null
         }

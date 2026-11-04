@@ -44,7 +44,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             rel="noreferrer"
             className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-zinc-50"
           >
-            Štampaj {kind === "faktura" ? "fakturu" : "nalog"}
+            {kind === "faktura" ? "Prikaži fakturu" : "Štampaj nalog"}
           </a>
           {order.sefInvoiceId ? (
             <p className="text-sm">

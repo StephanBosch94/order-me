@@ -6,7 +6,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { ProductImage } from "@/components/catalog/product-image";
 import { Button } from "@/components/ui/button";
-import { addCartQuantity, normalizeCartQuantity, productPath, subtractCartQuantity, unitLabel } from "@/lib/constants";
+import { productPath, quantityFromInput, stepCartQuantity, storeCartQuantity, unitLabel } from "@/lib/constants";
 import { salePricePara } from "@/lib/data/pricing";
 import type { Product } from "@/lib/data/types";
 import { formatQuantity, formatRsd } from "@/lib/format";
@@ -30,24 +30,37 @@ export function ProductDetail({
   const storedCart = useSyncExternalStore(subscribeCart, () => readCartRaw(storageKey), () => "{}");
   const quantities = useMemo(() => parseCart(storedCart), [storedCart]);
   const storedQuantity = quantities[product.id] ?? 0;
-  const quantity = normalizeCartQuantity(product.unit, storedQuantity, product.minQuantity);
+  const quantity = storeCartQuantity(product.unit, storedQuantity);
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (quantity ? String(quantity).replace(".", ",") : "");
   const sale = salePricePara(product);
   const photos = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : [];
 
   function write(nextQuantity: number) {
     const next = { ...quantities };
     if (nextQuantity <= 0) delete next[product.id];
-    else next[product.id] = nextQuantity;
+    else next[product.id] = storeCartQuantity(product.unit, nextQuantity);
     localStorage.setItem(storageKey, JSON.stringify(next));
     window.dispatchEvent(new Event("poruci-cart"));
   }
 
   function add() {
-    write(addCartQuantity(product.unit, storedQuantity, product.minQuantity));
+    write(stepCartQuantity(quantity, "up"));
   }
 
-  function subtract() {
-    write(subtractCartQuantity(product.unit, storedQuantity, product.minQuantity));
+  function commit(raw: string) {
+    const next = quantityFromInput(product.unit, raw);
+    setDraft(null);
+    if (next === null) return;
+    write(next);
+  }
+
+  function addTyped() {
+    if (draft != null && draft.trim()) {
+      commit(draft);
+      return;
+    }
+    add();
   }
 
   return (
@@ -96,24 +109,47 @@ export function ProductDetail({
               type="button"
               className="inline-flex size-11 cursor-pointer items-center justify-center rounded-l-md border border-border bg-card disabled:opacity-40"
               aria-label="Smanji količinu"
-              onClick={subtract}
-              disabled={quantity === 0}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                const parsed = quantityFromInput(product.unit, shown);
+                const current = parsed === null ? quantity : parsed;
+                setDraft(null);
+                write(stepCartQuantity(current, "down"));
+              }}
+              disabled={quantity === 0 && !shown.trim()}
             >
               <Minus className="size-4" aria-hidden="true" />
             </button>
-            <span className="inline-flex h-11 min-w-14 items-center justify-center border-y border-border bg-card px-3 text-sm tabular-nums">
-              {quantity ? formatQuantity(quantity) : "0"}
-            </span>
+            <input
+              inputMode="decimal"
+              aria-label="Količina"
+              className="h-11 w-20 border-y border-border bg-card text-center text-sm tabular-nums outline-none"
+              value={shown}
+              onChange={(event) => setDraft(event.target.value)}
+              onFocus={(event) => event.currentTarget.select()}
+              onBlur={(event) => commit(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                commit(event.currentTarget.value);
+              }}
+            />
             <button
               type="button"
               className="inline-flex size-11 cursor-pointer items-center justify-center rounded-r-md border border-border bg-card"
               aria-label="Povećaj količinu"
-              onClick={add}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                const parsed = quantityFromInput(product.unit, shown);
+                const current = parsed === null ? quantity : parsed;
+                setDraft(null);
+                write(stepCartQuantity(current, "up"));
+              }}
             >
               <Plus className="size-4" aria-hidden="true" />
             </button>
           </div>
-          <Button type="button" onClick={add}>
+          <Button type="button" onMouseDown={(event) => event.preventDefault()} onClick={addTyped}>
             {quantity > 0 ? "Dodaj još" : "Dodaj u korpu"}
           </Button>
           {quantity > 0 ? <p className="text-sm text-muted-foreground">U korpi: {formatQuantity(quantity)}</p> : null}

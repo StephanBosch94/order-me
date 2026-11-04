@@ -22,7 +22,7 @@ import { supplierTheme } from "@/lib/color";
 import { isShopManager } from "@/lib/members";
 import { storePath } from "@/lib/constants";
 import type { AccountContext } from "@/lib/data/types";
-import { setupReady, type SetupStep } from "@/lib/setup";
+import { SETUP_GUIDE_COOKIE, setupReady, withSetupGuideClosed, type SetupStep } from "@/lib/setup";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 
@@ -48,17 +48,30 @@ export function AdminShell({
   session,
   demoShop = null,
   setup,
+  guideClosed = false,
   children,
 }: {
   session: AccountContext;
   demoShop?: string | null;
   setup: SetupStep[];
+  guideClosed?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [closed, setClosed] = useState(guideClosed);
   const shopPath = storePath(session.organization.slug);
-  const showGuide = !setupReady(setup);
+  const showGuide = !setupReady(setup) && !closed;
+
+  function closeGuide() {
+    const current = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${SETUP_GUIDE_COOKIE}=`))
+      ?.slice(SETUP_GUIDE_COOKIE.length + 1);
+    const next = withSetupGuideClosed(current, session.organization.id);
+    document.cookie = `${SETUP_GUIDE_COOKIE}=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    setClosed(true);
+  }
 
   useEffect(() => {
     setOpen(false);
@@ -166,7 +179,7 @@ export function AdminShell({
                 {children}
                 {showGuide ? (
                   <div className="mt-6 lg:hidden">
-                    <SetupGuide steps={setup} />
+                    <SetupGuide steps={setup} onClose={closeGuide} />
                   </div>
                 ) : null}
               </main>
@@ -174,7 +187,7 @@ export function AdminShell({
             {showGuide ? (
               <aside className="hidden w-80 shrink-0 overflow-y-auto border-l border-border p-4 lg:block xl:w-96">
                 <div className="sticky top-0">
-                  <SetupGuide steps={setup} />
+                  <SetupGuide steps={setup} onClose={closeGuide} />
                 </div>
               </aside>
             ) : null}

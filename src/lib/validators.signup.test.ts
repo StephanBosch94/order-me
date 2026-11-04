@@ -8,8 +8,9 @@ const supplier = {
   name: "Ana Anić",
   email: "ana@example.com",
   password: "poruci-demo",
+  confirmPassword: "poruci-demo",
   organizationName: "Nova prodavnica",
-  phone: "",
+  phone: "0114128800",
 };
 
 test("supplier signup accepts pravna, fizicka, and oba", () => {
@@ -27,6 +28,7 @@ const buyer = {
   name: "Marko Jović",
   email: "marko@restorandunav.rs",
   password: "poruci-demo",
+  confirmPassword: "poruci-demo",
   businessName: "Restoran Dunav",
   phone: "0631112200",
   address: "Bulevar kralja Aleksandra 142",
@@ -44,6 +46,7 @@ test("a person can open an account without a company", () => {
     name: "Jovana Ilić",
     email: "jovana@example.com",
     password: "poruci-demo",
+    confirmPassword: "poruci-demo",
     businessName: "Jovana Ilić",
     phone: "0645550199",
     address: "Knez Mihailova 18",
@@ -74,6 +77,17 @@ test("company account form does not require a bank account", () => {
     confirmationEmail: buyer.confirmationEmail,
   });
   assert.equal(parsed.success, true);
+});
+
+test("supplier signup does not require a phone", () => {
+  const parsed = signupSchema.safeParse({ ...supplier, phone: "", audience: "pravna" });
+  assert.equal(parsed.success, true);
+  if (parsed.success && parsed.data.kind === "supplier") assert.equal(parsed.data.phone, "");
+});
+
+test("supplier signup rejects a password that does not match the confirmation", () => {
+  const parsed = signupSchema.safeParse({ ...supplier, confirmPassword: "druga-lozinka", audience: "pravna" });
+  assert.equal(parsed.success, false);
 });
 
 test("supplier signup rejects a missing audience", () => {

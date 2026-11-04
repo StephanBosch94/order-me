@@ -30,6 +30,7 @@ create table if not exists public.organizations (
   brand_color text,
   cover_url text,
   description text not null default '',
+  trade text not null default '',
   channel text not null default 'b2b' check (channel in ('b2c', 'b2b')),
   audience text not null default 'fizicka' check (audience in ('fizicka', 'pravna', 'oba')),
   order_prefix text not null default 'POR',
@@ -413,6 +414,7 @@ alter table public.orders add column if not exists sef_status text;
 
 alter table public.organizations add column if not exists cover_url text;
 alter table public.organizations add column if not exists description text not null default '';
+alter table public.organizations add column if not exists trade text not null default '';
 
 alter table public.customers alter column party set default 'fizicka';
 alter table public.customers alter column payment_term_days set default 0;

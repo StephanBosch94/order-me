@@ -6,6 +6,7 @@ import { LoginForm } from "@/components/auth/auth-forms";
 import { LoginPasswordForm } from "@/components/auth/password-form";
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
+import { listProductionLoginChoices, signInProductionAccount } from "@/lib/actions/production-login";
 import { getSession, landingPath } from "@/lib/auth";
 import { supplierTheme } from "@/lib/color";
 import { storePath } from "@/lib/constants";
@@ -27,6 +28,7 @@ export default async function LoginPage({
   const demoAccount = Boolean(session && isDemoShopAccount(session.email));
   if (session && !demoAccount) redirect(await landingPath(session, nextPath));
   const store = await storeFromPath(nextPath);
+  const accounts = changingPassword ? [] : await listProductionLoginChoices();
   return (
     <AuthShell
       title={changingPassword ? "Lozinka" : "Prijava"}
@@ -39,24 +41,48 @@ export default async function LoginPage({
       showStoreBack={false}
     >
       {changingPassword ? <LoginPasswordForm /> : <LoginForm nextPath={nextPath} />}
-      <p className="mt-6 text-sm text-muted-foreground">
-        {changingPassword ? (
+      {accounts.length > 0 ? (
+        <div className="mt-6">
+          <p className="text-sm font-medium">Nalozi</p>
+          <div className="mt-2 grid gap-2">
+            {accounts.map((account) => (
+              <form key={account.email} action={signInProductionAccount}>
+                <input type="hidden" name="email" value={account.email} />
+                <input type="hidden" name="next" value={nextPath} />
+                <button
+                  type="submit"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left hover:bg-zinc-50"
+                >
+                  <span>
+                    <span className="block text-sm font-medium">{account.name}</span>
+                    <span className="block text-xs text-muted-foreground">{account.shop}</span>
+                  </span>
+                  <span className="shrink-0 text-sm text-muted-foreground">{account.roleLabel}</span>
+                </button>
+              </form>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {changingPassword ? (
+        <p className="mt-6 text-sm text-muted-foreground">
           <Link href={loginHref(nextPath, false)} className="font-medium text-foreground underline-offset-2 hover:underline">
             Nazad na prijavu
           </Link>
-        ) : (
-          <>
+        </p>
+      ) : (
+        <div className="mt-6 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+          <p>
             Nemate nalog?{" "}
             <Link href={accountHref(nextPath)} className="font-medium text-foreground underline-offset-2 hover:underline">
               Otvorite nalog
             </Link>
-            <span className="mx-2 text-border">·</span>
-            <Link href={loginHref(nextPath, true)} className="font-medium text-foreground underline-offset-2 hover:underline">
-              Promenite lozinku
-            </Link>
-          </>
-        )}
-      </p>
+          </p>
+          <Link href={loginHref(nextPath, true)} className="shrink-0 font-medium text-foreground underline-offset-2 hover:underline">
+            Promenite lozinku
+          </Link>
+        </div>
+      )}
     </AuthShell>
   );
 }

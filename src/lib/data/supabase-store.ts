@@ -45,6 +45,7 @@ import type {
   Product,
   ProductInput,
   PublicCatalog,
+  MarketplaceStore,
   PublicOrderInput,
   PublicOrderView,
   PublicSupplier,
@@ -60,6 +61,7 @@ import { DataError } from "@/lib/errors";
 import { belgradeDateKey, belgradeMonthKey, belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { getServiceClient } from "@/lib/supabase/admin";
 import { fold, orderPrefixFromName } from "@/lib/text";
+import { isTrade, tradeOrDefault } from "@/lib/trades";
 
 type DbError = { message: string; code?: string } | null;
 
@@ -97,6 +99,7 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     brandColor: row.brand_color ? String(row.brand_color) : null,
     coverUrl: row.cover_url ? String(row.cover_url) : null,
     description: String(row.description ?? ""),
+    trade: tradeOrDefault(row.trade, String(row.slug ?? "")),
     audience:
       row.audience === "fizicka" || row.audience === "pravna" || row.audience === "oba"
         ? row.audience
@@ -599,6 +602,7 @@ export const supabaseRepository: CommerceRepository = {
         brand_color: input.brandColor,
         cover_url: input.coverUrl,
         description: input.description,
+        trade: isTrade(input.trade) ? input.trade : "",
         audience: input.audience,
         channel: channelForAudience(input.audience),
         track_stock: input.trackStock,
@@ -1385,6 +1389,34 @@ export const supabaseRepository: CommerceRepository = {
       products: products.filter((product) => product.active),
     };
     return catalog;
+  },
+
+  async listMarketplaceStores() {
+    const admin = db();
+    const [organizations, products] = await Promise.all([
+      admin.from("organizations").select("id, name, slug, city, description, trade, logo_url, cover_url, brand_color, active, public_store").eq("active", true).eq("public_store", true),
+      admin.from("products").select("organization_id").eq("active", true),
+    ]);
+    fail(organizations.error);
+    fail(products.error);
+    const counts = new Map<string, number>();
+    for (const row of (products.data ?? []) as Record<string, unknown>[]) {
+      const id = String(row.organization_id);
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    const stores: MarketplaceStore[] = ((organizations.data ?? []) as Record<string, unknown>[]).map((row) => ({
+      id: String(row.id),
+      name: String(row.name ?? ""),
+      slug: String(row.slug ?? ""),
+      city: String(row.city ?? ""),
+      description: String(row.description ?? ""),
+      trade: tradeOrDefault(row.trade, String(row.slug ?? "")),
+      logoUrl: typeof row.logo_url === "string" && row.logo_url ? row.logo_url : null,
+      coverUrl: typeof row.cover_url === "string" && row.cover_url ? row.cover_url : null,
+      brandColor: typeof row.brand_color === "string" && row.brand_color ? row.brand_color : null,
+      productCount: counts.get(String(row.id)) ?? 0,
+    }));
+    return stores.sort((a, b) => a.name.localeCompare(b.name, "sr"));
   },
 
   async listPlatformSuppliers() {

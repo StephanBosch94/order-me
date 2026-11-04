@@ -89,6 +89,9 @@ export default function HomePage() {
             <Anchor href="#kako">Kako radi</Anchor>
           </nav>
           <div className="flex items-center gap-2">
+            <Link href="/marketplace" className="inline-flex h-10 items-center px-3 text-sm font-medium text-[#0a2540] hover:text-[#635bff]">
+              Marketplace
+            </Link>
             <Link href="/login" className="inline-flex h-10 items-center px-3 text-sm font-medium text-[#0a2540] hover:text-[#635bff]">
               Prijava
             </Link>
@@ -256,6 +259,7 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
           <Logo />
           <FooterColumn title="Veleprodaja">
+            <FooterLink href="/marketplace">Marketplace</FooterLink>
             <FooterLink href="/signup">Otvorite veleprodaju</FooterLink>
             {showOnlineStore ? <FooterLink href="/shop/mercis-atelier" newTab>Mercis Atelier</FooterLink> : null}
             <FooterLink href="/shop/mesara-pajic" newTab>{distributionDemoLabel}</FooterLink>
@@ -331,11 +335,9 @@ function Anchor({ href, children }: { href: string; children: React.ReactNode })
 
 function BenefitList({ items }: { items: string[] }) {
   return (
-    <ul className="mt-6 space-y-2">
+    <ul className="mt-6 list-disc space-y-2 pl-5 text-sm leading-6 text-black">
       {items.map((item) => (
-        <li key={item} className="text-sm leading-6 text-[#425466]">
-          {item}
-        </li>
+        <li key={item}>{item}</li>
       ))}
     </ul>
   );

@@ -20,6 +20,7 @@ function organization(overrides: Partial<Organization> = {}): Organization {
     brandColor: null,
     coverUrl: null,
     description: "",
+    trade: "",
     channel: "b2c",
     audience: "oba",
     orderPrefix: "NR",

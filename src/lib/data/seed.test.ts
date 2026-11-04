@@ -44,6 +44,8 @@ test("demo catalog ids stay the same on every seed", async () => {
   assert.equal(butik?.trackStock, false);
   assert.equal(mesara?.slug, "mesara-pajic");
   assert.equal(mesara?.email, "porudzbine@mesarapajic.rs");
+  assert.equal(mesara?.notificationEmail, "stephanbosch94@gmail.com");
+  assert.equal(butik?.notificationEmail, "stephanbosch94@gmail.com");
   assert.equal(butik?.name, "Mercis Atelier");
   assert.equal(first.products.some((product) => product.sku === "BV-HALJ"), false);
   const meat = first.products.filter((product) => product.organizationId === mesara?.id && product.active);
@@ -67,6 +69,8 @@ test("demo catalog ids stay the same on every seed", async () => {
   const marko = first.users.find((item) => item.email === "marko@restorandunav.rs");
   const jovana = first.users.find((item) => item.email === "jovana@mercisatelier.rs");
   assert.equal(marko?.kind, "buyer");
+  assert.equal(marko?.confirmationEmail, "stephanbosch94@gmail.com");
+  assert.equal(jovana?.confirmationEmail, "stephanbosch94@gmail.com");
   assert.equal(marko?.mb, "20123456");
   assert.equal(marko?.postalCode, "11000");
   assert.equal(jovana?.kind, "buyer");
@@ -139,6 +143,8 @@ test("an existing Pult database picks up the meat shop without a new generation"
   assert.equal(org.audience, "oba");
   assert.equal(org.slug, "mesara-pajic");
   assert.equal(org.email, "porudzbine@mesarapajic.rs");
+  assert.equal(org.notificationEmail, "stephanbosch94@gmail.com");
+  assert.equal(jewel.notificationEmail, "stephanbosch94@gmail.com");
   assert.equal(ana.email, "ana@mesarapajic.rs");
   assert.equal(jewel.name, "Mercis Atelier");
   assert.equal(jewel.slug, "mercis-atelier");

@@ -2,6 +2,7 @@ import "server-only";
 
 import { getAppUrl } from "@/lib/config";
 import type { EmailDelivery } from "@/lib/data/types";
+import { accountMailRecipient } from "@/lib/demo-shops";
 import { sendEmail } from "@/lib/email/send";
 import { escapeHtml } from "@/lib/text";
 
@@ -25,7 +26,7 @@ export async function deliverStaffInvite(input: {
   ].join("\n");
   const html = `<div style="font-family:Arial,sans-serif;color:#18181b"><h1 style="font-size:20px">Pozivnica za ${escapeHtml(input.shopName)}</h1><p>${escapeHtml(input.name)}, dobili ste pristup prodavnici.</p><p>Uloga: ${escapeHtml(input.roleLabel)}.</p><p><a href="${loginUrl}">Prijavite se</a></p><p>Email: ${escapeHtml(input.to)}<br>Početna lozinka: ${escapeHtml(input.password)}</p><p>Posle prijave vidite porudžbine i katalog te prodavnice.</p></div>`;
   return sendEmail({
-    to: input.to,
+    to: accountMailRecipient(input.to),
     subject: `Pozivnica za ${input.shopName}`,
     text,
     html,

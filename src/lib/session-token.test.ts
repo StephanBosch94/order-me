@@ -56,6 +56,7 @@ test("a signed session can carry a new account for another server", () => {
       brandColor: null,
       coverUrl: null,
       description: "",
+      trade: "",
       channel: "b2b",
       audience: "pravna",
       orderPrefix: "PR",

@@ -697,6 +697,7 @@ test("orders change warehouse stock only while tracking is on", async () => {
       brandColor: organization.brandColor,
       coverUrl: organization.coverUrl,
       description: organization.description,
+      trade: organization.trade,
       audience: organization.audience,
       publicStore: organization.publicStore,
       efakturaApiKey: "",
@@ -898,6 +899,7 @@ test("turning off the public store blocks the page and keeps staff orders", asyn
       brandColor: null,
       coverUrl: null,
       description: "",
+      trade: "",
       audience: organization.audience,
       trackStock: false,
       publicStore: false,
@@ -932,5 +934,93 @@ test("turning off the public store blocks the page and keeps staff orders", asyn
       items: [{ productId: product.id, quantity: 1 }],
     });
     assert.equal(entered.ok, true);
+  });
+});
+
+test("marketplace lists active public stores and hides a closed one", async () => {
+  await withStore(async (store) => {
+    const user = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana-market@example.com",
+      password: "lozinka123",
+    });
+    const open = await store.createOrganization({
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      name: "Otvorena radnja",
+      slug: "otvorena-radnja",
+      phone: "",
+    });
+    const hiddenUser = await store.createUser({
+      name: "Marko Jović",
+      email: "marko-market@example.com",
+      password: "lozinka123",
+    });
+    const hidden = await store.createOrganization({
+      userId: hiddenUser.id,
+      userName: hiddenUser.name,
+      userEmail: hiddenUser.email,
+      name: "Ručni unos",
+      slug: "rucni-unos",
+      phone: "",
+    });
+    await store.updateOrganization(hidden.id, {
+      name: hidden.name,
+      slug: hidden.slug,
+      email: hidden.email,
+      notificationEmail: hidden.notificationEmail,
+      phone: hidden.phone,
+      address: hidden.address,
+      city: hidden.city,
+      pib: hidden.pib,
+      mb: hidden.mb,
+      logoUrl: null,
+      brandColor: null,
+      coverUrl: null,
+      description: "",
+      trade: "",
+      audience: hidden.audience,
+      trackStock: false,
+      publicStore: false,
+      efakturaApiKey: "",
+      efakturaEnabled: false,
+      efakturaEnvironment: "demo",
+    });
+    const pausedUser = await store.createUser({
+      name: "Vera Ilić",
+      email: "vera-market@example.com",
+      password: "lozinka123",
+    });
+    const paused = await store.createOrganization({
+      userId: pausedUser.id,
+      userName: pausedUser.name,
+      userEmail: pausedUser.email,
+      name: "Pauzirana",
+      slug: "pauzirana",
+      phone: "",
+    });
+    await store.setOrganizationActive(paused.id, false);
+    await store.createProduct(open.id, {
+      name: "Brašno",
+      sku: "BR",
+      description: "",
+      categoryId: null,
+      newCategory: "Meso",
+      unit: "kilogram",
+      pricePara: 10000,
+      salePricePara: null,
+      minQuantity: 1,
+      stockQuantity: 0,
+      active: true,
+    });
+    const listed = await store.listMarketplaceStores();
+    assert.deepEqual(
+      listed.map((item) => item.slug),
+      ["otvorena-radnja"],
+    );
+    assert.equal(listed[0]?.name, "Otvorena radnja");
+    assert.equal(listed[0]?.trade, "");
+    assert.equal(listed[0]?.productCount, 1);
   });
 });

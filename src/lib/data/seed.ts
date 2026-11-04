@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { nextCustomerCode } from "@/lib/customers";
+import { DEMO_INBOX } from "@/lib/demo-shops";
 import { effectivePricePara } from "@/lib/data/pricing";
 import { belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { hashPassword } from "@/lib/password";
@@ -132,7 +133,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     name: MEAT_SHOP_NAME,
     slug: "mesara-pajic",
     email: "porudzbine@mesarapajic.rs",
-    notificationEmail: "porudzbine@mesarapajic.rs",
+    notificationEmail: DEMO_INBOX,
     phone: "+381 21 555 0142",
     address: "Jarmočna 20",
     city: "Bački Petrovac",
@@ -142,6 +143,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     brandColor: MEAT_BRAND_COLOR,
     coverUrl: "/products/mesara-pajic-cover.jpg",
     description: MEAT_DESCRIPTION,
+    trade: "mesara",
     channel: "b2c",
     audience: "oba",
     orderPrefix: "PU",
@@ -490,7 +492,7 @@ function fillBoutique(organization: Organization, now: string) {
   organization.name = "Mercis Atelier";
   organization.slug = BOUTIQUE_SLUG;
   organization.email = "porudzbine@mercisatelier.rs";
-  organization.notificationEmail = "porudzbine@mercisatelier.rs";
+  organization.notificationEmail = DEMO_INBOX;
   organization.phone = "+381 11 555 0190";
   organization.address = "Kursulina 39";
   organization.city = "Beograd";
@@ -912,9 +914,12 @@ function ensureMeatShop(db: DemoDatabase) {
     organization.slug = MEAT_SLUG;
     changed = true;
   }
-  if (organization.email !== "porudzbine@mesarapajic.rs" || organization.notificationEmail !== "porudzbine@mesarapajic.rs") {
+  if (organization.email !== "porudzbine@mesarapajic.rs") {
     organization.email = "porudzbine@mesarapajic.rs";
-    organization.notificationEmail = "porudzbine@mesarapajic.rs";
+    changed = true;
+  }
+  if (organization.notificationEmail !== DEMO_INBOX) {
+    organization.notificationEmail = DEMO_INBOX;
     changed = true;
   }
   const legacyName = organization.name === "Pult" || organization.name === "Gastro Supply";
@@ -1039,6 +1044,7 @@ function ensureJewelryShop(db: DemoDatabase) {
       brandColor: null,
       coverUrl: "/products/ma-ogrlica.svg",
       description: "Ručno rađen nakit iz ateljea u Beogradu.",
+      trade: "nakit",
       channel: "b2c",
       audience: "fizicka",
       orderPrefix: "BV",
@@ -1055,9 +1061,9 @@ function ensureJewelryShop(db: DemoDatabase) {
     db.organizations.push(organization);
     changed = true;
   }
-  const identity = `${organization.name}|${organization.slug}|${organization.email}|${organization.city}|${organization.logoUrl}`;
+  const identity = `${organization.name}|${organization.slug}|${organization.email}|${organization.city}|${organization.logoUrl}|${organization.notificationEmail}`;
   fillBoutique(organization, now);
-  if (identity !== `${organization.name}|${organization.slug}|${organization.email}|${organization.city}|${organization.logoUrl}`) {
+  if (identity !== `${organization.name}|${organization.slug}|${organization.email}|${organization.city}|${organization.logoUrl}|${organization.notificationEmail}`) {
     changed = true;
   }
   if (organization.coverUrl === undefined) {
@@ -1309,7 +1315,8 @@ export async function ensureRetailDemo(db: DemoDatabase) {
   const ownerChanged = await ensureBoutiqueOwner(db);
   const buyersChanged = await ensureDemoBuyers(db);
   const platformChanged = await ensurePlatformAdmin(db);
-  return ownerChanged || buyersChanged || platformChanged || changed;
+  const inboxChanged = ensureSampleInboxes(db);
+  return ownerChanged || buyersChanged || platformChanged || inboxChanged || changed;
 }
 
 const PLAN_OSNOVNI_ID = seedId("plan:osnovni");
@@ -1502,6 +1509,21 @@ async function ensureBoutiqueOwner(db: DemoDatabase) {
   return changed;
 }
 
+function ensureSampleInboxes(db: DemoDatabase) {
+  let changed = false;
+  const sava = db.organizations.find((item) => item.slug === "sava-trade");
+  if (sava && sava.notificationEmail !== DEMO_INBOX) {
+    sava.notificationEmail = DEMO_INBOX;
+    changed = true;
+  }
+  const petar = db.users.find((item) => item.email === "petar@restoranmorava.rs");
+  if (petar && petar.confirmationEmail !== DEMO_INBOX) {
+    petar.confirmationEmail = DEMO_INBOX;
+    changed = true;
+  }
+  return changed;
+}
+
 async function ensureDemoBuyers(db: DemoDatabase) {
   const now = new Date().toISOString();
   const marko = await ensureBuyer(db, {
@@ -1515,6 +1537,7 @@ async function ensureDemoBuyers(db: DemoDatabase) {
     mb: "20123456",
     postalCode: "11000",
     bankAccount: BUSINESS_BUYER_ACCOUNT,
+    confirmationEmail: DEMO_INBOX,
     createdAt: now,
   });
   const jovana = await ensureBuyer(db, {
@@ -1527,6 +1550,7 @@ async function ensureDemoBuyers(db: DemoDatabase) {
     postalCode: "11000",
     pib: "",
     bankAccount: "",
+    confirmationEmail: DEMO_INBOX,
     createdAt: now,
   });
   const linked = linkBusinessBuyerOrders(db, marko.user);
@@ -1547,6 +1571,10 @@ async function ensureBuyer(
     }
     if (input.postalCode && !existing.postalCode) {
       existing.postalCode = input.postalCode;
+      changed = true;
+    }
+    if (input.confirmationEmail && existing.confirmationEmail !== input.confirmationEmail) {
+      existing.confirmationEmail = input.confirmationEmail;
       changed = true;
     }
     return { user: existing, changed };

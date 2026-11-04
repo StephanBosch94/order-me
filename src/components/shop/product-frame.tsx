@@ -10,7 +10,7 @@ import { StoreHeader } from "@/components/shop/store-header";
 import { Cart, Checkout } from "@/components/shop/shop";
 import { supplierTheme } from "@/lib/color";
 import type { DemoRole } from "@/lib/demo-shops";
-import { normalizeCartQuantity, ordersPath, storePath } from "@/lib/constants";
+import { ordersPath, storeCartQuantity, storePath } from "@/lib/constants";
 import { effectivePricePara, lineTotalPara } from "@/lib/data/pricing";
 import type { Audience, BuyerAccount, Product } from "@/lib/data/types";
 
@@ -53,7 +53,7 @@ export function ProductFrame({
   const lines = products
     .map((product) => ({
       product,
-      quantity: normalizeCartQuantity(product.unit, quantities[product.id] ?? 0, product.minQuantity),
+      quantity: storeCartQuantity(product.unit, quantities[product.id] ?? 0),
     }))
     .filter((line) => line.quantity > 0);
   const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
@@ -61,7 +61,7 @@ export function ProductFrame({
 
   function setQuantity(product: Product, quantity: number) {
     const next = { ...quantities };
-    const stored = quantity <= 0 ? 0 : normalizeCartQuantity(product.unit, quantity, product.minQuantity);
+    const stored = storeCartQuantity(product.unit, quantity);
     if (stored <= 0) delete next[product.id];
     else next[product.id] = stored;
     localStorage.setItem(storageKey, JSON.stringify(next));

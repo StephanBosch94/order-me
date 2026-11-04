@@ -24,7 +24,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
         Svi kupci
       </Link>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-        <h1 className="flex flex-wrap items-baseline gap-x-3 text-xl font-semibold tracking-tight">
+        <h1 className="flex flex-wrap items-baseline gap-x-1 text-xl font-semibold tracking-tight">
           <span className="tabular-nums text-muted-foreground">{customer.code}</span>
           {customer.businessName}
         </h1>
@@ -71,7 +71,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                         rel="noreferrer"
                         className="hover:text-foreground hover:underline"
                       >
-                        Štampaj {documentKind(customer.party) === "faktura" ? "fakturu" : "nalog"}
+                        {documentKind(customer.party) === "faktura" ? "Prikaži fakturu" : "Štampaj nalog"}
                       </a>
                     </p>
                   </div>

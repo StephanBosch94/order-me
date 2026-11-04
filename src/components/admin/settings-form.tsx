@@ -17,7 +17,8 @@ import {
   IMAGE_SIZE_ERROR,
   IMAGE_TYPE_ERROR,
 } from "@/components/ui/file-dropzone";
-import { FieldError, Input, Label, Textarea } from "@/components/ui/fields";
+import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fields";
+import { TRADES } from "@/lib/trades";
 
 const initial: FormState = {};
 type SettingsTab = "podaci" | "prodaja" | "izgled";
@@ -64,6 +65,19 @@ export function SettingsForm({
       </div>
       <div className={tab === "podaci" ? "grid gap-4 sm:grid-cols-2" : "hidden"} role="tabpanel">
         <Setting name="name" label="Naziv firme" defaultValue={organization.name} error={state.fieldErrors?.name} />
+        <div>
+          <Label htmlFor="trade">Delatnost</Label>
+          <Select id="trade" name="trade" defaultValue={organization.trade || ""} className="mt-1.5">
+            <option value="">Nije izabrana</option>
+            {TRADES.map((trade) => (
+              <option key={trade.id} value={trade.id}>
+                {trade.label}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1 text-xs text-muted-foreground">Po ovome kupci filtriraju marketplace.</p>
+          <FieldError message={state.fieldErrors?.trade} />
+        </div>
         <SlugSetting
           key={organization.slug}
           prefix="/shop/"
