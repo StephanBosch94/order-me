@@ -25,6 +25,14 @@ test("the production shop is published beside the demo shops", async () => {
   const login = productionLoginByEmail("milan.kostic@savatrade.rs");
   assert.ok(milan && login);
   assert.equal(await verifyPassword(login.password, milan.passwordHash), true);
+  const savaOrders = db.orders.filter((order) => order.organizationId === shop.id);
+  assert.ok(savaOrders.length >= 6);
+  assert.equal(savaOrders.every((order) => order.customerEmailStatus === "skipped" && order.supplierEmailStatus === "skipped"), true);
+  assert.equal(
+    savaOrders.some((order) => order.buyerUserId === petar?.id && order.customerSnapshot.businessName === "Restoran Morava"),
+    true,
+  );
+  assert.equal(savaOrders.some((order) => order.customerSnapshot.businessName === "Jelena Stanković"), true);
   shop.name = "Sava";
   const flour = db.products.find((item) => item.organizationId === shop.id && item.sku === "ST-BR500");
   assert.ok(flour);
@@ -32,6 +40,36 @@ test("the production shop is published beside the demo shops", async () => {
   assert.equal(await ensureRetailDemo(db), false);
   assert.equal(shop.name, "Sava");
   assert.equal(flour.name, "Brašno");
+  assert.equal(db.orders.filter((order) => order.organizationId === shop.id).length, savaOrders.length);
+});
+
+test("an existing Sava Trade gains orders without replacing the shop", async () => {
+  const db = await createSeedDatabase();
+  const shop = db.organizations.find((item) => item.slug === "sava-trade");
+  assert.ok(shop);
+  shop.name = "Sava";
+  shop.logoUrl = null;
+  const flour = db.products.find((item) => item.organizationId === shop.id && item.sku === "ST-BR500");
+  assert.ok(flour);
+  flour.name = "Brašno";
+  const productCount = db.products.filter((item) => item.organizationId === shop.id).length;
+  const kept = db.orders.find((order) => order.organizationId !== shop.id);
+  db.orders = db.orders.filter((order) => order.organizationId !== shop.id);
+  db.orderItems = db.orderItems.filter((item) => item.organizationId !== shop.id);
+  db.statusHistory = db.statusHistory.filter((item) => item.organizationId !== shop.id);
+  db.customers = db.customers.filter((item) => item.organizationId !== shop.id);
+  const next = shop.nextOrderNumber;
+  assert.equal(await ensureRetailDemo(db), true);
+  assert.equal(shop.name, "Sava");
+  assert.equal(shop.logoUrl, null);
+  assert.equal(flour.name, "Brašno");
+  assert.equal(db.products.filter((item) => item.organizationId === shop.id).length, productCount);
+  const restored = db.orders.filter((order) => order.organizationId === shop.id);
+  assert.ok(restored.length >= 6);
+  assert.equal(restored.every((order) => order.customerEmailStatus === "skipped"), true);
+  assert.ok(shop.nextOrderNumber > next);
+  assert.equal(db.orders.some((order) => order.id === kept?.id), true);
+  assert.equal(await ensureRetailDemo(db), false);
 });
 
 test("demo catalog ids stay the same on every seed", async () => {

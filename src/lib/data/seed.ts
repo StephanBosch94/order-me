@@ -1445,6 +1445,279 @@ async function ensureProductionShop(db: DemoDatabase) {
   return true;
 }
 
+const SAVA_CUSTOMERS: Array<{
+  key: string;
+  email: string;
+  businessName: string;
+  contactName: string;
+  phone: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  pib: string;
+  mb: string;
+  party: Customer["party"];
+  paymentTermDays: number;
+}> = [
+  {
+    key: "morava",
+    email: "petar@restoranmorava.rs",
+    businessName: "Restoran Morava",
+    contactName: "Petar Marković",
+    phone: "+381 63 555 0190",
+    address: "Knez Mihailova 28",
+    city: "Beograd",
+    postalCode: "11000",
+    pib: "104455667",
+    mb: "21334455",
+    party: "pravna",
+    paymentTermDays: 15,
+  },
+  {
+    key: "jelena",
+    email: "jelena.stankovic@example.com",
+    businessName: "Jelena Stanković",
+    contactName: "Jelena Stanković",
+    phone: "+381 64 330 2211",
+    address: "Cara Dušana 42",
+    city: "Zemun",
+    postalCode: "11080",
+    pib: "",
+    mb: "",
+    party: "fizicka",
+    paymentTermDays: 0,
+  },
+];
+
+const SAVA_ORDERS: Array<{
+  key: string;
+  customer: string;
+  lines: Array<[string, number]>;
+  status: OrderStatus;
+  payment: NonNullable<Order["paymentMethod"]>;
+  days: number;
+  hours: number;
+  notes: string;
+}> = [
+  {
+    key: "morava-brasno",
+    customer: "morava",
+    lines: [
+      ["ST-BR500", 25],
+      ["ST-ULJ", 12],
+      ["ST-KAF", 2],
+    ],
+    status: "nova",
+    payment: "racun",
+    days: 0,
+    hours: 3,
+    notes: "Isporuka na šank, pre podne.",
+  },
+  {
+    key: "morava-namirnice",
+    customer: "morava",
+    lines: [
+      ["ST-SEC", 10],
+      ["ST-PIR", 10],
+      ["ST-SO", 10],
+    ],
+    status: "potvrdjena",
+    payment: "racun",
+    days: 2,
+    hours: 4,
+    notes: "",
+  },
+  {
+    key: "morava-kuhinja",
+    customer: "morava",
+    lines: [
+      ["ST-TES", 24],
+      ["ST-KEC", 4],
+      ["ST-MAJ", 4],
+    ],
+    status: "u_pripremi",
+    payment: "racun",
+    days: 4,
+    hours: 2,
+    notes: "",
+  },
+  {
+    key: "morava-pelat",
+    customer: "morava",
+    lines: [
+      ["ST-PEL", 8],
+      ["ST-SIR", 6],
+    ],
+    status: "isporucena",
+    payment: "racun",
+    days: 11,
+    hours: 5,
+    notes: "",
+  },
+  {
+    key: "jelena-voda",
+    customer: "jelena",
+    lines: [
+      ["ST-VOD", 24],
+      ["ST-SOK", 12],
+    ],
+    status: "isporucena",
+    payment: "pouzecem",
+    days: 6,
+    hours: 1,
+    notes: "",
+  },
+  {
+    key: "jelena-higijena",
+    customer: "jelena",
+    lines: [
+      ["ST-DET", 1],
+      ["ST-UBR", 5],
+    ],
+    status: "nova",
+    payment: "ips",
+    days: 1,
+    hours: 6,
+    notes: "",
+  },
+];
+
+function ensureSavaOrders(db: DemoDatabase) {
+  const organization = db.organizations.find((item) => item.slug === "sava-trade");
+  if (!organization) return false;
+  let changed = false;
+  const now = new Date().toISOString();
+  const customers = new Map<string, Customer>();
+
+  for (const spec of SAVA_CUSTOMERS) {
+    let customer = db.customers.find(
+      (item) => item.organizationId === organization.id && item.email.toLowerCase() === spec.email,
+    );
+    if (!customer) {
+      const codes = db.customers.filter((item) => item.organizationId === organization.id).map((item) => item.code);
+      const preferred = spec.key === "morava" ? "K-0001" : "K-0002";
+      customer = {
+        id: seedId(`customer:sava-trade:${spec.email}`),
+        organizationId: organization.id,
+        businessName: spec.businessName,
+        contactName: spec.contactName,
+        email: spec.email,
+        phone: spec.phone,
+        pib: spec.pib,
+        address: spec.address,
+        city: spec.city,
+        notes: "",
+        code: codes.includes(preferred) ? nextCustomerCode(codes) : preferred,
+        party: spec.party,
+        paymentTermDays: spec.paymentTermDays,
+        createdAt: "2026-05-18T12:20:00.000Z",
+        updatedAt: now,
+      };
+      db.customers.push(customer);
+      changed = true;
+    }
+    customers.set(spec.key, customer);
+  }
+
+  const buyer = db.users.find((item) => item.email === "petar@restoranmorava.rs");
+  const year = belgradeYear(now);
+  for (const spec of SAVA_ORDERS) {
+    const orderId = seedId(`order:sava-trade:${spec.key}`);
+    const idempotencyKey = seedId(`idem:sava-trade:${spec.key}`);
+    if (db.orders.some((order) => order.id === orderId || order.idempotencyKey === idempotencyKey)) continue;
+    const customer = customers.get(spec.customer);
+    if (!customer) continue;
+    const lines = spec.lines.flatMap(([sku, quantity]) => {
+      const product = db.products.find(
+        (item) => item.organizationId === organization.id && item.sku === sku && item.active,
+      );
+      if (!product) return [];
+      const ordered = Math.max(quantity, product.minQuantity);
+      const unitPricePara = effectivePricePara(product);
+      const lineTotalPara = Math.round(unitPricePara * ordered);
+      return [
+        {
+          id: seedId(`item:sava-trade:${spec.key}:${sku}`),
+          orderId,
+          organizationId: organization.id,
+          productId: product.id,
+          name: product.name,
+          sku: product.sku,
+          unit: product.unit,
+          quantity: ordered,
+          unitPricePara,
+          lineTotalPara,
+        } satisfies OrderItem,
+      ];
+    });
+    if (lines.length === 0) continue;
+    let number = "";
+    do {
+      number = `${organization.orderPrefix}-${year}-${String(organization.nextOrderNumber).padStart(4, "0")}`;
+      organization.nextOrderNumber += 1;
+    } while (db.orders.some((order) => order.organizationId === organization.id && order.number === number));
+    const totalPara = lines.reduce((sum, item) => sum + item.lineTotalPara, 0);
+    const createdAt = ago(spec.days, spec.hours);
+    db.orders.push({
+      id: orderId,
+      organizationId: organization.id,
+      customerId: customer.id,
+      buyerUserId: spec.customer === "morava" ? buyer?.id ?? null : null,
+      number,
+      status: spec.status,
+      notes: spec.notes,
+      subtotalPara: totalPara,
+      totalPara,
+      idempotencyKey,
+      confirmationToken: seedId(`confirm:sava-trade:${spec.key}`),
+      paymentMethod: spec.payment,
+      customerSnapshot: {
+        code: customer.code,
+        businessName: customer.businessName,
+        contactName: customer.contactName,
+        email: customer.email,
+        phone: customer.phone,
+        pib: customer.pib,
+        mb: spec.customer === "morava" ? "21334455" : "",
+        address: customer.address,
+        postalCode: spec.customer === "morava" ? "11000" : "11080",
+        city: customer.city,
+        bankAccount: "",
+      },
+      customerEmailStatus: "skipped",
+      supplierEmailStatus: "skipped",
+      sefInvoiceId: null,
+      sefStatus: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    db.orderItems.push(...lines);
+    db.statusHistory.push({
+      id: seedId(`status:sava-trade:${spec.key}:nova`),
+      orderId,
+      organizationId: organization.id,
+      fromStatus: null,
+      toStatus: "nova",
+      actorName: "Sistem",
+      createdAt,
+    });
+    if (spec.status !== "nova") {
+      db.statusHistory.push({
+        id: seedId(`status:sava-trade:${spec.key}:${spec.status}`),
+        orderId,
+        organizationId: organization.id,
+        fromStatus: "nova",
+        toStatus: spec.status,
+        actorName: "Milan Kostić",
+        createdAt: new Date(new Date(createdAt).getTime() + 45 * 60 * 1000).toISOString(),
+      });
+    }
+    changed = true;
+  }
+
+  return changed;
+}
+
 export async function ensureRetailDemo(db: DemoDatabase) {
   let changed = renameUserEmail(db, "ana@gastrosupply.rs", DEMO_EMAIL);
   changed = renameUserEmail(db, "vera@butikvera.rs", RETAIL_DEMO_EMAIL) || changed;
@@ -1456,9 +1729,10 @@ export async function ensureRetailDemo(db: DemoDatabase) {
   const ownerChanged = await ensureBoutiqueOwner(db);
   const buyersChanged = await ensureDemoBuyers(db);
   const productionChanged = await ensureProductionShop(db);
+  const productionOrders = ensureSavaOrders(db);
   const platformChanged = await ensurePlatformAdmin(db);
   const inboxChanged = ensureSampleInboxes(db);
-  return ownerChanged || buyersChanged || productionChanged || platformChanged || inboxChanged || changed;
+  return ownerChanged || buyersChanged || productionChanged || productionOrders || platformChanged || inboxChanged || changed;
 }
 
 const PLAN_OSNOVNI_ID = seedId("plan:osnovni");
