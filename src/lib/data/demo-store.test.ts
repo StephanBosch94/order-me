@@ -527,6 +527,7 @@ test("a distributor can add a customer and an order", async () => {
       notes: "",
       party: "pravna",
       paymentTermDays: 30,
+      sefRegistered: false,
     });
     assert.equal(customer.code, "K-0001");
     const created = await store.createStaffOrder(organization.id, {
@@ -570,6 +571,7 @@ test("editing a customer keeps a blank code and rejects duplicates", async () =>
       notes: "",
       party: "pravna" as const,
       paymentTermDays: 15,
+      sefRegistered: false,
     };
     const market = await store.createCustomer(organization.id, {
       ...base,
@@ -668,6 +670,7 @@ test("orders change warehouse stock only while tracking is on", async () => {
       notes: "",
       party: "pravna",
       paymentTermDays: 30,
+      sefRegistered: false,
     });
 
     async function stock() {
@@ -823,6 +826,7 @@ test("CSV import adds customers and skips an email that already exists", async (
       notes: "",
       party: "pravna",
       paymentTermDays: 15,
+      sefRegistered: false,
     });
     const parsed = parseCustomerCsv(
       [
@@ -884,6 +888,7 @@ test("turning off the public store blocks the page and keeps staff orders", asyn
       notes: "",
       party: "pravna",
       paymentTermDays: 15,
+      sefRegistered: false,
     });
     const closed = await store.updateOrganization(organization.id, {
       name: organization.name,

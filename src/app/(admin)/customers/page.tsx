@@ -55,7 +55,39 @@ export default async function CustomersPage({
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <>
+        <ul className="space-y-3 sm:hidden">
+          {customers.map((customer) => (
+            <li key={customer.id} className="rounded-lg border border-border bg-card p-4">
+              <Link href={`/customers/${customer.id}`} className="font-medium hover:underline">
+                {customer.businessName}
+              </Link>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {customer.code}
+                {" · "}
+                {partyLabel(customer.party)}
+                {customer.party === "pravna"
+                  ? customer.sefRegistered
+                    ? " · u sistemu e-faktura"
+                    : " · nije u sistemu e-faktura"
+                  : ""}
+                {customer.city ? ` · ${customer.city}` : ""}
+              </p>
+              <p className="mt-2 text-sm">
+                <span className="tabular-nums">{customer.orderCount}</span>
+                <span className="text-muted-foreground"> porudžbina · </span>
+                <span className="font-medium tabular-nums">{formatRsd(customer.totalPara)}</span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {customer.lastOrderAt ? formatDate(customer.lastOrderAt) : "Još nema porudžbine"}
+              </p>
+              <Link href={`/customers/${customer.id}`} className={`${buttonVariants({ variant: "secondary", size: "sm" })} mt-3`}>
+                Izmeni
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-lg border border-border bg-card sm:block">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-muted-foreground">
               <tr>
@@ -87,6 +119,11 @@ export default async function CustomersPage({
                     </Link>
                     <div className="text-muted-foreground">
                       {partyLabel(customer.party)}
+                      {customer.party === "pravna"
+                        ? customer.sefRegistered
+                          ? " · u sistemu e-faktura"
+                          : " · nije u sistemu e-faktura"
+                        : ""}
                       {customer.city ? ` · ${customer.city}` : ""}
                     </div>
                   </td>
@@ -112,6 +149,7 @@ export default async function CustomersPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

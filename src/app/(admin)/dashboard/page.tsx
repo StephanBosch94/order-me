@@ -74,7 +74,28 @@ export default async function DashboardPage() {
             }
           />
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <>
+          <div className="space-y-3 sm:hidden">
+            {data.recentOrders.map((order) => (
+              <div key={order.id} className="rounded-lg border border-border bg-card p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
+                    {order.number}
+                  </Link>
+                  <StatusBadge status={order.status} />
+                </div>
+                <p className="mt-2 text-sm">{order.businessName}</p>
+                <p className="mt-1 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
+                {order.status === "nova" ? (
+                  <div className="mt-3">
+                    <ConfirmOrderButton orderId={order.id} />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-hidden rounded-lg border border-border bg-card sm:block">
             <table className="w-full text-sm">
               <thead className="border-b border-border text-left text-muted-foreground">
                 <tr>
@@ -109,6 +130,7 @@ export default async function DashboardPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 

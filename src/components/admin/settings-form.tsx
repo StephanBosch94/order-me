@@ -148,7 +148,7 @@ export function SettingsForm({
             <span>
               <span className="text-sm font-medium">Šalji e-fakturu za pravna lica</span>
               <span className="mt-1 block text-xs text-muted-foreground">
-                Kad je uključeno, fakturu za pravno lice možete poslati u Sistem elektronskih faktura. Nalog za fizičko lice se ne šalje.
+                Kad je uključeno, fakturu možete poslati kupcu kojeg ste označili da je u sistemu. Nalog za fizičko lice se ne šalje.
               </span>
             </span>
           </label>
@@ -162,11 +162,30 @@ export function SettingsForm({
               spellCheck={false}
               className="mt-1.5"
             />
-            <p className="mt-1 text-xs text-muted-foreground">
-              {hasEfakturaApiKey
-                ? "API ključ je sačuvan. Prazno polje ga ne briše."
-                : "Ključ iz portala eFaktura, Podešavanja, Upravljanje API. Nije obavezan za čuvanje podešavanja ni za štampu."}
-            </p>
+            <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+              {hasEfakturaApiKey ? <p>API ključ je sačuvan. Prazno polje ga ne briše.</p> : null}
+              <p>API ključ uzimate vi, za svoju firmu. Kupac ga ne unosi.</p>
+              <ol className="list-decimal space-y-1 pl-4">
+                <li>
+                  Otvorite portal{" "}
+                  <a
+                    href="https://efaktura.mfin.gov.rs"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-zinc-300 underline-offset-2 hover:decoration-foreground"
+                  >
+                    efaktura.mfin.gov.rs
+                  </a>
+                  .
+                </li>
+                <li>Prijavite se kvalifikovanim elektronskim sertifikatom. To radi zakonski zastupnik upisan u APR.</li>
+                <li>Idite na Podešavanja, pa Upravljanje API, i napravite ključ.</li>
+                <li>Nalepite taj ključ ovde i uključite slanje iznad.</li>
+              </ol>
+              <p>
+                Na kartici kupca označite da li je ta firma u sistemu. E-faktura ide samo tako označenom pravnom licu. Ključ nije potreban za štampu fakture.
+              </p>
+            </div>
           </div>
         </div>
       </div>

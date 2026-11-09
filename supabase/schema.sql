@@ -117,6 +117,7 @@ create table if not exists public.customers (
   code text not null default '',
   party text not null default 'fizicka' check (party in ('fizicka', 'pravna')),
   payment_term_days integer not null default 0 check (payment_term_days >= 0 and payment_term_days <= 365),
+  sef_registered boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -420,6 +421,7 @@ alter table public.customers alter column party set default 'fizicka';
 alter table public.customers alter column payment_term_days set default 0;
 alter table public.customers alter column party set not null;
 alter table public.customers alter column payment_term_days set not null;
+alter table public.customers add column if not exists sef_registered boolean not null default false;
 alter table public.customers add column if not exists code text;
 update public.customers as customer
 set code = 'K-' || lpad((bases.base + numbered.rn)::text, 4, '0')

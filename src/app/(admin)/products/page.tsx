@@ -68,7 +68,50 @@ export default async function ProductsPage({
       ) : filtered.length === 0 ? (
         <EmptyState title="Nema rezultata" body="Promenite pretragu ili filter kategorije." />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <>
+        <ul className="space-y-3 sm:hidden">
+          {filtered.map((product) => {
+            const sale = salePricePara(product);
+            return (
+              <li key={product.id} className="rounded-lg border border-border bg-card p-4">
+                <div className="flex items-center gap-3">
+                  <ProductImage src={product.imageUrl} className="size-12" />
+                  <div className="min-w-0">
+                    <Link href={`/products/${product.id}`} className="font-medium hover:underline">
+                      {product.name}
+                    </Link>
+                    <p className="text-sm text-muted-foreground">{product.sku || "Bez šifre"}</p>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm">
+                  {sale ? (
+                    <>
+                      <span className="font-medium tabular-nums">{formatRsd(sale)}</span>
+                      <span className="ml-2 text-muted-foreground line-through tabular-nums">{formatRsd(product.pricePara)}</span>
+                    </>
+                  ) : (
+                    <span className="font-medium tabular-nums">{formatRsd(product.pricePara)}</span>
+                  )}
+                  <span className="text-muted-foreground"> · {unitLabel(product.unit)}</span>
+                  {trackStock ? (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {formatQuantity(product.stockQuantity)} {unitLabel(product.unit).toLowerCase()}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{product.active ? "Aktivan" : "Neaktivan"}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link href={`/products/${product.id}`} className={buttonVariants({ variant: "secondary", size: "sm" })}>
+                    Izmeni
+                  </Link>
+                  <ProductActiveButton productId={product.id} active={product.active} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-lg border border-border bg-card sm:block">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-muted-foreground">
               <tr>
@@ -127,6 +170,7 @@ export default async function ProductsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

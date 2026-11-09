@@ -179,6 +179,7 @@ export function parseCustomerCsv(text: string): {
   const notesIndex = indexOf("napomena", "notes", "interna_napomena");
   const partyIndex = indexOf("vrsta", "party", "tip");
   const daysIndex = indexOf("odlozeno_placanje", "rok", "rok_placanja", "dana");
+  const sefIndex = indexOf("sef", "efaktura", "sistem", "sistem_elektronskih_faktura");
   const codeIndex = indexOf("sifra", "sifra_kupca", "code");
 
   if (nameIndex < 0 || emailIndex < 0 || phoneIndex < 0) {
@@ -214,6 +215,7 @@ export function parseCustomerCsv(text: string): {
       notes: cell(cells, notesIndex),
       party,
       paymentTermDays: party === "pravna" ? cell(cells, daysIndex) || "15" : "0",
+      sefRegistered: party === "pravna" ? cell(cells, sefIndex) : "",
       code: cell(cells, codeIndex),
     });
     if (!parsed.success) {

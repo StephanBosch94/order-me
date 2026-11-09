@@ -15,6 +15,11 @@ export function partyLabel(party: CustomerParty) {
   return party === "pravna" ? "Pravno lice" : "Fizičko lice";
 }
 
+/** Only a legal entity can be marked as registered in the e-invoice system. */
+export function sefRegisteredFor(party: CustomerParty, marked: boolean | null | undefined) {
+  return party === "pravna" && marked === true;
+}
+
 export function documentKind(party: CustomerParty): TradeDocumentKind {
   return party === "pravna" ? "faktura" : "nalog";
 }

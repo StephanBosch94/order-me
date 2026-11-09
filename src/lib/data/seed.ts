@@ -209,6 +209,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     code: `K-${String(index + 1).padStart(4, "0")}`,
     party: "pravna",
     paymentTermDays: 15,
+    sefRegistered: false,
     notes: "",
     createdAt: ago(60),
     updatedAt: ago(2),
@@ -229,6 +230,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       code: "K-0005",
       party: "fizicka",
       paymentTermDays: 0,
+      sefRegistered: false,
       createdAt: ago(40),
       updatedAt: ago(2),
     },
@@ -246,6 +248,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
       code: "K-0006",
       party: "fizicka",
       paymentTermDays: 0,
+      sefRegistered: false,
       createdAt: ago(25),
       updatedAt: ago(2),
     },
@@ -1170,6 +1173,7 @@ function ensureMeatPhysicalBuyers(db: DemoDatabase) {
       code: codes.includes(spec.code) ? nextCustomerCode(codes) : spec.code,
       party: "fizicka",
       paymentTermDays: 0,
+      sefRegistered: false,
       createdAt: ago(spec.daysOld),
       updatedAt: now,
     });
@@ -1610,6 +1614,7 @@ function ensureSavaOrders(db: DemoDatabase) {
         code: codes.includes(preferred) ? nextCustomerCode(codes) : preferred,
         party: spec.party,
         paymentTermDays: spec.paymentTermDays,
+        sefRegistered: false,
         createdAt: "2026-05-18T12:20:00.000Z",
         updatedAt: now,
       };
@@ -2058,6 +2063,7 @@ function ensureRetailBuyerOrders(db: DemoDatabase, user: DemoUser) {
       code: "K-0001",
       party: "fizicka",
       paymentTermDays: 0,
+      sefRegistered: false,
       createdAt: now,
       updatedAt: now,
     };

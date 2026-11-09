@@ -35,7 +35,9 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
       <p className="mt-1 text-sm text-muted-foreground">
         {partyLabel(customer.party)}
         {customer.party === "pravna"
-          ? ` · odloženo plaćanje ${customer.paymentTermDays === 0 ? "odmah" : `${customer.paymentTermDays} dana`}`
+          ? ` · odloženo plaćanje ${customer.paymentTermDays === 0 ? "odmah" : `${customer.paymentTermDays} dana`} · ${
+              customer.sefRegistered ? "u sistemu elektronskih faktura" : "nije u sistemu elektronskih faktura"
+            }`
           : ""}
         {" · "}
         {customer.orderCount} porudžbina · {formatRsd(customer.totalPara)} bez otkazanih

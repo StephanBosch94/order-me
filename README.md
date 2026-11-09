@@ -61,6 +61,7 @@ Copy `.env.example` to `.env.local`.
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | No | Links inside emails. Defaults to `http://localhost:3000`. |
+| `NEXT_PUBLIC_STORE_DOMAIN` | No | Shop addresses become `https://<slug>.<domain>`. Locally, shops use `http://<slug>.localhost:3000` without this. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Production | Supabase project URL. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production | Browser auth key. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Production | Server-only key. Never expose it to the browser. |

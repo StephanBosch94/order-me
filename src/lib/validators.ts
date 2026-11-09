@@ -241,6 +241,7 @@ export const customerSchema = z
     notes: z.string().trim().max(1000),
     party: z.enum(["fizicka", "pravna"], "Izaberite da li je kupac fizičko ili pravno lice."),
     paymentTermDays: z.string().trim(),
+    sefRegistered: z.string().trim().optional(),
     code: z
       .string()
       .trim()
@@ -272,6 +273,7 @@ export const customerSchema = z
     notes: value.notes,
     party: value.party,
     paymentTermDays: value.party === "pravna" ? Number(value.paymentTermDays) : 0,
+    sefRegistered: value.party === "pravna" && /^(on|da|true|1)$/i.test(value.sefRegistered ?? ""),
     code: value.code,
   }));
 
@@ -290,6 +292,7 @@ export const newCustomerSchema = z
     notes: z.string().trim().max(1000),
     party: z.enum(["fizicka", "pravna"], "Izaberite da li je kupac fizičko ili pravno lice."),
     paymentTermDays: z.string().trim(),
+    sefRegistered: z.string().trim().optional(),
     code: z
       .string()
       .trim()
@@ -321,6 +324,7 @@ export const newCustomerSchema = z
     notes: value.notes,
     party: value.party,
     paymentTermDays: value.party === "pravna" ? Number(value.paymentTermDays) : 0,
+    sefRegistered: value.party === "pravna" && /^(on|da|true|1)$/i.test(value.sefRegistered ?? ""),
     code: value.code,
   }));
 

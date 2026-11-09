@@ -355,7 +355,7 @@ export function CopyLink({ path }: { path: string }) {
     <Button
       variant="secondary"
       onClick={async () => {
-        const url = `${window.location.origin}${path}`;
+        const url = path.startsWith("http://") || path.startsWith("https://") ? path : `${window.location.origin}${path}`;
         await navigator.clipboard.writeText(url);
         toast.success("Link je kopiran.");
       }}

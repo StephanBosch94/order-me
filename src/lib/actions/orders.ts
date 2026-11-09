@@ -291,6 +291,7 @@ export async function updateCustomerAction(customerId: string, formData: FormDat
     notes: formData.get("notes") ?? "",
     party: formData.get("party"),
     paymentTermDays: formData.get("paymentTermDays") ?? "",
+    sefRegistered: formData.get("sefRegistered") ?? "",
     code: formData.get("code") ?? "",
   });
   if (!parsed.success) {
@@ -322,6 +323,7 @@ export async function createCustomerAction(formData: FormData) {
     notes: formData.get("notes") ?? "",
     party: formData.get("party"),
     paymentTermDays: formData.get("paymentTermDays") ?? "",
+    sefRegistered: formData.get("sefRegistered") ?? "",
     code: formData.get("code") ?? "",
   });
   if (!parsed.success) {

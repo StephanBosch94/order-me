@@ -29,6 +29,9 @@ export async function sendEfakturaAction(orderId: string): Promise<EfakturaActio
     if (party !== "pravna") {
       return { ok: false, message: "E-faktura se šalje samo za pravna lica." };
     }
+    if (!customer?.sefRegistered) {
+      return { ok: false, message: "Kupac nije označen kao korisnik Sistema elektronskih faktura." };
+    }
 
     const organization = await commerce.getOrganization(session.organization.id);
     if (!organization?.efakturaEnabled) {

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pg", "embedded-postgres"],
+  allowedDevOrigins: ["*.localhost"],
   async redirects() {
     return [
       { source: "/shop/gastro-supply", destination: "/shop/mesara-pajic", permanent: false },

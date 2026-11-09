@@ -260,8 +260,8 @@ export function Shop({
         {step === "browse" && pane === "catalog" ? (
           <>
             {companyBuyer ? <LastOrder order={latestOrder(orders)} onRepeat={addOrderToCart} /> : null}
-            <div className="flex items-center gap-3">
-              <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1" role="toolbar" aria-label="Kategorije">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex gap-2 overflow-x-auto pb-1 sm:min-w-0 sm:flex-1" role="toolbar" aria-label="Kategorije">
                 <CategoryButton active={categoryId === "all"} onClick={() => selectCategory("all")}>
                   Sve
                 </CategoryButton>
@@ -280,7 +280,7 @@ export function Shop({
                   </CategoryButton>
                 ))}
               </div>
-              <div className="relative w-44 shrink-0 sm:w-56">
+              <div className="relative sm:w-56 sm:shrink-0">
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <Input
                   value={query}
@@ -483,10 +483,10 @@ function LastOrder({
     <>
       <h2 id="poslednja-naslov" className="text-base font-semibold">
         Poslednja porudžbina
-        <span className="ml-3 inline-flex flex-wrap items-center gap-2 align-middle font-normal">
-          <span className="font-medium text-foreground underline-offset-2 group-hover:underline">{order.number}</span>
+        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-normal sm:ml-3 sm:mt-0 sm:inline-flex">
+          <span className="whitespace-nowrap font-medium text-foreground underline-offset-2 group-hover:underline">{order.number}</span>
           <StatusBadge status={order.status} />
-          <span className="text-muted-foreground">· {formatRsd(order.totalPara)}</span>
+          <span className="whitespace-nowrap text-muted-foreground">· {formatRsd(order.totalPara)}</span>
         </span>
       </h2>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -495,13 +495,13 @@ function LastOrder({
     </>
   );
   return (
-    <section className="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-lg border border-border bg-card px-5 py-5" aria-labelledby="poslednja-naslov">
+    <section className="mb-6 flex flex-col gap-4 rounded-lg border border-border bg-card px-5 py-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-6 sm:gap-y-3" aria-labelledby="poslednja-naslov">
       {href ? (
-        <Link href={href} className="group min-w-0 flex-1 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href={href} className="group min-w-0 basis-full rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-1 sm:basis-auto">
           {summary}
         </Link>
       ) : (
-        <div className="min-w-0 flex-1">{summary}</div>
+        <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">{summary}</div>
       )}
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <Button type="button" size="sm" onClick={() => onRepeat(order.items)}>
@@ -760,7 +760,7 @@ export function Cart({
       ) : (
         <ul className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">
           {lines.map((line) => (
-            <li key={line.product.id} className="flex items-center justify-between gap-3 px-4 py-3">
+            <li key={line.product.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-3">
                 <ProductImage src={line.product.imageUrl} alt={line.product.name} className="size-12" />
                 <div className="min-w-0">
@@ -772,7 +772,6 @@ export function Cart({
                 name={line.product.name}
                 unit={line.product.unit}
                 quantity={line.quantity}
-                size="sm"
                 onCommit={(quantity) => onChange(line.product, quantity)}
               />
             </li>
@@ -1205,7 +1204,6 @@ function ProductCard({
           name={product.name}
           unit={product.unit}
           quantity={quantity}
-          size="sm"
           onCommit={onCommit}
         />
       </div>
@@ -1315,3 +1313,4 @@ function subscribeCart(callback: () => void) {
     window.removeEventListener("storage", callback);
   };
 }
+

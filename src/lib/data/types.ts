@@ -176,6 +176,8 @@ export type Customer = {
   party: CustomerParty;
   /** Days until the invoice due date. Zero means payment is due immediately. Only legal entities use it. */
   paymentTermDays: number;
+  /** Seller's mark that this legal entity is registered in the Serbian e-invoice system. */
+  sefRegistered: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -273,6 +275,7 @@ export type CustomerSummary = {
   city: string;
   party: CustomerParty;
   paymentTermDays: number;
+  sefRegistered: boolean;
   orderCount: number;
   totalPara: number;
   lastOrderAt: string | null;
@@ -423,6 +426,7 @@ export type CustomerInput = {
   notes: string;
   party: CustomerParty;
   paymentTermDays: number;
+  sefRegistered: boolean;
 };
 
 export type PublicOrderInput = {

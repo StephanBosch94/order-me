@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
-import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
+import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor, sefRegisteredFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
 import { compareMemberRoles, memberRole } from "@/lib/members";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
@@ -191,6 +191,7 @@ function mapCustomer(row: Record<string, unknown>): Customer {
     code: String(row.code ?? ""),
     party,
     paymentTermDays: paymentTermFor(party, Number.isFinite(rawDays) ? rawDays : null),
+    sefRegistered: sefRegisteredFor(party, row.sef_registered === true),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -762,6 +763,7 @@ export const supabaseRepository: CommerceRepository = {
           notes: row.notes,
           party: row.party,
           paymentTermDays: row.paymentTermDays,
+          sefRegistered: row.sefRegistered,
         });
         result.created += 1;
       } catch (error) {
@@ -852,6 +854,7 @@ export const supabaseRepository: CommerceRepository = {
         code,
         party: input.party,
         payment_term_days: input.paymentTermDays,
+        sef_registered: input.sefRegistered,
         updated_at: new Date().toISOString(),
       })
       .eq("organization_id", organizationId)
@@ -895,6 +898,7 @@ export const supabaseRepository: CommerceRepository = {
         code,
         party: input.party,
         payment_term_days: input.paymentTermDays,
+        sef_registered: input.sefRegistered,
       })
       .select("*")
       .single();
@@ -1129,6 +1133,7 @@ export const supabaseRepository: CommerceRepository = {
           code: customerCode,
           party: partyForPib(input.pib),
           payment_term_days: paymentTermFor(partyForPib(input.pib)),
+          sef_registered: false,
         })
         .select("*")
         .single();
@@ -1796,6 +1801,7 @@ function summarize(customer: Customer, orders: Order[]): CustomerSummary {
     city: customer.city,
     party: customer.party,
     paymentTermDays: customer.paymentTermDays,
+    sefRegistered: customer.sefRegistered,
     orderCount: own.length,
     totalPara: own.filter((order) => order.status !== "otkazana").reduce((sum, order) => sum + order.totalPara, 0),
     lastOrderAt: last?.createdAt ?? null,

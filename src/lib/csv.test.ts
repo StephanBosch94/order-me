@@ -29,8 +29,10 @@ test("parses a customer CSV and tells a company from a person", () => {
   assert.equal(parsed.rows[0]?.party, "pravna");
   assert.equal(parsed.rows[0]?.paymentTermDays, 30);
   assert.equal(parsed.rows[0]?.contactName, "Pekara Zrno");
+  assert.equal(parsed.rows[0]?.sefRegistered, false);
   assert.equal(parsed.rows[1]?.party, "fizicka");
   assert.equal(parsed.rows[1]?.paymentTermDays, 0);
+  assert.equal(parsed.rows[1]?.sefRegistered, false);
   assert.equal(parsed.rows[1]?.contactName, "Milica Radić");
 });
 
@@ -43,4 +45,12 @@ test("rejects a repeated customer email and a missing header", () => {
   const header = parseCustomerCsv("naziv,grad\nAna,Niš\n");
   assert.equal(header.rows.length, 0);
   assert.equal(header.errors[0]?.message, "Zaglavlje mora sadržati kolone naziv, email i telefon.");
+});
+
+test("reads whether a company is in the e-invoice system", () => {
+  const parsed = parseCustomerCsv(
+    "naziv,email,telefon,vrsta,sef\nPekara,pekara@example.rs,060111222,Pravno lice,da\n",
+  );
+  assert.equal(parsed.errors.length, 0);
+  assert.equal(parsed.rows[0]?.sefRegistered, true);
 });

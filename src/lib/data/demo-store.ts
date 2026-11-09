@@ -5,7 +5,7 @@ import path from "node:path";
 import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
 import { loadNetlifySnapshot, netlifyDemoEnabled, saveNetlifyDatabase } from "@/lib/db/netlify-state";
 import { isCompanyOrder } from "@/lib/company-order";
-import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor } from "@/lib/customers";
+import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor, sefRegisteredFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
 import { compareMemberRoles } from "@/lib/members";
 import type { SessionCarry } from "@/lib/session-token";
@@ -756,6 +756,7 @@ export class DemoStore implements CommerceRepository {
             notes: row.notes,
             party: row.party,
             paymentTermDays: row.paymentTermDays,
+            sefRegistered: row.sefRegistered,
             code,
             createdAt: now,
             updatedAt: now,
@@ -1074,6 +1075,7 @@ export class DemoStore implements CommerceRepository {
           ),
           party: partyForPib(input.pib),
           paymentTermDays: paymentTermFor(partyForPib(input.pib)),
+          sefRegistered: false,
           createdAt: now,
           updatedAt: now,
         };
@@ -1489,21 +1491,22 @@ export class DemoStore implements CommerceRepository {
     return changed;
   }
 
-  private async loadNetlify() {
+  private async loadNetlify(): Promise<{ db: DemoDatabase; etag: string | null }> {
     for (let attempt = 0; attempt < 6; attempt += 1) {
       const snapshot = await loadNetlifySnapshot();
-      if (!snapshot.db) {
+      const existing = snapshot.db;
+      if (!existing) {
         const db = normalizeDatabase(this.options.seed === false ? emptyDatabase() : await createSeedDatabase());
         const written = await saveNetlifyDatabase(db, snapshot.etag);
         if (written.modified) return { db, etag: written.etag };
         continue;
       }
-      const changed = await this.migrate(snapshot.db);
-      if (!changed) return snapshot;
+      const changed = await this.migrate(existing);
+      if (!changed) return { db: existing, etag: snapshot.etag };
       const written = snapshot.etag
-        ? await saveNetlifyDatabase(snapshot.db, snapshot.etag)
-        : await saveNetlifyDatabase(snapshot.db);
-      if (written.modified) return { db: snapshot.db, etag: written.etag ?? snapshot.etag };
+        ? await saveNetlifyDatabase(existing, snapshot.etag)
+        : await saveNetlifyDatabase(existing);
+      if (written.modified) return { db: existing, etag: written.etag ?? snapshot.etag };
     }
     throw new Error("Netlify baza je zauzeta. Pokušajte ponovo.");
   }
@@ -1618,6 +1621,7 @@ function normalizeDatabase(db: DemoDatabase) {
       customer.party = partyForPib(customer.pib ?? "");
     }
     customer.paymentTermDays = paymentTermFor(customer.party, customer.paymentTermDays);
+    customer.sefRegistered = sefRegisteredFor(customer.party, customer.sefRegistered);
     customer.code ??= "";
   }
   assignCustomerCodes(db.customers);
@@ -1701,6 +1705,7 @@ function summarizeCustomer(db: DemoDatabase, customer: Customer): CustomerSummar
     city: customer.city,
     party: customer.party,
     paymentTermDays: customer.paymentTermDays,
+    sefRegistered: customer.sefRegistered,
     orderCount: orders.length,
     totalPara: billable.reduce((sum, order) => sum + order.totalPara, 0),
     lastOrderAt: last?.createdAt ?? null,

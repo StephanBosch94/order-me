@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "db": "tsx scripts/postgres-server.ts",
-    "test": "node --import tsx --test src/lib/format.test.ts src/lib/csv.test.ts src/lib/setup.test.ts src/lib/buyer.test.ts src/lib/order-link.test.ts src/lib/email/template.test.ts src/components/shop/checkout-kind.test.ts src/lib/purchases.test.ts src/lib/validators.signup.test.ts src/lib/session-token.test.ts src/lib/data/pricing.test.ts src/lib/data/demo-store.test.ts src/lib/data/seed.test.ts src/lib/data/platform-seed.test.ts src/lib/efaktura/ubl.test.ts"
+    "test": "node --import tsx --test src/lib/format.test.ts src/lib/csv.test.ts src/lib/setup.test.ts src/lib/buyer.test.ts src/lib/order-link.test.ts src/lib/email/template.test.ts src/components/shop/checkout-kind.test.ts src/lib/purchases.test.ts src/lib/validators.signup.test.ts src/lib/session-token.test.ts src/lib/data/pricing.test.ts src/lib/data/demo-store.test.ts src/lib/data/seed.test.ts src/lib/data/platform-seed.test.ts src/lib/efaktura/ubl.test.ts src/lib/store-host.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.2",

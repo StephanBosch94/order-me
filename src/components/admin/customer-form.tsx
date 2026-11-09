@@ -17,6 +17,7 @@ export function CustomerForm({ customer }: { customer: Customer }) {
   const [error, setError] = useState("");
   const [party, setParty] = useState<CustomerParty>(customer.party === "fizicka" ? "fizicka" : "pravna");
   const [days, setDays] = useState(String(customer.paymentTermDays ?? 15));
+  const [inSef, setInSef] = useState(customer.sefRegistered === true);
   const changes = useUnchangedForm();
 
   return (
@@ -109,6 +110,22 @@ export function CustomerForm({ customer }: { customer: Customer }) {
           <p className="mt-1.5 text-sm text-muted-foreground">
             Datum valute na fakturi je datum porudžbine plus ovaj broj dana. 0 znači plaćanje odmah.
           </p>
+          <label className="mt-4 flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="sefRegistered"
+              value="on"
+              checked={inSef}
+              onChange={(event) => setInSef(event.target.checked)}
+              className="mt-0.5 size-4 accent-primary"
+            />
+            <span>
+              <span className="text-sm font-medium">U sistemu elektronskih faktura</span>
+              <span className="mt-1 block text-sm text-muted-foreground">
+                Označite ako je ova firma registrovana na portalu eFaktura. E-faktura se šalje samo tako označenom kupcu.
+              </span>
+            </span>
+          </label>
         </div>
       ) : null}
       <Button type="submit" disabled={pending || changes.unchanged}>

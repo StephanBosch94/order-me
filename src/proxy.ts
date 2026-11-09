@@ -2,10 +2,32 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { REQUEST_PATH_HEADER } from "@/lib/order-link";
 import { readDemoSessionCarry } from "@/lib/session-token";
+import { storeHostAction } from "@/lib/store-host";
 
 const protectedRoots = ["/dashboard", "/orders", "/products", "/customers", "/zaposleni", "/settings", "/invoices", "/nalog", "/kupac", "/platform"];
 
+function requestHostname(request: NextRequest) {
+  const forwarded = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+  const host = forwarded.split(",")[0]?.trim().split(":")[0]?.toLowerCase() ?? "";
+  return host || request.nextUrl.hostname;
+}
+
+function storeHostResponse(request: NextRequest) {
+  const action = storeHostAction(requestHostname(request), request.nextUrl.pathname);
+  if (!action) return null;
+  const url = request.nextUrl.clone();
+  url.pathname = action.pathname;
+  if (action.type === "redirect") {
+    url.hostname = action.hostname;
+    return NextResponse.redirect(url);
+  }
+  return NextResponse.rewrite(url);
+}
+
 export function proxy(request: NextRequest) {
+  const hosted = storeHostResponse(request);
+  if (hosted) return hosted;
+
   const { pathname } = request.nextUrl;
   // Catalog photos live under /products/*.jpg and must stay public.
   if (/\.[a-z0-9]+$/i.test(pathname)) return NextResponse.next();
@@ -49,25 +71,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/dashboard",
-    "/dashboard/:path*",
-    "/orders",
-    "/orders/:path*",
-    "/products",
-    "/products/:path*",
-    "/customers",
-    "/customers/:path*",
-    "/zaposleni",
-    "/zaposleni/:path*",
-    "/settings",
-    "/settings/:path*",
-    "/nalog",
-    "/nalog/:path*",
-    "/kupac",
-    "/kupac/:path*",
-    "/invoices",
-    "/invoices/:path*",
-    "/platform",
-    "/platform/:path*",
+    // Shop hosts and /shop links are rewritten here. Skip Next assets and files with an extension.
+    "/((?!_next/static|_next/image|.*\\..*).*)",
   ],
 };

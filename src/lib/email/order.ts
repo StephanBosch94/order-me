@@ -2,7 +2,8 @@ import "server-only";
 
 import { orderConfirmationEmail } from "@/lib/buyer";
 import { getAppUrl } from "@/lib/config";
-import { confirmationPath, paymentLabel, statusLabel } from "@/lib/constants";
+import { paymentLabel, statusLabel } from "@/lib/constants";
+import { publicConfirmationUrl } from "@/lib/store-host";
 import type { EmailDelivery, OrderDetail, OrderStatus, Organization, PublicSupplier } from "@/lib/data/types";
 import { mailRecipient } from "@/lib/demo-shops";
 import { sendEmail } from "@/lib/email/send";
@@ -17,8 +18,7 @@ export async function deliverOrderEmails(
 ): Promise<{ customer: EmailDelivery; supplier: EmailDelivery }> {
   const appUrl = getAppUrl();
   const pdfUrl = `${appUrl}/api/confirmations/${order.confirmationToken}/pdf`;
-  const confirmation = confirmationPath(organization.slug, order.confirmationToken);
-  const orderUrl = confirmation ? `${appUrl}${confirmation}` : `${appUrl}/orders/${order.id}`;
+  const orderUrl = publicConfirmationUrl(organization.slug, order.confirmationToken) ?? `${appUrl}/orders/${order.id}`;
   const logoUrl = emailLogoUrl(supplier.logoUrl, appUrl);
   const lines = orderLinesText(order.items);
 
@@ -79,9 +79,8 @@ export async function deliverOrderStatusEmail(
   const to = mailRecipient(supplier.slug, orderConfirmationEmail(order.customerSnapshot));
   if (!to) return "skipped";
   const label = statusLabel(order.status);
-  const path = confirmationPath(supplier.slug, order.confirmationToken);
   const appUrl = getAppUrl();
-  const url = path ? `${appUrl}${path}` : "";
+  const url = publicConfirmationUrl(supplier.slug, order.confirmationToken) ?? "";
   const lead = statusLead(order.status, order.number, supplier.name);
   const lines = orderLinesText(order.items);
   const text = [lead, "", lines, "", `Ukupno: ${formatRsd(order.totalPara)}`, url ? `Porudžbina: ${url}` : ""]

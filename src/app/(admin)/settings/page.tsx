@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { CopyLink } from "@/components/admin/order-actions";
 import { PageHeader } from "@/components/admin/page-header";
 import { SettingsForm } from "@/components/admin/settings-form";
-import { storePath } from "@/lib/constants";
+import { publicStoreUrl } from "@/lib/store-host";
 import { requireSession } from "@/lib/auth";
 import { isShopManager } from "@/lib/members";
 import { isDemoMode, usesPostgres } from "@/lib/config";
@@ -19,7 +19,7 @@ export default async function SettingsPage({
   const session = await requireSession();
   if (!isShopManager(session.role)) redirect("/dashboard");
   const { tab } = await searchParams;
-  const path = storePath(session.organization.slug);
+  const path = publicStoreUrl(session.organization.slug);
   return (
     <div>
       <PageHeader

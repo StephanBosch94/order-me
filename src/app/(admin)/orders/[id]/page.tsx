@@ -50,8 +50,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <p className="text-sm">
               <span className="font-medium">E-faktura:</span> Poslata · {order.sefInvoiceId}
             </p>
-          ) : party === "pravna" && session.organization.efakturaEnabled ? (
+          ) : party === "pravna" && session.organization.efakturaEnabled && customerRecord?.sefRegistered ? (
             <SendEfakturaButton orderId={order.id} />
+          ) : party === "pravna" && session.organization.efakturaEnabled ? (
+            <p className="max-w-xs text-sm text-muted-foreground">
+              Kupac nije označen kao korisnik Sistema elektronskih faktura.
+            </p>
           ) : null}
         </div>
       </div>

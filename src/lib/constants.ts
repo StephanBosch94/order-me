@@ -54,6 +54,12 @@ export const RESERVED_SLUGS = new Set([
   "fakture",
   "marketplace",
   "prodavnice",
+  "www",
+  "mail",
+  "static",
+  "cdn",
+  "assets",
+  "status",
 ]);
 
 export const STORE_CLOSED_MESSAGE = "Ova prodavnica trenutno ne prima nove porudžbine.";
