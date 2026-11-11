@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { OrderFilters } from "@/components/admin/live-filters";
-import { ConfirmOrderButton } from "@/components/admin/order-actions";
+import { ConfirmOrderButton, OrderRowMenu } from "@/components/admin/order-actions";
 import { EmptyState, PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -87,22 +87,21 @@ export function OrdersBrowser({
                 <Link href={`/orders/${order.id}`} className="block min-w-0 flex-1 after:absolute after:inset-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{order.number}</span>
-                    <StatusBadge status={order.status} />
+                    {order.status === "nova" ? <StatusBadge status={order.status} /> : null}
                   </div>
                   <p className="mt-2 text-sm">{order.businessName}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{partyLabel(order.party)}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
                   <p className="mt-2 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</p>
                 </Link>
-                {order.status === "nova" ? (
-                  <div className="relative z-10 shrink-0">
-                    <ConfirmOrderButton orderId={order.id} />
-                  </div>
-                ) : null}
+                <div className="relative z-10 flex shrink-0 items-center gap-1">
+                  {order.status === "nova" ? <ConfirmOrderButton orderId={order.id} /> : null}
+                  <OrderRowMenu orderId={order.id} />
+                </div>
               </div>
             ))}
           </div>
-          <div className="hidden overflow-hidden rounded-lg border border-border bg-card md:block">
+          <div className="hidden rounded-lg border border-border bg-card md:block">
             <table className="w-full text-sm">
               <thead className="border-b border-border text-left text-muted-foreground">
                 <tr>
@@ -113,7 +112,7 @@ export function OrdersBrowser({
                   <th className="px-4 py-3 text-right font-medium">Ukupno</th>
                   <th className="px-4 py-3 font-medium">Datum</th>
                   <th className="px-4 py-3 text-right font-medium">
-                    <span className="sr-only">Potvrda</span>
+                    <span className="sr-only">Radnje</span>
                   </th>
                 </tr>
               </thead>
@@ -125,9 +124,11 @@ export function OrdersBrowser({
                         <Link href={`/orders/${order.id}`} className="font-medium hover:underline after:absolute after:inset-0">
                           {order.number}
                         </Link>
-                        <span className="relative z-10">
-                          <StatusBadge status={order.status} />
-                        </span>
+                        {order.status === "nova" ? (
+                          <span className="relative z-10">
+                            <StatusBadge status={order.status} />
+                          </span>
+                        ) : null}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -139,11 +140,10 @@ export function OrdersBrowser({
                     <td className="px-4 py-3 text-right tabular-nums">{formatRsd(order.totalPara)}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDateTime(order.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
-                      {order.status === "nova" ? (
-                        <span className="relative z-10 inline-flex">
-                          <ConfirmOrderButton orderId={order.id} />
-                        </span>
-                      ) : null}
+                      <div className="relative z-10 inline-flex items-center justify-end gap-1">
+                        {order.status === "nova" ? <ConfirmOrderButton orderId={order.id} /> : null}
+                        <OrderRowMenu orderId={order.id} />
+                      </div>
                     </td>
                   </tr>
                 ))}

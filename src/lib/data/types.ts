@@ -1,10 +1,12 @@
-export const ORDER_STATUS_VALUES = [
-  "nova",
-  "potvrdjena",
-  "u_pripremi",
-  "isporucena",
-  "otkazana",
-] as const;
+export const ORDER_STATUS_VALUES = ["nova", "prihvacena"] as const;
+
+/** Older rows used the previous workflow. Only a new order stays without an invoice. */
+export function normalizeOrderStatus(value: unknown): OrderStatus {
+  if (value === "prihvacena" || value === "potvrdjena" || value === "u_pripremi" || value === "isporucena") {
+    return "prihvacena";
+  }
+  return "nova";
+}
 
 export const UNIT_VALUES = ["komad", "paket", "kutija", "kilogram", "litar"] as const;
 

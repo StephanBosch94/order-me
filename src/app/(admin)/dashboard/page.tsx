@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { FollowUpBoard } from "@/components/admin/follow-up-board";
-import { ConfirmOrderButton, CopyLink } from "@/components/admin/order-actions";
+import { ConfirmOrderButton, CopyLink, OrderRowMenu } from "@/components/admin/order-actions";
 import { EmptyState, Metric, PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
@@ -52,21 +52,21 @@ export default async function DashboardPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Nove porudžbine" value={String(data.newOrders)} hint="Poslednjih 7 dana" />
-        <Metric label="Čekaju potvrdu" value={String(data.awaitingConfirmation)} hint="Status Nova" />
-        <Metric label="Obrađene ovog meseca" value={String(data.processedThisMonth)} hint="Potvrđene, u pripremi ili isporučene" />
-        <Metric label="Vrednost ovog meseca" value={formatRsd(data.monthValuePara)} hint="Bez otkazanih porudžbina" />
+        <Metric label="Čekaju prihvatanje" value={String(data.awaitingConfirmation)} hint="Status Nova" />
+        <Metric label="Obrađene ovog meseca" value={String(data.processedThisMonth)} hint="Prihvaćene" />
+        <Metric label="Vrednost ovog meseca" value={formatRsd(data.monthValuePara)} hint="Sve porudžbine ovog meseca" />
       </div>
 
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Porudžbine koje čekaju potvrdu</h2>
+          <h2 className="text-sm font-semibold">Porudžbine koje čekaju prihvatanje</h2>
           <Link href="/orders" className="text-sm font-medium text-indigo-700 hover:underline">
             Sve porudžbine
           </Link>
         </div>
         {data.recentOrders.length === 0 ? (
           <EmptyState
-            title={data.hasOrders ? "Nema porudžbina koje čekaju potvrdu" : "Još nema porudžbina"}
+            title={data.hasOrders ? "Nema porudžbina koje čekaju prihvatanje" : "Još nema porudžbina"}
             body={
               data.hasOrders
                 ? "Ostale porudžbine su na listi svih porudžbina."
@@ -87,15 +87,14 @@ export default async function DashboardPage() {
                 <p className="mt-2 text-sm">{order.businessName}</p>
                 <p className="mt-1 text-sm font-medium tabular-nums">{formatRsd(order.totalPara)}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
-                {order.status === "nova" ? (
-                  <div className="mt-3">
-                    <ConfirmOrderButton orderId={order.id} />
-                  </div>
-                ) : null}
+                <div className="mt-3 flex items-center gap-1">
+                  {order.status === "nova" ? <ConfirmOrderButton orderId={order.id} /> : null}
+                  <OrderRowMenu orderId={order.id} />
+                </div>
               </div>
             ))}
           </div>
-          <div className="hidden overflow-hidden rounded-lg border border-border bg-card sm:block">
+          <div className="hidden rounded-lg border border-border bg-card sm:block">
             <table className="w-full text-sm">
               <thead className="border-b border-border text-left text-muted-foreground">
                 <tr>
@@ -123,7 +122,10 @@ export default async function DashboardPage() {
                     <td className="px-4 py-3 text-right tabular-nums">{formatRsd(order.totalPara)}</td>
                     <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">{formatDateTime(order.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
-                      {order.status === "nova" ? <ConfirmOrderButton orderId={order.id} /> : null}
+                      <div className="inline-flex items-center justify-end gap-1">
+                        {order.status === "nova" ? <ConfirmOrderButton orderId={order.id} /> : null}
+                        <OrderRowMenu orderId={order.id} />
+                      </div>
                     </td>
                   </tr>
                 ))}

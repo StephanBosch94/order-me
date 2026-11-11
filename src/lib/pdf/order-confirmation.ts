@@ -187,10 +187,7 @@ export async function buildOrderConfirmationPdf(order: OrderDetail, supplier: Pu
 function statusText(status: OrderDetail["status"]) {
   const labels: Record<OrderDetail["status"], string> = {
     nova: "Nova",
-    potvrdjena: "Potvrđena",
-    u_pripremi: "U pripremi",
-    isporucena: "Isporučena",
-    otkazana: "Otkazana",
+    prihvacena: "Prihvaćena",
   };
   return labels[status];
 }

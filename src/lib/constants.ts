@@ -10,10 +10,7 @@ export const UNITS: { value: Unit; label: string }[] = [
 
 export const ORDER_STATUSES: { value: OrderStatus; label: string }[] = [
   { value: "nova", label: "Nova" },
-  { value: "potvrdjena", label: "Potvrđena" },
-  { value: "u_pripremi", label: "U pripremi" },
-  { value: "isporucena", label: "Isporučena" },
-  { value: "otkazana", label: "Otkazana" },
+  { value: "prihvacena", label: "Prihvaćena" },
 ];
 
 export const UNIT_ALIASES: Record<string, Unit> = {

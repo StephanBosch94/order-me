@@ -51,9 +51,8 @@ export function normalizeStockQuantity(quantity: number, unit: Unit) {
 
 export type StockDirection = "reserve" | "release";
 
-/** Returning stock happens only when an order first becomes cancelled. */
-export function stockDirectionForStatus(from: OrderStatus, to: OrderStatus): StockDirection | null {
-  if (to === "otkazana" && from !== "otkazana") return "release";
+/** Accepting an order keeps the quantity already reserved when the order was placed. */
+export function stockDirectionForStatus(_from: OrderStatus, _to: OrderStatus): StockDirection | null {
   return null;
 }
 

@@ -21,7 +21,7 @@ function itemWord(count: number) {
 export default async function BuyerHomePage() {
   const session = await requireBuyerSession();
   const orders = await getCommerce().listBuyerOrders(session.userId);
-  const active = orders.filter((order) => order.status !== "otkazana");
+  const active = orders;
   const spent = active.reduce((sum, order) => sum + order.totalPara, 0);
 
   return (

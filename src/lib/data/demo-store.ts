@@ -30,6 +30,7 @@ import {
   type DemoMembership,
   type DemoUser,
 } from "@/lib/data/seed";
+import { normalizeOrderStatus } from "@/lib/data/types";
 import type {
   BuyerOrder,
   Category,
@@ -799,10 +800,7 @@ export class DemoStore implements CommerceRepository {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map((order) => orderListItem(db, order));
     const activeOrders = db.orders.filter(
-      (order) =>
-        order.customerId === customer.id &&
-        order.organizationId === organizationId &&
-        order.status !== "otkazana",
+      (order) => order.customerId === customer.id && order.organizationId === organizationId,
     );
     const detail: CustomerDetail = {
       ...customer,
@@ -1197,6 +1195,25 @@ export class DemoStore implements CommerceRepository {
     });
   }
 
+  async deleteOrder(organizationId: string, orderId: string) {
+    return this.exclusive(async (db) => {
+      const order = db.orders.find((item) => item.id === orderId && item.organizationId === organizationId);
+      if (!order) return false;
+      const organization = db.organizations.find((item) => item.id === organizationId);
+      if (organization?.trackStock && order.stockHeld) {
+        applyStockMovement(
+          db.products.filter((product) => product.organizationId === organizationId),
+          db.orderItems.filter((item) => item.orderId === order.id),
+          "release",
+        );
+      }
+      db.orders = db.orders.filter((item) => item.id !== order.id);
+      db.orderItems = db.orderItems.filter((item) => item.orderId !== order.id);
+      db.statusHistory = db.statusHistory.filter((item) => item.orderId !== order.id);
+      return true;
+    });
+  }
+
   async saveSefInvoice(organizationId: string, orderId: string, input: { invoiceId: string; status: string }) {
     return this.exclusive(async (db) => {
       const order = db.orders.find((item) => item.id === orderId && item.organizationId === organizationId);
@@ -1232,21 +1249,15 @@ export class DemoStore implements CommerceRepository {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     return {
-      newOrders: orders.filter(
-        (order) => order.status !== "otkazana" && new Date(order.createdAt).getTime() >= weekAgo,
-      ).length,
+      newOrders: orders.filter((order) => new Date(order.createdAt).getTime() >= weekAgo).length,
       awaitingConfirmation: orders.filter((order) => order.status === "nova").length,
       processedThisMonth: orders.filter(
         (order) =>
-          (order.status === "potvrdjena" ||
-            order.status === "u_pripremi" ||
-            order.status === "isporucena") &&
+          order.status === "prihvacena" &&
           belgradeMonthKey(order.createdAt) === month,
       ).length,
       monthValuePara: orders
-        .filter(
-          (order) => order.status !== "otkazana" && belgradeMonthKey(order.createdAt) === month,
-        )
+        .filter((order) => belgradeMonthKey(order.createdAt) === month)
         .reduce((sum, order) => sum + order.totalPara, 0),
       activeProducts: products.filter((product) => product.active).length,
       recentOrders: awaiting.map((order) => orderListItem(db, order)),
@@ -1602,6 +1613,11 @@ function normalizeDatabase(db: DemoDatabase) {
     order.sefInvoiceId = typeof invoiceId === "string" && invoiceId.trim() ? invoiceId.trim() : null;
     const sefStatus = order.sefStatus;
     order.sefStatus = typeof sefStatus === "string" && sefStatus.trim() ? sefStatus.trim() : null;
+    order.status = normalizeOrderStatus(order.status);
+  }
+  for (const event of db.statusHistory) {
+    event.fromStatus = event.fromStatus ? normalizeOrderStatus(event.fromStatus) : null;
+    event.toStatus = normalizeOrderStatus(event.toStatus);
   }
   for (const organization of db.organizations) {
     organization.coverUrl ??= null;
@@ -1693,7 +1709,7 @@ function summarizeCustomer(db: DemoDatabase, customer: Customer): CustomerSummar
   const orders = db.orders.filter(
     (order) => order.customerId === customer.id && order.organizationId === customer.organizationId,
   );
-  const billable = orders.filter((order) => order.status !== "otkazana");
+  const billable = orders;
   const last = [...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   return {
     id: customer.id,

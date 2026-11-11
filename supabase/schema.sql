@@ -128,7 +128,7 @@ create table if not exists public.orders (
   customer_id uuid not null references public.customers (id) on delete restrict,
   buyer_user_id uuid references auth.users (id) on delete set null,
   number text not null,
-  status text not null check (status in ('nova', 'potvrdjena', 'u_pripremi', 'isporucena', 'otkazana')),
+  status text not null check (status in ('nova', 'prihvacena')),
   notes text not null default '',
   subtotal_para integer not null,
   total_para integer not null,
@@ -447,6 +447,15 @@ do $$ begin
   alter table public.customers add constraint customers_payment_term_check check (payment_term_days >= 0 and payment_term_days <= 365);
 exception when duplicate_object then null;
 end $$;
+
+update public.orders
+set status = case
+  when status in ('potvrdjena', 'u_pripremi', 'isporucena') then 'prihvacena'
+  else 'nova'
+end
+where status in ('potvrdjena', 'u_pripremi', 'otkazana', 'isporucena');
+alter table public.orders drop constraint if exists orders_status_check;
+alter table public.orders add constraint orders_status_check check (status in ('nova', 'prihvacena'));
 
 insert into public.subscriptions (organization_id, plan_id, status, period_start)
 select o.id, p.id, 'aktivna', date_trunc('month', now())

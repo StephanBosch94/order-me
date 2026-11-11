@@ -126,7 +126,7 @@ test("demo catalog ids stay the same on every seed", async () => {
   assert.equal(meat.find((product) => product.sku === "MP-KUL")?.stockQuantity, 14);
   assert.equal(meat.find((product) => product.sku === "MP-SKOB")?.stockQuantity, 18);
   const cancelled = first.orders.find((order) => order.organizationId === mesara?.id && order.number.endsWith("-1008"));
-  assert.equal(cancelled?.status, "otkazana");
+  assert.equal(cancelled?.status, "nova");
   const dunav = first.orders.find((order) => order.organizationId === mesara?.id && order.number.endsWith("-1001"));
   assert.equal(
     first.orderItems.some((item) => item.orderId === dunav?.id && item.name === "Petrovački kulen"),
@@ -219,7 +219,7 @@ test("an existing Pult database picks up the meat shop without a new generation"
   assert.equal(db.products.some((item) => item.organizationId === org.id && item.sku === "PC-025"), false);
   assert.equal(db.products.filter((item) => item.organizationId === org.id && item.active).length, 11);
   assert.equal(db.orderItems.some((item) => item.organizationId === org.id && item.sku === "PC-025"), false);
-  assert.equal(cancelled?.status, "otkazana");
+  assert.equal(cancelled?.status, "nova");
   for (const order of db.orders.filter((item) => item.organizationId === org.id)) {
     const lines = db.orderItems.filter((item) => item.orderId === order.id);
     assert.equal(lines.reduce((sum, item) => sum + item.lineTotalPara, 0), order.totalPara);
@@ -272,7 +272,7 @@ test("an existing meat shop keeps physical customers and an order from each", as
     ["Milica Radić", "Nikola Jovanović"],
   );
   for (const customer of physical) {
-    assert.equal(db.orders.some((order) => order.customerId === customer.id && order.status !== "otkazana"), true);
+    assert.equal(db.orders.some((order) => order.customerId === customer.id && order.status === "prihvacena"), true);
   }
   assert.ok(org.nextOrderNumber > next);
   assert.equal(await ensureRetailDemo(db), false);

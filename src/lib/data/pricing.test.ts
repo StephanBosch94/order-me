@@ -70,8 +70,5 @@ test("warehouse stock floors at zero and skips a line without a product", () => 
     nextStockQuantities([{ ...held[0], stockQuantity: 0 }], [{ productId: "p1", quantity: 5 }], "release"),
     [{ id: "p1", stockQuantity: 5 }],
   );
-  assert.equal(stockDirectionForStatus("nova", "potvrdjena"), null);
-  assert.equal(stockDirectionForStatus("u_pripremi", "isporucena"), null);
-  assert.equal(stockDirectionForStatus("potvrdjena", "otkazana"), "release");
-  assert.equal(stockDirectionForStatus("otkazana", "otkazana"), null);
+  assert.equal(stockDirectionForStatus("nova", "prihvacena"), null);
 });

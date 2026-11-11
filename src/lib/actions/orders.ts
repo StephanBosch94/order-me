@@ -278,6 +278,18 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
   return { ok: true, message: "Status porudžbine je ažuriran." };
 }
 
+export async function deleteOrderAction(orderId: string) {
+  const session = await requireSession();
+  const deleted = await getCommerce().deleteOrder(session.organization.id, orderId);
+  if (!deleted) return { ok: false, message: "Porudžbina nije pronađena." };
+  revalidatePath("/orders");
+  revalidatePath("/dashboard");
+  revalidatePath("/customers");
+  revalidatePath("/products");
+  revalidatePath("/kupac");
+  return { ok: true, message: "Porudžbina je obrisana." };
+}
+
 export async function updateCustomerAction(customerId: string, formData: FormData) {
   const session = await requireSession();
   const parsed = customerSchema.safeParse({

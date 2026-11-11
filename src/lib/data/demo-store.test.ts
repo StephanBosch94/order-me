@@ -138,10 +138,10 @@ test("isolates suppliers and keeps order snapshots", async () => {
       assert.equal(duplicate.order.id, created.order.id);
     }
 
-    const updated = await store.updateOrderStatus(first.id, created.order.id, "potvrdjena", "Ana Petrović");
-    assert.equal(updated?.status, "potvrdjena");
+    const updated = await store.updateOrderStatus(first.id, created.order.id, "prihvacena", "Ana Petrović");
+    assert.equal(updated?.status, "prihvacena");
     assert.equal(updated?.history.length, 2);
-    assert.equal(await store.updateOrderStatus(second.id, created.order.id, "otkazana", "Marko"), null);
+    assert.equal(await store.updateOrderStatus(second.id, created.order.id, "prihvacena", "Marko"), null);
 
     const wrongSupplier = await store.getPublicCatalog("nepostojeca-firma");
     assert.equal(wrongSupplier, null);
@@ -293,8 +293,8 @@ test("listOrders separates company orders and keeps cancelled ones", async () =>
       paymentMethod: "kartica",
     });
     const cancelled = await place({ email: "otkaz@firma.rs", businessName: "Pekara Zrno", pib: "106543210" });
-    const updated = await store.updateOrderStatus(organization.id, cancelled.id, "otkazana", "Ana Petrović");
-    assert.equal(updated?.status, "otkazana");
+    const updated = await store.updateOrderStatus(organization.id, cancelled.id, "prihvacena", "Ana Petrović");
+    assert.equal(updated?.status, "prihvacena");
 
     const companies = await store.listOrders(organization.id, { company: true, pageSize: 20 });
     const others = await store.listOrders(organization.id, { company: false, pageSize: 20 });
@@ -304,7 +304,7 @@ test("listOrders separates company orders and keeps cancelled ones", async () =>
       companies.items.map((order) => order.id).sort(),
       [byPib.id, byInvoice.id, cancelled.id].sort(),
     );
-    assert.equal(companies.items.find((order) => order.id === cancelled.id)?.status, "otkazana");
+    assert.equal(companies.items.find((order) => order.id === cancelled.id)?.status, "prihvacena");
     assert.deepEqual(others.items.map((order) => order.id), [personal.id]);
     assert.equal(all.total, 4);
     assert.equal(all.items.find((order) => order.id === byPib.id)?.party, "pravna");
@@ -719,13 +719,11 @@ test("orders change warehouse stock only while tracking is on", async () => {
     assert.equal(created.ok, true);
     if (!created.ok) return;
     assert.equal(await stock(), 3);
-    await store.updateOrderStatus(organization.id, created.order.id, "potvrdjena", "Ana Petrović");
-    await store.updateOrderStatus(organization.id, created.order.id, "u_pripremi", "Ana Petrović");
+    await store.updateOrderStatus(organization.id, created.order.id, "prihvacena", "Ana Petrović");
     assert.equal(await stock(), 3);
-    await store.updateOrderStatus(organization.id, created.order.id, "otkazana", "Ana Petrović");
+    assert.equal(await store.deleteOrder(organization.id, created.order.id), true);
     assert.equal(await stock(), 4);
-    await store.updateOrderStatus(organization.id, created.order.id, "otkazana", "Ana Petrović");
-    assert.equal(await stock(), 4);
+    assert.equal(await store.deleteOrder(organization.id, created.order.id), false);
 
     const short = await store.createStaffOrder(organization.id, {
       customerId: customer.id,
@@ -736,7 +734,7 @@ test("orders change warehouse stock only while tracking is on", async () => {
     assert.equal(short.ok, true);
     if (!short.ok) return;
     assert.equal(await stock(), 0);
-    await store.updateOrderStatus(organization.id, short.order.id, "otkazana", "Ana Petrović");
+    await store.deleteOrder(organization.id, short.order.id);
     assert.equal(await stock(), 9);
 
     const bought = await store.createPublicOrder(
@@ -760,7 +758,7 @@ test("orders change warehouse stock only while tracking is on", async () => {
     assert.equal(await stock(), 7);
 
     await store.updateOrganization(organization.id, { ...settings, trackStock: false });
-    await store.updateOrderStatus(organization.id, bought.order.id, "otkazana", "Ana Petrović");
+    await store.deleteOrder(organization.id, bought.order.id);
     assert.equal(await stock(), 7);
   });
 });

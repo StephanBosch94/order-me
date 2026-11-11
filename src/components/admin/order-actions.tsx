@@ -1,13 +1,13 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { toast } from "sonner";
 
 import { importProductsAction, setProductActiveAction } from "@/lib/actions/catalog";
 import { sendEfakturaAction } from "@/lib/actions/efaktura";
-import { importCustomersAction, updateOrderStatusAction } from "@/lib/actions/orders";
+import { deleteOrderAction, importCustomersAction, updateOrderStatusAction } from "@/lib/actions/orders";
 import { ORDER_STATUSES, statusLabel } from "@/lib/constants";
 import type { OrderStatus } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
@@ -177,7 +177,7 @@ export function SendEfakturaButton({ orderId }: { orderId: string }) {
   );
 }
 
-export function ConfirmOrderButton({ orderId }: { orderId: string }) {
+export function ConfirmOrderButton({ orderId, label = "Prihvati" }: { orderId: string; label?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (
@@ -188,18 +188,107 @@ export function ConfirmOrderButton({ orderId }: { orderId: string }) {
         event.preventDefault();
         event.stopPropagation();
         startTransition(async () => {
-          const result = await updateOrderStatusAction(orderId, "potvrdjena");
+          const result = await updateOrderStatusAction(orderId, "prihvacena");
           if (!result.ok) {
-            toast.error(result.message ?? "Porudžbina nije potvrđena.");
+            toast.error(result.message ?? "Porudžbina nije prihvaćena.");
             return;
           }
-          toast.success("Porudžbina je potvrđena.");
+          toast.success(label === "Prihvati fakturu" ? "Faktura je prihvaćena." : "Porudžbina je prihvaćena.");
           router.refresh();
         });
       }}
     >
-      {pending ? "Potvrda…" : "Potvrdi"}
+      {pending ? "Prihvatanje…" : label}
     </Button>
+  );
+}
+
+export function OrderRowMenu({ orderId }: { orderId: string }) {
+  const router = useRouter();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+        setConfirming(false);
+      }
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        setConfirming(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  function remove() {
+    startTransition(async () => {
+      const result = await deleteOrderAction(orderId);
+      if (!result.ok) {
+        toast.error(result.message ?? "Porudžbina nije obrisana.");
+        return;
+      }
+      toast.success("Porudžbina je obrisana.");
+      setOpen(false);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div ref={rootRef} className="relative inline-flex" onClick={(event) => event.stopPropagation()}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-8"
+        aria-label="Radnje za porudžbinu"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={pending}
+        onClick={() => {
+          setConfirming(false);
+          setOpen((value) => !value);
+        }}
+      >
+        <MoreHorizontal className="size-4" aria-hidden />
+      </Button>
+      {open ? (
+        <div role="menu" aria-label="Radnje za porudžbinu" className="absolute right-0 top-full z-30 mt-1 w-52 rounded-md border border-border bg-card p-1 shadow-lg">
+          {confirming ? (
+            <div className="px-2 py-2">
+              <p className="text-sm">Obrisati ovu porudžbinu?</p>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="destructive" disabled={pending} onClick={remove}>
+                  {pending ? "Brisanje…" : "Obriši"}
+                </Button>
+                <Button size="sm" variant="secondary" disabled={pending} onClick={() => setConfirming(false)}>
+                  Odustani
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              role="menuitem"
+              className="flex w-full rounded-sm px-2 py-2 text-left text-sm text-destructive hover:bg-zinc-50"
+              onClick={() => setConfirming(true)}
+            >
+              Obriši
+            </button>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

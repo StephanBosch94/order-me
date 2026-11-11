@@ -12,7 +12,6 @@ export type PurchaseLine = {
 export function purchaseMonths(lines: OrderedQuantity[], now = new Date()) {
   const keys = new Set<string>([currentBelgradeMonthKey(now)]);
   for (const line of lines) {
-    if (line.status === "otkazana") continue;
     keys.add(belgradeMonthKey(line.createdAt));
   }
   return [...keys].sort((left, right) => right.localeCompare(left));
@@ -21,7 +20,6 @@ export function purchaseMonths(lines: OrderedQuantity[], now = new Date()) {
 export function purchasesForMonth(lines: OrderedQuantity[], month: string): PurchaseLine[] {
   const totals = new Map<string, PurchaseLine>();
   for (const line of lines) {
-    if (line.status === "otkazana") continue;
     if (belgradeMonthKey(line.createdAt) !== month) continue;
     const key = line.productId ?? line.name;
     const existing = totals.get(key);

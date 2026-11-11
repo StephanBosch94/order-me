@@ -40,7 +40,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
             }`
           : ""}
         {" · "}
-        {customer.orderCount} porudžbina · {formatRsd(customer.totalPara)} bez otkazanih
+        {customer.orderCount} porudžbina · {formatRsd(customer.totalPara)}
       </p>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="rounded-lg border border-border bg-card p-4">
@@ -66,15 +66,19 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                     </div>
                     <p className="text-muted-foreground">
                       {formatDateTime(order.createdAt)}
-                      {" · "}
-                      <a
-                        href={`/api/orders/${order.id}/pdf?vrsta=${documentKind(customer.party)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:text-foreground hover:underline"
-                      >
-                        {documentKind(customer.party) === "faktura" ? "Prikaži fakturu" : "Štampaj nalog"}
-                      </a>
+                      {order.status !== "nova" ? (
+                        <>
+                          {" · "}
+                          <a
+                            href={`/api/orders/${order.id}/pdf?vrsta=${documentKind(customer.party)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="hover:text-foreground hover:underline"
+                          >
+                            {documentKind(customer.party) === "faktura" ? "Prikaži fakturu" : "Štampaj nalog"}
+                          </a>
+                        </>
+                      ) : null}
                     </p>
                   </div>
                   <p className="tabular-nums">{formatRsd(order.totalPara)}</p>

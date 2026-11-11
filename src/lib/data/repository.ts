@@ -126,6 +126,7 @@ export interface CommerceRepository {
     status: OrderStatus,
     actorName: string,
   ): Promise<OrderDetail | null>;
+  deleteOrder(organizationId: string, orderId: string): Promise<boolean>;
   saveSefInvoice(
     organizationId: string,
     orderId: string,

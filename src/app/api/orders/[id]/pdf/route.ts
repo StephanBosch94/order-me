@@ -11,6 +11,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const order = await getCommerce().getOrder(session.organization.id, id);
   if (!order) return NextResponse.json({ error: "Porudžbina nije pronađena." }, { status: 404 });
+  if (order.status === "nova") {
+    return NextResponse.json({ error: "Dokument postoji tek kada se porudžbina prihvati." }, { status: 404 });
+  }
 
   const supplier: PublicSupplier = {
     id: session.organization.id,

@@ -101,10 +101,7 @@ export async function deliverOrderStatusEmail(
 }
 
 function statusPhrase(status: OrderStatus) {
-  if (status === "potvrdjena") return "potvrđena";
-  if (status === "u_pripremi") return "u pripremi";
-  if (status === "isporucena") return "isporučena";
-  if (status === "otkazana") return "otkazana";
+  if (status === "prihvacena") return "prihvaćena";
   return statusLabel(status).toLowerCase();
 }
 

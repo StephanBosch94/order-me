@@ -37,7 +37,7 @@ export function BusinessAccount({
     );
   }
 
-  const active = orders.filter((order) => order.status !== "otkazana");
+  const active = orders;
   const spent = active.reduce((sum, order) => sum + order.totalPara, 0);
   const last = orders[0];
   const repeat = active[0] ?? last;

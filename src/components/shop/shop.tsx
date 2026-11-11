@@ -366,7 +366,7 @@ function ShopCover({ imageUrl, text }: { imageUrl: string | null; text: string }
 }
 
 function latestOrder(orders: BuyerOrder[]) {
-  return orders.find((order) => order.status !== "otkazana") ?? orders[0] ?? null;
+  return orders[0] ?? null;
 }
 
 function orderLines(orders: BuyerOrder[]): OrderedQuantity[] {
@@ -392,7 +392,7 @@ export function CompanyOrders({
   onRepeat?: (items: BuyerOrder["items"]) => void;
   repeatBase?: string;
 }) {
-  const active = orders.filter((order) => order.status !== "otkazana");
+  const active = orders;
   const spent = active.reduce((sum, order) => sum + order.totalPara, 0);
   const month = currentBelgradeMonthKey();
   const thisMonth = active.filter((order) => belgradeMonthKey(order.createdAt) === month);

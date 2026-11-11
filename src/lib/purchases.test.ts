@@ -6,7 +6,7 @@ import { purchasesForMonth } from "@/lib/purchases";
 
 function line(patch: Partial<OrderedQuantity> & Pick<OrderedQuantity, "createdAt" | "quantity">): OrderedQuantity {
   return {
-    status: "isporucena",
+    status: "prihvacena",
     productId: "voda",
     name: "Kisela voda",
     unit: "komad",
@@ -21,7 +21,6 @@ test("monthly purchases add the same article and keep its image", () => {
       line({ createdAt: "2026-11-02T10:00:00.000Z", quantity: 10 }),
       line({ createdAt: "2026-11-20T10:00:00.000Z", quantity: 14, imageUrl: null }),
       line({ createdAt: "2026-10-20T10:00:00.000Z", quantity: 100 }),
-      line({ createdAt: "2026-11-21T10:00:00.000Z", quantity: 5, status: "otkazana" }),
     ],
     "2026-11",
   );

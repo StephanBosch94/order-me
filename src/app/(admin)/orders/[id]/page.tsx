@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { OrderStatusMenu, SendEfakturaButton } from "@/components/admin/order-actions";
+import { ConfirmOrderButton, SendEfakturaButton } from "@/components/admin/order-actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireSession } from "@/lib/auth";
 import { paymentLabel, unitLabel } from "@/lib/constants";
@@ -37,22 +37,28 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <OrderStatusMenu orderId={order.id} status={order.status} />
-          <a
-            href={`/api/orders/${order.id}/pdf?vrsta=${kind}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-zinc-50"
-          >
-            {kind === "faktura" ? "Prikaži fakturu" : "Štampaj nalog"}
-          </a>
-          {order.sefInvoiceId ? (
+          {order.status === "nova" ? (
+            <ConfirmOrderButton
+              orderId={order.id}
+              label={kind === "faktura" ? "Prihvati fakturu" : "Prihvati"}
+            />
+          ) : (
+            <a
+              href={`/api/orders/${order.id}/pdf?vrsta=${kind}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-zinc-50"
+            >
+              {kind === "faktura" ? "Prikaži fakturu" : "Štampaj nalog"}
+            </a>
+          )}
+          {order.status !== "nova" && order.sefInvoiceId ? (
             <p className="text-sm">
               <span className="font-medium">E-faktura:</span> Poslata · {order.sefInvoiceId}
             </p>
-          ) : party === "pravna" && session.organization.efakturaEnabled && customerRecord?.sefRegistered ? (
+          ) : order.status !== "nova" && party === "pravna" && session.organization.efakturaEnabled && customerRecord?.sefRegistered ? (
             <SendEfakturaButton orderId={order.id} />
-          ) : party === "pravna" && session.organization.efakturaEnabled ? (
+          ) : order.status !== "nova" && party === "pravna" && session.organization.efakturaEnabled ? (
             <p className="max-w-xs text-sm text-muted-foreground">
               Kupac nije označen kao korisnik Sistema elektronskih faktura.
             </p>

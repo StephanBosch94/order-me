@@ -8,8 +8,6 @@ export function monthOrderUsage(
   const inMonth = orders.filter((order) => belgradeMonthKey(order.createdAt) === month);
   return {
     ordersThisMonth: inMonth.length,
-    monthValuePara: inMonth
-      .filter((order) => order.status !== "otkazana")
-      .reduce((sum, order) => sum + order.totalPara, 0),
+    monthValuePara: inMonth.reduce((sum, order) => sum + order.totalPara, 0),
   };
 }

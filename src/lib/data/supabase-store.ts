@@ -17,6 +17,7 @@ import {
   stockDirectionForStatus,
   type StockDirection,
 } from "@/lib/data/pricing";
+import { normalizeOrderStatus } from "@/lib/data/types";
 import type {
   BuyerOrder,
   Category,
@@ -204,7 +205,7 @@ function mapOrder(row: Record<string, unknown>): Order {
     customerId: String(row.customer_id),
     buyerUserId: row.buyer_user_id ? String(row.buyer_user_id) : null,
     number: String(row.number),
-    status: String(row.status) as OrderStatus,
+    status: normalizeOrderStatus(row.status),
     notes: String(row.notes ?? ""),
     subtotalPara: Number(row.subtotal_para),
     totalPara: Number(row.total_para),
@@ -252,8 +253,8 @@ function mapEvent(row: Record<string, unknown>): OrderStatusEvent {
     id: String(row.id),
     orderId: String(row.order_id),
     organizationId: String(row.organization_id),
-    fromStatus: row.from_status ? (String(row.from_status) as OrderStatus) : null,
-    toStatus: String(row.to_status) as OrderStatus,
+    fromStatus: row.from_status ? normalizeOrderStatus(row.from_status) : null,
+    toStatus: normalizeOrderStatus(row.to_status),
     actorName: String(row.actor_name),
     createdAt: String(row.created_at),
   };
@@ -554,7 +555,7 @@ export const supabaseRepository: CommerceRepository = {
       return {
         id: String(row.id),
         number: String(row.number),
-        status: String(row.status) as OrderStatus,
+        status: normalizeOrderStatus(row.status),
         totalPara: Number(row.total_para),
         createdAt: String(row.created_at),
         supplierName: String(organization?.name ?? "Dobavljač"),
@@ -813,7 +814,7 @@ export const supabaseRepository: CommerceRepository = {
       orders: listed,
       orderCount: listed.length,
       totalPara: orders
-        .filter((order) => order.status !== "otkazana")
+        .filter(() => true)
         .reduce((sum, order) => sum + order.totalPara, 0),
     };
     return detail;
@@ -1264,6 +1265,18 @@ export const supabaseRepository: CommerceRepository = {
     return orderDetail(mapOrder(updated.data as Record<string, unknown>));
   },
 
+  async deleteOrder(organizationId, orderId) {
+    const current = await this.getOrder(organizationId, orderId);
+    if (!current) return false;
+    const organization = await this.getOrganization(organizationId);
+    if (organization?.trackStock && current.stockHeld) {
+      await moveStock(organizationId, current.items, "release");
+    }
+    const { error } = await db().from("orders").delete().eq("organization_id", organizationId).eq("id", orderId);
+    fail(error);
+    return true;
+  },
+
   async saveSefInvoice(organizationId, orderId, input) {
     const current = await this.getOrder(organizationId, orderId);
     if (!current) return null;
@@ -1326,16 +1339,16 @@ export const supabaseRepository: CommerceRepository = {
     const parties = new Map(customers.map((customer) => [customer.id, customer.party]));
     const data: DashboardData = {
       newOrders: orders.filter(
-        (order) => order.status !== "otkazana" && new Date(order.createdAt).getTime() >= weekAgo,
+        (order) => new Date(order.createdAt).getTime() >= weekAgo,
       ).length,
       awaitingConfirmation: orders.filter((order) => order.status === "nova").length,
       processedThisMonth: orders.filter(
         (order) =>
-          (order.status === "potvrdjena" || order.status === "u_pripremi" || order.status === "isporucena") &&
+          order.status === "prihvacena" &&
           belgradeMonthKey(order.createdAt) === month,
       ).length,
       monthValuePara: orders
-        .filter((order) => order.status !== "otkazana" && belgradeMonthKey(order.createdAt) === month)
+        .filter((order) => belgradeMonthKey(order.createdAt) === month)
         .reduce((sum, order) => sum + order.totalPara, 0),
       activeProducts: products.filter((product) => product.active).length,
       recentOrders: awaiting.map((order) =>
@@ -1456,7 +1469,7 @@ export const supabaseRepository: CommerceRepository = {
       const id = String(row.organization_id);
       const list = ordersByOrg.get(id) ?? [];
       list.push({
-        status: String(row.status) as OrderStatus,
+        status: normalizeOrderStatus(row.status),
         totalPara: Number(row.total_para),
         createdAt: String(row.created_at),
       });
@@ -1803,7 +1816,7 @@ function summarize(customer: Customer, orders: Order[]): CustomerSummary {
     paymentTermDays: customer.paymentTermDays,
     sefRegistered: customer.sefRegistered,
     orderCount: own.length,
-    totalPara: own.filter((order) => order.status !== "otkazana").reduce((sum, order) => sum + order.totalPara, 0),
+    totalPara: own.reduce((sum, order) => sum + order.totalPara, 0),
     lastOrderAt: last?.createdAt ?? null,
   };
 }
