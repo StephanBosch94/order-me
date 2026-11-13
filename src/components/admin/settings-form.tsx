@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 
 import { updateSettingsAction, type FormState } from "@/lib/actions/catalog";
+import { showMarketplace } from "@/lib/marketing";
 import type { Organization } from "@/lib/data/types";
 import { slugify } from "@/lib/text";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
@@ -76,7 +77,9 @@ export function SettingsForm({
               </option>
             ))}
           </Select>
-          <p className="mt-1 text-xs text-muted-foreground">Po ovome kupci filtriraju marketplace.</p>
+          {showMarketplace ? (
+            <p className="mt-1 text-xs text-muted-foreground">Po ovome kupci filtriraju marketplace.</p>
+          ) : null}
           <FieldError message={state.fieldErrors?.trade} />
         </div>
         <SlugSetting

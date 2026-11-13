@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { DemoPicker } from "@/components/marketing/demo-picker";
-import { distributionDemo, distributionDemoLabel, showOnlineStore } from "@/lib/marketing";
+import { distributionDemo, distributionDemoLabel, showMarketplace, showOnlineStore } from "@/lib/marketing";
 import { cn } from "@/lib/utils";
 
 const retailDescription = "Kupac vidi katalog i poručuje. Manje poziva i poruka „imate li ovu?“.";
@@ -89,9 +89,11 @@ export default function HomePage() {
             <Anchor href="#kako">Kako radi</Anchor>
           </nav>
           <div className="flex items-center gap-2">
-            <Link href="/marketplace" className="inline-flex h-10 items-center px-3 text-sm font-medium text-[#0a2540] hover:text-[#635bff]">
-              Marketplace
-            </Link>
+            {showMarketplace ? (
+              <Link href="/marketplace" className="inline-flex h-10 items-center px-3 text-sm font-medium text-[#0a2540] hover:text-[#635bff]">
+                Marketplace
+              </Link>
+            ) : null}
             <Link href="/login" className="inline-flex h-10 items-center px-3 text-sm font-medium text-[#0a2540] hover:text-[#635bff]">
               Prijava
             </Link>
@@ -259,7 +261,7 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
           <Logo />
           <FooterColumn title="Veleprodaja">
-            <FooterLink href="/marketplace">Marketplace</FooterLink>
+            {showMarketplace ? <FooterLink href="/marketplace">Marketplace</FooterLink> : null}
             <FooterLink href="/signup">Otvorite veleprodaju</FooterLink>
             {showOnlineStore ? <FooterLink href="/shop/mercis-atelier" newTab>Mercis Atelier</FooterLink> : null}
             <FooterLink href="/shop/mesara-pajic" newTab>{distributionDemoLabel}</FooterLink>

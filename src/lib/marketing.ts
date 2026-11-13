@@ -1,6 +1,9 @@
 /** The online shop stays in the product. The public start shows distribution until this is on. */
 export const showOnlineStore = false;
 
+/** Public store directory. Off until it should be shown again. */
+export const showMarketplace = false;
+
 export const distributionDemoLabel = "Pogledajte demo veleprodaje";
 
 /** Public homepage hero uses the meat demo's own name and pictures. */

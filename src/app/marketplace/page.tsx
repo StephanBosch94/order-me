@@ -1,22 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
+import { showMarketplace } from "@/lib/marketing";
 import { isTrade, tradeLabel, TRADES } from "@/lib/trades";
 
-export const metadata: Metadata = {
-  title: "Marketplace",
-  description: "Prodavnice koje su otvorile nalog na Prodori.",
-};
+export function generateMetadata(): Metadata {
+  if (!showMarketplace) return { title: "Stranica nije pronađena" };
+  return {
+    title: "Marketplace",
+    description: "Prodavnice koje su otvorile nalog na Prodori.",
+  };
+}
 
 export default async function MarketplacePage({
   searchParams,
 }: {
   searchParams: Promise<{ delatnost?: string }>;
 }) {
+  if (!showMarketplace) notFound();
   const { delatnost = "" } = await searchParams;
   const selected = isTrade(delatnost) ? delatnost : "";
   const stores = (await getCommerce().listMarketplaceStores()).filter((store) => !selected || store.trade === selected);
