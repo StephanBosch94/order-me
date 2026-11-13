@@ -19,12 +19,12 @@ export default async function InvoicesPage() {
     <div>
       <PageHeader
         title="Fakture od Prodore"
-        description="Fakture koje Prodora izdaje dobavljaču za korišćenje platforme. Ovo nisu potvrde porudžbina kupaca."
+        description="Fakture koje Vendro izdaje dobavljaču za korišćenje platforme. Ovo nisu potvrde porudžbina kupaca."
       />
       {invoices.length === 0 ? (
         <EmptyState
           title="Još nema faktura"
-          body="Kada Prodora izda fakturu za korišćenje platforme, pojaviće se ovde."
+          body="Kada Vendro izda fakturu za korišćenje platforme, pojaviće se ovde."
         />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">

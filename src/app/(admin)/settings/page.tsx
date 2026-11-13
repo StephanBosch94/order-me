@@ -45,7 +45,7 @@ export default async function SettingsPage({
       />
       {usesPostgres() ? (
         <p className="mt-8 max-w-2xl text-sm text-muted-foreground">
-          Nalozi, katalog i porudžbine su u PostgreSQL bazi prodora. Server se pokreće naredbom npm run db.
+          Nalozi, katalog i porudžbine su u PostgreSQL bazi. Server se pokreće naredbom npm run db.
         </p>
       ) : isDemoMode() ? (
         <p className="mt-8 max-w-2xl text-sm text-muted-foreground">

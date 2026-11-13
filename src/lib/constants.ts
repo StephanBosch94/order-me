@@ -42,7 +42,7 @@ export const RESERVED_SLUGS = new Set([
   "shop",
   "admin",
   "poruci",
-  "prodora",
+  "vendro",
   "app",
   "prijava",
   "kupac",
@@ -164,37 +164,29 @@ function measuredUnit(unit: Unit) {
   return unit === "kilogram" || unit === "litar";
 }
 
-/** Smallest whole quantity offered for kilogram and litar. Counted units keep their own minimum. */
-export function cartMinimum(unit: Unit, minQuantity: number) {
-  if (!measuredUnit(unit)) return minQuantity;
-  const min = Number.isFinite(minQuantity) && minQuantity > 0 ? minQuantity : 1;
-  return Math.max(1, Math.ceil(min - 1e-9));
-}
-
 /**
  * Kilogram and litar cart lines are whole numbers.
- * A stored fraction is floored, then raised to at least 1 (or a higher product minimum).
- * 1,5 therefore shows as 1, and the next step is 2.
+ * A stored fraction is floored. 1,5 therefore shows as 1, and the next step is 2.
  */
-export function normalizeCartQuantity(unit: Unit, quantity: number, minQuantity: number) {
+export function normalizeCartQuantity(unit: Unit, quantity: number) {
   if (!Number.isFinite(quantity) || quantity <= 0) return 0;
   if (!measuredUnit(unit)) return quantity;
   const snapped = Math.round(quantity * 1000) / 1000;
   const whole = Math.floor(snapped + 1e-9);
-  return Math.min(9999, Math.max(cartMinimum(unit, minQuantity), whole));
+  if (whole <= 0) return snapped > 0 ? 1 : 0;
+  return Math.min(9999, whole);
 }
 
-export function addCartQuantity(unit: Unit, current: number, minQuantity: number) {
-  const shown = normalizeCartQuantity(unit, current, minQuantity);
-  if (shown <= 0) return measuredUnit(unit) ? cartMinimum(unit, minQuantity) : minQuantity;
+export function addCartQuantity(unit: Unit, current: number) {
+  const shown = normalizeCartQuantity(unit, current);
+  if (shown <= 0) return 1;
   return Math.min(9999, Math.round((shown + quantityStep(unit)) * 1000) / 1000);
 }
 
-export function subtractCartQuantity(unit: Unit, current: number, minQuantity: number) {
-  const shown = normalizeCartQuantity(unit, current, minQuantity);
-  const min = measuredUnit(unit) ? cartMinimum(unit, minQuantity) : minQuantity;
+export function subtractCartQuantity(unit: Unit, current: number) {
+  const shown = normalizeCartQuantity(unit, current);
   const next = Math.round((shown - quantityStep(unit)) * 1000) / 1000;
-  return next < min ? 0 : next;
+  return next < 1 ? 0 : next;
 }
 
 /** Plus and minus move by one, including the first click from an empty field. */

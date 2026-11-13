@@ -7,6 +7,7 @@ import { loadNetlifySnapshot, netlifyDemoEnabled, saveNetlifyDatabase } from "@/
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor, sefRegisteredFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
+import { parseIpsAccount } from "@/lib/ips";
 import { compareMemberRoles } from "@/lib/members";
 import type { SessionCarry } from "@/lib/session-token";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
@@ -96,6 +97,7 @@ function toPublicSupplier(organization: Organization): PublicSupplier {
     description: organization.description,
     channel: organization.channel,
     audience: organization.audience,
+    ipsAccount: organization.ipsAccount,
   };
 }
 
@@ -346,6 +348,7 @@ export class DemoStore implements CommerceRepository {
         efakturaApiKey: "",
         efakturaEnabled: false,
         efakturaEnvironment: "demo",
+        ipsAccount: "",
         createdAt: now,
         updatedAt: now,
       };
@@ -597,6 +600,7 @@ export class DemoStore implements CommerceRepository {
       Object.assign(organization, {
         ...input,
         logoUrl: input.logoUrl,
+        ipsAccount: parseIpsAccount(input.ipsAccount) ?? "",
         channel: channelForAudience(input.audience),
         updatedAt: new Date().toISOString(),
       });
@@ -889,7 +893,7 @@ export class DemoStore implements CommerceRepository {
       );
       if (!organization || !customer) return { ok: false as const, message: "Kupac nije pronađen." };
       const catalog = db.products.filter((product) => product.organizationId === organization.id);
-      const priced = priceOrderLines(catalog, input.items, { enforceMinimum: false, allowInactive: true });
+      const priced = priceOrderLines(catalog, input.items, { allowInactive: true });
       if (!priced.ok) return priced;
 
       const now = new Date().toISOString();
@@ -1024,6 +1028,9 @@ export class DemoStore implements CommerceRepository {
       if (!organization) return { ok: false, message: "Dobavljač nije pronađen." };
       if (!organization.active) return { ok: false, message: STORE_CLOSED_MESSAGE };
       if (organization.publicStore === false) return { ok: false, message: STORE_MANUAL_MESSAGE };
+      if (input.paymentMethod === "ips" && !organization.ipsAccount) {
+        return { ok: false, message: "Ova prodavnica nema IPS kod." };
+      }
 
       const existing = db.orders.find(
         (order) =>
@@ -1631,6 +1638,8 @@ function normalizeDatabase(db: DemoDatabase) {
     else organization.efakturaApiKey = organization.efakturaApiKey.trim();
     if (organization.efakturaEnabled !== true) organization.efakturaEnabled = false;
     if (organization.efakturaEnvironment !== "produkcija") organization.efakturaEnvironment = "demo";
+    const ipsAccount = parseIpsAccount(typeof organization.ipsAccount === "string" ? organization.ipsAccount : "");
+    organization.ipsAccount = ipsAccount ?? "";
   }
   for (const customer of db.customers) {
     if (customer.party !== "fizicka" && customer.party !== "pravna") {

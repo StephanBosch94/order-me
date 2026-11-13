@@ -62,7 +62,7 @@ export function Storefront({
   const lines = catalog.products
     .map((product) => ({
       product,
-      quantity: normalizeCartQuantity(product.unit, quantities[product.id] ?? 0, product.minQuantity),
+      quantity: normalizeCartQuantity(product.unit, quantities[product.id] ?? 0),
     }))
     .filter((line) => line.quantity > 0);
   const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
@@ -83,7 +83,7 @@ export function Storefront({
 
   function setQuantity(product: Product, quantity: number) {
     const next = { ...quantities };
-    const stored = quantity <= 0 ? 0 : normalizeCartQuantity(product.unit, quantity, product.minQuantity);
+    const stored = quantity <= 0 ? 0 : normalizeCartQuantity(product.unit, quantity);
     if (stored <= 0) delete next[product.id];
     else next[product.id] = stored;
     localStorage.setItem(storageKey, JSON.stringify(next));
@@ -96,11 +96,9 @@ export function Storefront({
       if (!item.productId) continue;
       const product = catalog.products.find((entry) => entry.id === item.productId);
       if (!product) continue;
-      next[product.id] = normalizeCartQuantity(
-        product.unit,
-        Math.max(product.minQuantity, item.quantity),
-        product.minQuantity,
-      );
+      const quantity = normalizeCartQuantity(product.unit, item.quantity);
+      if (quantity <= 0) continue;
+      next[product.id] = quantity;
     }
     localStorage.setItem(storageKey, JSON.stringify(next));
     window.dispatchEvent(new Event("poruci-cart"));
@@ -122,12 +120,12 @@ export function Storefront({
 
   function increment(product: Product) {
     const current = quantities[product.id] ?? 0;
-    setQuantity(product, addCartQuantity(product.unit, current, product.minQuantity));
+    setQuantity(product, addCartQuantity(product.unit, current));
   }
 
   function decrement(product: Product) {
     const current = quantities[product.id] ?? 0;
-    setQuantity(product, subtractCartQuantity(product.unit, current, product.minQuantity));
+    setQuantity(product, subtractCartQuantity(product.unit, current));
   }
 
   const cart = (
@@ -243,7 +241,6 @@ export function Storefront({
                           <p className="mt-0.5 text-sm text-muted-foreground">
                             {unitLabel(product.unit)}
                             {product.sku ? ` · ${product.sku}` : ""}
-                            {product.minQuantity > 1 ? ` · min. ${formatQuantity(product.minQuantity)}` : ""}
                           </p>
                         </div>
                       </div>
@@ -257,7 +254,7 @@ export function Storefront({
                       </div>
                       <QuantityControl
                         product={product}
-                        quantity={normalizeCartQuantity(product.unit, quantities[product.id] ?? 0, product.minQuantity)}
+                        quantity={normalizeCartQuantity(product.unit, quantities[product.id] ?? 0)}
                         onIncrement={() => increment(product)}
                         onDecrement={() => decrement(product)}
                         onCommit={(quantity) => setQuantity(product, quantity)}
@@ -271,6 +268,7 @@ export function Storefront({
         ) : (
           <Checkout
             slug={catalog.supplier.slug}
+            allowIps={Boolean(catalog.supplier.ipsAccount)}
             buyer={buyer}
             chooseKind={showSwitch}
             lines={lines}
@@ -414,7 +412,7 @@ function QuantityControl({
             onCommit(0);
             return;
           }
-          onCommit(parsed < product.minQuantity ? product.minQuantity : parsed);
+          onCommit(parsed);
         }}
       />
       <button
@@ -480,6 +478,7 @@ function Checkout({
   slug,
   buyer,
   chooseKind,
+  allowIps = false,
   lines,
   total,
   idempotencyStorage,
@@ -489,6 +488,7 @@ function Checkout({
   slug: string;
   buyer?: BuyerAccount | null;
   chooseKind: boolean;
+  allowIps?: boolean;
   lines: { product: Product; quantity: number }[];
   total: number;
   idempotencyStorage: string;
@@ -600,7 +600,7 @@ function Checkout({
             <Field name="address" label="Adresa" autoComplete="street-address" error={errors.address} required defaultValue={buyer?.address} />
           </div>
           <div className="sm:col-span-2">
-            <PaymentMethodChoice error={errors.paymentMethod} />
+            <PaymentMethodChoice error={errors.paymentMethod} allowIps={allowIps} />
           </div>
         </div>
       ) : null}

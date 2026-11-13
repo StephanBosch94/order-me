@@ -110,6 +110,8 @@ export type Organization = {
   efakturaEnabled: boolean;
   /** demo uses the Ministry demo host. produkcija uses the live host. */
   efakturaEnvironment: "demo" | "produkcija";
+  /** Seller's current account, 18 digits, used to build the NBS IPS QR code. Empty until they set it. */
+  ipsAccount: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -130,6 +132,8 @@ export type PublicSupplier = {
   description: string;
   channel: StoreChannel;
   audience: Audience;
+  /** Seller account for IPS. Empty when the shop has not set a code. */
+  ipsAccount: string;
 };
 
 export type Category = {
@@ -414,6 +418,7 @@ export type OrganizationInput = {
   efakturaApiKey: string;
   efakturaEnabled: boolean;
   efakturaEnvironment: "demo" | "produkcija";
+  ipsAccount: string;
 };
 
 export type CustomerInput = {

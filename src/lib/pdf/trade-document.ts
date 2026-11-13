@@ -7,6 +7,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 
 import { paymentLabel, unitLabel } from "@/lib/constants";
+import { drawIpsPayment, IPS_BLOCK_HEIGHT } from "@/lib/pdf/ips-qr";
 import type { TradeDocumentKind } from "@/lib/customers";
 import type { OrderDetail, PublicSupplier, Unit } from "@/lib/data/types";
 import { addCalendarDays, formatDate, formatQuantity, formatRsd } from "@/lib/format";
@@ -288,6 +289,18 @@ export async function buildTradeDocumentPdf(
     ensure(13);
     page.drawText(line, { x: LEFT, y, size: 9, font, color: MUTED });
     y -= 13;
+  }
+
+  if (supplier.ipsAccount && (kind === "faktura" || order.paymentMethod === "ips")) {
+    y -= 8;
+    ensure(IPS_BLOCK_HEIGHT);
+    const drawn = await drawIpsPayment(doc, page, font, fontBold, LEFT, y, {
+      account: supplier.ipsAccount,
+      recipient: supplier.name,
+      amountPara: order.totalPara,
+      orderNumber: order.number,
+    });
+    if (drawn) y -= IPS_BLOCK_HEIGHT;
   }
 
   if (order.notes) {

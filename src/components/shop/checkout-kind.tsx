@@ -60,10 +60,12 @@ export function PaymentMethodChoice({
   error,
   value,
   onChange,
+  allowIps = false,
 }: {
   error?: string;
   value?: "" | "pouzecem" | "ips";
   onChange?: (value: "pouzecem" | "ips") => void;
+  allowIps?: boolean;
 }) {
   return (
     <fieldset>
@@ -81,18 +83,20 @@ export function PaymentMethodChoice({
           />
           Plaćanje pouzećem
         </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="radio"
-            name="paymentMethod"
-            value="ips"
-            required
-            className="size-4 accent-primary"
-            checked={onChange ? value === "ips" : undefined}
-            onChange={() => onChange?.("ips")}
-          />
-          Plaćanje IPS-om
-        </label>
+        {allowIps ? (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="ips"
+              required
+              className="size-4 accent-primary"
+              checked={onChange ? value === "ips" : undefined}
+              onChange={() => onChange?.("ips")}
+            />
+            Plaćanje IPS-om
+          </label>
+        ) : null}
       </div>
       <FieldError message={error} />
     </fieldset>

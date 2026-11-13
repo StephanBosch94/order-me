@@ -1,4 +1,4 @@
--- Prodora schema for Supabase.
+-- Vendro schema for Supabase.
 -- Run this in the SQL editor after creating a project.
 -- The Next.js server uses the service role and still filters every query by organization.
 -- Row Level Security stops the anon key from reading another supplier's private data.
@@ -41,6 +41,7 @@ create table if not exists public.organizations (
   efaktura_api_key text not null default '',
   efaktura_enabled boolean not null default false,
   efaktura_environment text not null default 'demo' check (efaktura_environment in ('demo', 'produkcija')),
+  ips_account text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -416,6 +417,7 @@ alter table public.orders add column if not exists sef_status text;
 alter table public.organizations add column if not exists cover_url text;
 alter table public.organizations add column if not exists description text not null default '';
 alter table public.organizations add column if not exists trade text not null default '';
+alter table public.organizations add column if not exists ips_account text not null default '';
 
 alter table public.customers alter column party set default 'fizicka';
 alter table public.customers alter column payment_term_days set default 0;

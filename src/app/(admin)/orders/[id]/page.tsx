@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ConfirmOrderButton, SendEfakturaButton } from "@/components/admin/order-actions";
+import { IpsPayment } from "@/components/shop/ips-payment";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireSession } from "@/lib/auth";
 import { paymentLabel, unitLabel } from "@/lib/constants";
@@ -180,6 +181,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               ) : null}
             </dl>
           </section>
+          {order.paymentMethod === "ips" ? (
+            <IpsPayment
+              account={session.organization.ipsAccount}
+              recipient={session.organization.name}
+              amountPara={order.totalPara}
+              orderNumber={order.number}
+            />
+          ) : null}
           <section className="rounded-lg border border-border bg-card p-4">
             <h2 className="text-sm font-semibold">Napomena</h2>
             <p className="mt-2 text-sm text-muted-foreground">{order.notes || "Kupac nije ostavio napomenu."}</p>

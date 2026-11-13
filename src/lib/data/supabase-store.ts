@@ -6,6 +6,7 @@ import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor, sefRegisteredFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
+import { parseIpsAccount } from "@/lib/ips";
 import { compareMemberRoles, memberRole } from "@/lib/members";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
@@ -116,6 +117,7 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     efakturaApiKey: typeof row.efaktura_api_key === "string" ? row.efaktura_api_key : "",
     efakturaEnabled: row.efaktura_enabled === true,
     efakturaEnvironment: row.efaktura_environment === "produkcija" ? "produkcija" : "demo",
+    ipsAccount: parseIpsAccount(typeof row.ips_account === "string" ? row.ips_account : "") ?? "",
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -138,6 +140,7 @@ function toPublic(organization: Organization): PublicSupplier {
     description: organization.description,
     channel: organization.channel,
     audience: organization.audience,
+    ipsAccount: organization.ipsAccount,
   };
 }
 
@@ -612,6 +615,7 @@ export const supabaseRepository: CommerceRepository = {
         efaktura_api_key: input.efakturaApiKey,
         efaktura_enabled: input.efakturaEnabled,
         efaktura_environment: input.efakturaEnvironment === "produkcija" ? "produkcija" : "demo",
+        ips_account: parseIpsAccount(input.ipsAccount) ?? "",
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -928,7 +932,7 @@ export const supabaseRepository: CommerceRepository = {
     const priced = priceOrderLines(
       ((productResult.data ?? []) as Record<string, unknown>[]).map(mapProduct),
       input.items,
-      { enforceMinimum: false, allowInactive: true },
+      { allowInactive: true },
     );
     if (!priced.ok) return priced;
 
@@ -1074,6 +1078,9 @@ export const supabaseRepository: CommerceRepository = {
     const organization = mapOrganization(orgResult.data as Record<string, unknown>);
     if (!organization.active) return { ok: false, message: STORE_CLOSED_MESSAGE };
     if (organization.publicStore === false) return { ok: false, message: STORE_MANUAL_MESSAGE };
+    if (input.paymentMethod === "ips" && !organization.ipsAccount) {
+      return { ok: false, message: "Ova prodavnica nema IPS kod." };
+    }
 
     const existing = await admin
       .from("orders")

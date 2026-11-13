@@ -41,6 +41,7 @@ export default async function BuyerOrdersPage({
       logoUrl={catalog.supplier.logoUrl}
       brandColor={catalog.supplier.brandColor}
       audience={catalog.supplier.audience}
+      allowIps={Boolean(catalog.supplier.ipsAccount)}
       buyer={session}
       showAccount={true}
       products={catalog.products}

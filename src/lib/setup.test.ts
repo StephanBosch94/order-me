@@ -31,6 +31,7 @@ function organization(overrides: Partial<Organization> = {}): Organization {
     efakturaApiKey: "",
     efakturaEnabled: false,
     efakturaEnvironment: "demo",
+    ipsAccount: "",
     createdAt: "2026-10-29T00:00:00.000Z",
     updatedAt: "2026-10-29T00:00:00.000Z",
     ...overrides,

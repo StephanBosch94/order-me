@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
 import { SupplierLogo } from "@/components/brand/supplier-logo";
+import { IpsPayment } from "@/components/shop/ips-payment";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { orderConfirmationEmail } from "@/lib/buyer";
 import { mailRecipient } from "@/lib/demo-shops";
@@ -108,6 +109,14 @@ export default async function ConfirmationPage({
           </p>
         ) : null}
       </section>
+      {order.paymentMethod === "ips" ? (
+        <IpsPayment
+          account={supplier.ipsAccount}
+          recipient={supplier.name}
+          amountPara={order.totalPara}
+          orderNumber={order.number}
+        />
+      ) : null}
       <p className="mt-4 text-sm text-muted-foreground">
         {order.paymentMethod === "ips"
           ? "Uplatu pošaljite IPS-om iz aplikacije banke. "

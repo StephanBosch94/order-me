@@ -60,7 +60,7 @@ export type DemoMembership = {
 export const SEED_GENERATION = 2;
 
 export function seedId(key: string) {
-  const hash = createHash("sha1").update(`prodora-seed:${key}`).digest();
+  const hash = createHash("sha1").update(`vendro-seed:${key}`).digest();
   const bytes = Buffer.from(hash.subarray(0, 16));
   bytes[6] = (bytes[6]! & 0x0f) | 0x50;
   bytes[8] = (bytes[8]! & 0x3f) | 0x80;
@@ -92,7 +92,7 @@ export const DEMO_EMAIL = "ana@mesarapajic.rs";
 export const RETAIL_DEMO_EMAIL = "vera@mercisatelier.rs";
 export const BUSINESS_BUYER_EMAIL = "marko@restorandunav.rs";
 export const RETAIL_BUYER_EMAIL = "jovana@mercisatelier.rs";
-export const PLATFORM_ADMIN_EMAIL = "admin@prodora.rs";
+export const PLATFORM_ADMIN_EMAIL = "admin@vendro.rs";
 export const DEMO_PASSWORD = "poruci-demo";
 const BUSINESS_BUYER_ACCOUNT = "160-0000000011111-45";
 
@@ -155,6 +155,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     efakturaApiKey: "",
     efakturaEnabled: false,
     efakturaEnvironment: "demo",
+    ipsAccount: "",
     createdAt: ago(120),
     updatedAt: now,
   };
@@ -1059,6 +1060,7 @@ function ensureJewelryShop(db: DemoDatabase) {
       efakturaApiKey: "",
       efakturaEnabled: false,
       efakturaEnvironment: "demo",
+      ipsAccount: "",
       createdAt: now,
       updatedAt: now,
     };
@@ -1367,6 +1369,7 @@ async function ensureProductionShop(db: DemoDatabase) {
     efakturaApiKey: "",
     efakturaEnabled: false,
     efakturaEnvironment: "demo",
+    ipsAccount: "",
     createdAt: now,
     updatedAt: now,
   };
@@ -1627,11 +1630,22 @@ function ensureSavaOrders(db: DemoDatabase) {
   const buyer = db.users.find((item) => item.email === "petar@restoranmorava.rs");
   const year = belgradeYear(now);
   for (const spec of SAVA_ORDERS) {
-    const orderId = seedId(`order:sava-trade:${spec.key}`);
-    const idempotencyKey = seedId(`idem:sava-trade:${spec.key}`);
-    if (db.orders.some((order) => order.id === orderId || order.idempotencyKey === idempotencyKey)) continue;
     const customer = customers.get(spec.customer);
     if (!customer) continue;
+    const orderId = seedId(`order:sava-trade:${spec.key}`);
+    const idempotencyKey = seedId(`idem:sava-trade:${spec.key}`);
+    const lineKey = spec.lines.map(([sku]) => sku).sort().join(",");
+    const alreadyThere = db.orders.some((order) => {
+      if (order.id === orderId || order.idempotencyKey === idempotencyKey) return true;
+      if (order.organizationId !== organization.id || order.customerId !== customer.id) return false;
+      const skus = db.orderItems
+        .filter((item) => item.orderId === order.id)
+        .map((item) => item.sku)
+        .sort()
+        .join(",");
+      return skus === lineKey;
+    });
+    if (alreadyThere) continue;
     const lines = spec.lines.flatMap(([sku, quantity]) => {
       const product = db.products.find(
         (item) => item.organizationId === organization.id && item.sku === sku && item.active,
@@ -1763,12 +1777,22 @@ export async function ensurePlatformAdmin(db: DemoDatabase) {
   let changed = false;
   const now = new Date().toISOString();
 
-  let admin = db.users.find((user) => user.email === PLATFORM_ADMIN_EMAIL);
+  let admin =
+    db.users.find((user) => user.email === PLATFORM_ADMIN_EMAIL) ??
+    db.users.find((user) => user.email === "admin@prodora.rs");
+  if (admin && admin.email !== PLATFORM_ADMIN_EMAIL) {
+    admin.email = PLATFORM_ADMIN_EMAIL;
+    changed = true;
+  }
+  if (admin?.name === "Prodora administracija") {
+    admin.name = "Vendro administracija";
+    changed = true;
+  }
   if (!admin) {
     admin = {
       id: seedId(`user:${PLATFORM_ADMIN_EMAIL}`),
       email: PLATFORM_ADMIN_EMAIL,
-      name: "Prodora administracija",
+      name: "Vendro administracija",
       passwordHash: await hashPassword(DEMO_PASSWORD),
       kind: "platform",
       businessName: "",
@@ -1814,7 +1838,7 @@ export async function ensurePlatformAdmin(db: DemoDatabase) {
     },
   ];
   for (const plan of defaults) {
-    if (db.plans.some((item) => item.id === plan.id)) continue;
+    if (db.plans.some((item) => item.id === plan.id || item.name === plan.name)) continue;
     db.plans.push(plan);
     changed = true;
   }
@@ -1870,17 +1894,20 @@ export async function ensurePlatformAdmin(db: DemoDatabase) {
   ];
   for (const spec of invoiceSpecs) {
     const organization = db.organizations.find((item) => item.slug === spec.slug);
-    const plan = db.plans.find((item) => item.id === spec.planId);
+    const plan =
+      db.plans.find((item) => item.id === spec.planId) ??
+      db.plans.find((item) => item.name === (spec.planId === PLAN_POSLOVNI_ID ? "Poslovni" : "Osnovni"));
     if (!organization || !plan) continue;
     const invoiceSlug = spec.slug === MEAT_SLUG ? LEGACY_MEAT_SLUG : spec.slug === BOUTIQUE_SLUG ? LEGACY_BOUTIQUE_SLUG : spec.slug;
     for (const row of spec.rows) {
       const id = seedId(`invoice:${invoiceSlug}:${row.key}`);
-      if (db.invoices.some((item) => item.id === id)) continue;
       const month = billingMonth(row.monthsBack);
+      const number = `PF-${month.year}-${row.key}`;
+      if (db.invoices.some((item) => item.id === id || (item.organizationId === organization.id && item.number === number))) continue;
       db.invoices.push({
         id,
         organizationId: organization.id,
-        number: `PF-${month.year}-${row.key}`,
+        number,
         periodStart: month.start,
         periodEnd: month.end,
         amountPara: plan.monthlyPricePara,

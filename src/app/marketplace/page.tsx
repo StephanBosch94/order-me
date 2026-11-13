@@ -25,7 +25,7 @@ export default async function MarketplacePage({
     <div className="min-h-dvh bg-white text-[#0a2540]">
       <header className="sticky top-0 z-20 border-b border-[#e6ebf1] bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" aria-label="Prodora, početna" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#635bff]">
+          <Link href="/" aria-label="Vendro, početna" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#635bff]">
             <Logo />
           </Link>
           <div className="flex items-center gap-2">

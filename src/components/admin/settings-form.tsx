@@ -18,6 +18,7 @@ import {
   IMAGE_TYPE_ERROR,
 } from "@/components/ui/file-dropzone";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fields";
+import { formatIpsAccount } from "@/lib/ips";
 import { TRADES } from "@/lib/trades";
 
 const initial: FormState = {};
@@ -99,6 +100,22 @@ export function SettingsForm({
         </div>
         <Setting name="pib" label="PIB" defaultValue={organization.pib} error={state.fieldErrors?.pib} />
         <Setting name="mb" label="Matični broj" defaultValue={organization.mb} error={state.fieldErrors?.mb} />
+        <div className="sm:col-span-2">
+          <Label htmlFor="ipsAccount">IPS kod</Label>
+          <Input
+            id="ipsAccount"
+            name="ipsAccount"
+            defaultValue={formatIpsAccount(organization.ipsAccount)}
+            placeholder="160-0000000011111-14"
+            autoComplete="off"
+            spellCheck={false}
+            className="mt-1.5 font-mono"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Tekući račun firme, ili IPS kod iz banke. Kupac koji plati IPS-om dobija QR kod, a isti kod stoji i na fakturi.
+          </p>
+          <FieldError message={state.fieldErrors?.ipsAccount} />
+        </div>
       </div>
       <div className={tab === "prodaja" ? "grid gap-4" : "hidden"} role="tabpanel">
         <div className="rounded-lg border border-border bg-card p-4">

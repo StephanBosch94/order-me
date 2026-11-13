@@ -5,6 +5,7 @@ import { RESERVED_SLUGS } from "@/lib/constants";
 import { normalizeQuantity, normalizeStockQuantity } from "@/lib/data/pricing";
 import { ORDER_STATUS_VALUES, UNIT_VALUES, type ProductInput } from "@/lib/data/types";
 import { parseRsdToPara } from "@/lib/format";
+import { parseIpsAccount } from "@/lib/ips";
 import { isTrade } from "@/lib/trades";
 
 const slugSchema = z
@@ -224,6 +225,12 @@ export const organizationSchema = z.object({
   description: z.string().trim().max(240, "Opis može imati najviše 240 karaktera."),
   trade: z.string().trim().refine((value) => value === "" || isTrade(value), "Izaberite delatnost."),
   audience: z.enum(["fizicka", "pravna", "oba"], "Izaberite kome prodajete."),
+  ipsAccount: z
+    .string()
+    .trim()
+    .max(500, "IPS kod je predugačak.")
+    .refine((value) => parseIpsAccount(value) !== null, "Unesite ispravan tekući račun ili IPS kod.")
+    .transform((value) => parseIpsAccount(value) ?? ""),
 });
 
 export const customerSchema = z

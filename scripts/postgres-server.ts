@@ -20,10 +20,10 @@ type Account = {
 function account(): Account {
   if (existsSync(accountPath)) return JSON.parse(readFileSync(accountPath, "utf8")) as Account;
   const created: Account = {
-    user: "prodora",
+    user: "vendro",
     password: randomBytes(18).toString("base64url"),
     port: 5432,
-    database: "prodora",
+    database: "vendro",
   };
   mkdirSync(dataDir, { recursive: true });
   writeFileSync(accountPath, `${JSON.stringify(created, null, 2)}\n`);

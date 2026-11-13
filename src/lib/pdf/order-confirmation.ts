@@ -7,6 +7,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
 import { paymentLabel, unitLabel } from "@/lib/constants";
+import { drawIpsPayment, IPS_BLOCK_HEIGHT } from "@/lib/pdf/ips-qr";
 import type { OrderDetail, PublicSupplier } from "@/lib/data/types";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
 
@@ -168,6 +169,17 @@ export async function buildOrderConfirmationPdf(order: OrderDetail, supplier: Pu
     color: rgb(0.09, 0.09, 0.11),
   });
   y -= 24;
+
+  if (order.paymentMethod === "ips" && supplier.ipsAccount) {
+    ensure(IPS_BLOCK_HEIGHT);
+    const drawn = await drawIpsPayment(doc, page, font, fontBold, left, y, {
+      account: supplier.ipsAccount,
+      recipient: supplier.name,
+      amountPara: order.totalPara,
+      orderNumber: order.number,
+    });
+    if (drawn) y -= IPS_BLOCK_HEIGHT;
+  }
 
   if (order.notes) {
     ensure(36);

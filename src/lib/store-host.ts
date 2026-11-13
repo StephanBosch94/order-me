@@ -3,7 +3,7 @@ import { RESERVED_SLUGS } from "@/lib/constants";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-/** Parent domain for shop addresses: mesara-pajic.prodora.app. Local dev uses *.localhost. */
+/** Parent domain for shop addresses: mesara-pajic.vendro.app. Local dev uses *.localhost. */
 export function storeDomain() {
   const configured = process.env.NEXT_PUBLIC_STORE_DOMAIN?.trim().toLowerCase().replace(/^\.+|\.+$/g, "");
   if (configured) return configured;

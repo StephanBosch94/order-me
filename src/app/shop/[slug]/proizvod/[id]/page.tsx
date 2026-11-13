@@ -58,6 +58,7 @@ export default async function ProductPage({
       logoUrl={catalog.supplier.logoUrl}
       brandColor={catalog.supplier.brandColor}
       audience={catalog.supplier.audience}
+      allowIps={Boolean(catalog.supplier.ipsAccount)}
       buyer={buyer}
       showAccount={session?.kind !== "supplier"}
       products={catalog.products}

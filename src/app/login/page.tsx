@@ -134,7 +134,7 @@ export function AuthShell({
           <span className="truncate text-lg font-semibold tracking-tight">{store.name}</span>
         </Link>
       ) : (
-        <Link href="/" aria-label="Prodora, početna" className="mt-6 w-fit rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href="/" aria-label="Vendro, početna" className="mt-6 w-fit rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Logo />
         </Link>
       )}

@@ -22,6 +22,7 @@ export function BuyerOrdersFrame({
   logoUrl,
   brandColor,
   audience,
+  allowIps = false,
   buyer,
   showAccount,
   products,
@@ -34,6 +35,7 @@ export function BuyerOrdersFrame({
   logoUrl: string | null;
   brandColor: string | null;
   audience: Audience;
+  allowIps?: boolean;
   buyer: BuyerAccount;
   showAccount: boolean;
   products: Product[];
@@ -51,14 +53,14 @@ export function BuyerOrdersFrame({
   const lines = products
     .map((product) => ({
       product,
-      quantity: normalizeCartQuantity(product.unit, quantities[product.id] ?? 0, product.minQuantity),
+      quantity: normalizeCartQuantity(product.unit, quantities[product.id] ?? 0),
     }))
     .filter((line) => line.quantity > 0);
   const total = lines.reduce((sum, line) => sum + lineTotalPara(effectivePricePara(line.product), line.quantity), 0);
 
   function setQuantity(product: Product, quantity: number) {
     const next = { ...quantities };
-    const stored = quantity <= 0 ? 0 : normalizeCartQuantity(product.unit, quantity, product.minQuantity);
+    const stored = quantity <= 0 ? 0 : normalizeCartQuantity(product.unit, quantity);
     if (stored <= 0) delete next[product.id];
     else next[product.id] = stored;
     localStorage.setItem(storageKey, JSON.stringify(next));
@@ -99,6 +101,7 @@ export function BuyerOrdersFrame({
           <Checkout
             slug={slug}
             audience={audience}
+            allowIps={allowIps}
             buyer={buyer}
             lines={lines}
             total={total}

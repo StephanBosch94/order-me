@@ -1,5 +1,3 @@
-import { unitLabel } from "@/lib/constants";
-import { formatQuantity } from "@/lib/format";
 import type { OrderStatus, Product, Unit } from "@/lib/data/types";
 
 export type PricedLine = {
@@ -90,7 +88,7 @@ export function nextStockQuantities(
 export function priceOrderLines(
   catalog: Product[],
   requested: { productId: string; quantity: number }[],
-  options?: { enforceMinimum?: boolean; allowInactive?: boolean },
+  options?: { allowInactive?: boolean },
 ): { ok: true; items: PricedLine[]; subtotalPara: number } | { ok: false; message: string } {
   if (requested.length === 0) {
     return { ok: false, message: "Korpa je prazna." };
@@ -123,13 +121,6 @@ export function priceOrderLines(
         message: `Količina za proizvod „${product.name}” nije ispravna.`,
       };
     }
-    if (options?.enforceMinimum !== false && quantity < product.minQuantity) {
-      return {
-        ok: false,
-        message: `Minimalna količina za „${product.name}” je ${formatQuantity(product.minQuantity)} ${unitLabel(product.unit).toLowerCase()}.`,
-      };
-    }
-
     const unitPricePara = effectivePricePara(product);
     const lineTotal = lineTotalPara(unitPricePara, quantity);
     items.push({

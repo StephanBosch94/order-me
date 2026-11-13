@@ -31,6 +31,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     description: session.organization.description,
     channel: session.organization.channel,
     audience: session.organization.audience,
+    ipsAccount: session.organization.ipsAccount,
   };
   const customer = await getCommerce().getCustomer(session.organization.id, order.customerId);
   const party = customer?.party ?? partyForPib(order.customerSnapshot.pib);

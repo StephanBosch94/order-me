@@ -4,7 +4,7 @@ import type { DemoMembership, DemoUser } from "@/lib/data/seed";
 import type { Organization } from "@/lib/data/types";
 
 const SESSION_MS = 14 * 24 * 60 * 60 * 1000;
-const DEMO_SECRET = "prodora-demo-session-v1";
+const DEMO_SECRET = "vendro-demo-session-v1";
 
 /** Account copy kept in the signed cookie so another Netlify instance can restore a new signup. */
 export type SessionCarry = {
@@ -78,7 +78,11 @@ function readCarry(value: unknown, userId: string): SessionCarry | null {
   if (organization && typeof organization === "object") {
     const org = organization as Organization;
     if (typeof org.id === "string" && typeof org.slug === "string" && typeof org.name === "string") {
-      carry.organization = { ...org, efakturaApiKey: "" };
+      carry.organization = {
+        ...org,
+        efakturaApiKey: "",
+        ipsAccount: typeof org.ipsAccount === "string" ? org.ipsAccount : "",
+      };
     }
   }
   const member = record.member;

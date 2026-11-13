@@ -23,15 +23,12 @@ const product: Product = {
   updatedAt: new Date().toISOString(),
 };
 
-test("uses the catalog price and enforces the minimum quantity", () => {
-  const below = priceOrderLines([product], [{ productId: "p1", quantity: 10 }]);
-  assert.equal(below.ok, false);
-
-  const priced = priceOrderLines([product], [{ productId: "p1", quantity: 100 }]);
+test("uses the catalog price for the ordered quantity", () => {
+  const priced = priceOrderLines([product], [{ productId: "p1", quantity: 10 }]);
   assert.equal(priced.ok, true);
   if (priced.ok) {
     assert.equal(priced.items[0]?.unitPricePara, 450);
-    assert.equal(priced.subtotalPara, 45000);
+    assert.equal(priced.subtotalPara, 4500);
   }
 });
 

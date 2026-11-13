@@ -157,11 +157,9 @@ export function Shop({
       if (!item.productId) continue;
       const product = catalog.products.find((entry) => entry.id === item.productId);
       if (!product) continue;
-      next[product.id] = normalizeCartQuantity(
-        product.unit,
-        Math.max(product.minQuantity, item.quantity),
-        product.minQuantity,
-      );
+      const quantity = normalizeCartQuantity(product.unit, item.quantity);
+      if (quantity <= 0) continue;
+      next[product.id] = quantity;
     }
     writeCart(next);
   }
@@ -172,12 +170,9 @@ export function Shop({
       if (!item.productId) continue;
       const product = catalog.products.find((entry) => entry.id === item.productId);
       if (!product) continue;
-      const current = normalizeCartQuantity(product.unit, next[product.id] ?? 0, product.minQuantity);
-      const quantity = normalizeCartQuantity(
-        product.unit,
-        Math.max(product.minQuantity, item.quantity),
-        product.minQuantity,
-      );
+      const current = normalizeCartQuantity(product.unit, next[product.id] ?? 0);
+      const quantity = normalizeCartQuantity(product.unit, item.quantity);
+      if (quantity <= 0) continue;
       next[product.id] =
         current === 0 ? quantity : Math.min(9999, Math.round((current + quantity) * 1000) / 1000);
     }
@@ -327,6 +322,7 @@ export function Shop({
           <Checkout
             slug={catalog.supplier.slug}
             audience={catalog.supplier.audience}
+            allowIps={Boolean(catalog.supplier.ipsAccount)}
             buyer={shopper ?? buyer}
             lines={lines}
             total={total}
@@ -409,6 +405,7 @@ export function CompanyOrders({
         <Stat label="Ukupno" value={formatRsd(spent)} />
         <Stat label="Ovog meseca" value={formatRsd(monthSpent)} hint={`${thisMonth.length} ${orderWord(thisMonth.length)}`} />
       </div>
+      <OrderList orders={orders} onRepeat={onRepeat} repeatBase={repeatBase} />
       <section className="rounded-lg border border-border bg-card p-4" aria-labelledby="mesec-naslov">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="mesec-naslov" className="text-sm font-semibold">
@@ -447,7 +444,6 @@ export function CompanyOrders({
           </ul>
         )}
       </section>
-      <OrderList orders={orders} onRepeat={onRepeat} repeatBase={repeatBase} />
     </div>
   );
 }
@@ -796,6 +792,7 @@ export function Checkout({
   lines,
   total,
   idempotencyStorage,
+  allowIps = false,
   onBack,
   onSuccess,
 }: {
@@ -805,6 +802,7 @@ export function Checkout({
   lines: { product: Product; quantity: number }[];
   total: number;
   idempotencyStorage: string;
+  allowIps?: boolean;
   onBack: () => void;
   onSuccess: (token: string, slug?: string) => void;
 }) {
@@ -964,7 +962,7 @@ export function Checkout({
         <h2 className="text-lg font-semibold">Način plaćanja</h2>
         <p className="text-sm text-muted-foreground">Ukupno {formatRsd(total)}.</p>
         {message ? <Alert message={message} /> : null}
-        <PaymentMethodChoice value={paymentMethod} error={errors.paymentMethod} onChange={setPaymentMethod} />
+        <PaymentMethodChoice value={paymentMethod} error={errors.paymentMethod} onChange={setPaymentMethod} allowIps={allowIps} />
         <Honeypot value={honeypot} onChange={setHoneypot} />
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Slanje…" : "Potvrdi kupovinu"}

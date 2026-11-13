@@ -67,6 +67,7 @@ test("a signed session can carry a new account for another server", () => {
       efakturaApiKey: "tajna",
       efakturaEnabled: false,
       efakturaEnvironment: "demo",
+      ipsAccount: "",
       createdAt: "2026-11-03T00:00:00.000Z",
       updatedAt: "2026-11-03T00:00:00.000Z",
     },

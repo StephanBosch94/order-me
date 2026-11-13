@@ -1,6 +1,6 @@
-# Prodora
+# Vendro
 
-Prodora is a multi-tenant ordering app for suppliers in Serbia. Each supplier gets a private admin and a public ordering page, such as `/shop/mesara-pajic`. Customers browse the catalog, enter quantities, and submit an order.
+Vendro is a multi-tenant ordering app for suppliers in Serbia. Each supplier gets a private admin and a public ordering page, such as `/shop/mesara-pajic`. Customers browse the catalog, enter quantities, and submit an order.
 
 The interface is in Serbian Latin. Money is shown in RSD and dates use the Europe/Belgrade time zone.
 

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { productPath, quantityFromInput, stepCartQuantity, storeCartQuantity, unitLabel } from "@/lib/constants";
 import { salePricePara } from "@/lib/data/pricing";
 import type { Product } from "@/lib/data/types";
-import { formatQuantity, formatRsd } from "@/lib/format";
+import { formatRsd } from "@/lib/format";
 
 export function ProductDetail({
   slug,
@@ -63,6 +63,11 @@ export function ProductDetail({
     add();
   }
 
+  function remove() {
+    setDraft(null);
+    write(0);
+  }
+
   return (
     <div>
     <div className="mx-auto grid max-w-6xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
@@ -88,12 +93,6 @@ export function ProductDetail({
             <div>
               <dt className="sr-only">Šifra</dt>
               <dd>{product.sku}</dd>
-            </div>
-          ) : null}
-          {product.minQuantity > 1 ? (
-            <div>
-              <dt className="sr-only">Minimalna količina</dt>
-              <dd>min. {formatQuantity(product.minQuantity)}</dd>
             </div>
           ) : null}
         </dl>
@@ -152,7 +151,11 @@ export function ProductDetail({
           <Button type="button" onMouseDown={(event) => event.preventDefault()} onClick={addTyped}>
             {quantity > 0 ? "Dodaj još" : "Dodaj u korpu"}
           </Button>
-          {quantity > 0 ? <p className="text-sm text-muted-foreground">U korpi: {formatQuantity(quantity)}</p> : null}
+          {quantity > 0 ? (
+            <Button type="button" variant="secondary" onMouseDown={(event) => event.preventDefault()} onClick={remove}>
+              Obriši
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>

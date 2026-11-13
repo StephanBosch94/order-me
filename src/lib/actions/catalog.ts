@@ -185,6 +185,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
     description: text(formData, "description"),
     trade: text(formData, "trade"),
     audience: text(formData, "audience"),
+    ipsAccount: text(formData, "ipsAccount"),
   });
   if (!parsed.success) {
     return {
@@ -222,6 +223,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
       efakturaApiKey: submittedKey || stored?.efakturaApiKey || "",
       efakturaEnabled: formData.get("efakturaEnabled") === "on",
       efakturaEnvironment: "produkcija",
+      ipsAccount: parsed.data.ipsAccount,
     });
   } catch (error) {
     if (error instanceof DataError) {

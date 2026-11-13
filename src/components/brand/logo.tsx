@@ -24,9 +24,9 @@ export function Logo({
           medium ? "size-6 rounded-md text-[11px]" : compact ? "size-4 rounded text-[9px]" : "size-7 rounded-md text-xs",
         )}
       >
-        P
+        V
       </span>
-      Prodora
+      Vendro
     </span>
   );
 }

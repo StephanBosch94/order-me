@@ -10,7 +10,7 @@ const retailDescription = "Kupac vidi katalog i poručuje. Manje poziva i poruka
 const distributionDescription = "Manje telefonskih poziva i poruka, više vremena za Vas.";
 
 export const metadata: Metadata = {
-  title: { absolute: "Prodora" },
+  title: { absolute: "Vendro" },
   description: showOnlineStore ? retailDescription : distributionDescription,
 };
 

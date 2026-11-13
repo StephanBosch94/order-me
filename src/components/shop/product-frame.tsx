@@ -22,6 +22,7 @@ export function ProductFrame({
   logoUrl,
   brandColor,
   audience,
+  allowIps = false,
   buyer,
   showAccount,
   products,
@@ -35,6 +36,7 @@ export function ProductFrame({
   logoUrl: string | null;
   brandColor: string | null;
   audience: Audience;
+  allowIps?: boolean;
   buyer: BuyerAccount | null;
   showAccount: boolean;
   products: Product[];
@@ -106,6 +108,7 @@ export function ProductFrame({
           <Checkout
             slug={slug}
             audience={audience}
+            allowIps={allowIps}
             buyer={buyer}
             lines={lines}
             total={total}

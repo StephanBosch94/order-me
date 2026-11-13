@@ -10,21 +10,21 @@ const lines = [
 
 test("a shop logo path becomes an absolute mail address", () => {
   assert.equal(
-    emailLogoUrl("/suppliers/mesara-pajic-logo.jpg", "https://prodora-app.netlify.app"),
-    "https://prodora-app.netlify.app/suppliers/mesara-pajic-logo.jpg",
+    emailLogoUrl("/suppliers/mesara-pajic-logo.jpg", "https://vendro-app.netlify.app"),
+    "https://vendro-app.netlify.app/suppliers/mesara-pajic-logo.jpg",
   );
-  assert.equal(emailLogoUrl("https://cdn.example/logo.png", "https://prodora-app.netlify.app"), "https://cdn.example/logo.png");
-  assert.equal(emailLogoUrl("", "https://prodora-app.netlify.app"), null);
+  assert.equal(emailLogoUrl("https://cdn.example/logo.png", "https://vendro-app.netlify.app"), "https://cdn.example/logo.png");
+  assert.equal(emailLogoUrl("", "https://vendro-app.netlify.app"), null);
 });
 
 test("an order mail lists each product and the order total", () => {
   const html = emailDocument({
     name: "Mesara Pajić",
-    logoUrl: "https://prodora-app.netlify.app/suppliers/mesara-pajic-logo.jpg",
+    logoUrl: "https://vendro-app.netlify.app/suppliers/mesara-pajic-logo.jpg",
     title: "Potvrda porudžbine PU-2026-1019",
     bodyHtml: orderLinesHtml(lines, 379000),
   });
-  assert.match(html, /src="https:\/\/prodora-app\.netlify\.app\/suppliers\/mesara-pajic-logo\.jpg"/);
+  assert.match(html, /src="https:\/\/vendro-app\.netlify\.app\/suppliers\/mesara-pajic-logo\.jpg"/);
   assert.match(html, /alt="Mesara Pajić"/);
   assert.match(html, /Petrovačka kobasica/);
   assert.match(html, /2 kilogram/);
