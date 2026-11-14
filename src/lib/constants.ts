@@ -43,6 +43,7 @@ export const RESERVED_SLUGS = new Set([
   "admin",
   "poruci",
   "vendro",
+  "savatrade",
   "app",
   "prijava",
   "kupac",

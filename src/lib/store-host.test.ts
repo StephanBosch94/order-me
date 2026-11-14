@@ -55,6 +55,47 @@ test("the apex shop path redirects to the company host", () => {
   assert.equal(storeHostAction("vendro.app", "/shop/www", domain), null);
 });
 
+test("Sava Trade is served at savatrade.vendro.rs", () => {
+  assert.equal(shopSlugFromHostname("savatrade.vendro.rs"), "sava-trade");
+  assert.equal(shopSlugFromHostname("savatrade.vendro.rs:443"), "sava-trade");
+  assert.deepEqual(storeHostAction("savatrade.vendro.rs", "/"), {
+    type: "rewrite",
+    pathname: "/shop/sava-trade",
+  });
+  assert.deepEqual(storeHostAction("savatrade.vendro.rs", "/porudzbine"), {
+    type: "rewrite",
+    pathname: "/shop/sava-trade/porudzbine",
+  });
+  assert.deepEqual(storeHostAction("savatrade.vendro.rs", "/potvrda/token"), {
+    type: "rewrite",
+    pathname: "/s/sava-trade/potvrda/token",
+  });
+  assert.deepEqual(storeHostAction("savatrade.vendro.rs", "/shop/sava-trade"), {
+    type: "redirect",
+    hostname: "savatrade.vendro.rs",
+    pathname: "/",
+  });
+  assert.deepEqual(storeHostAction("vendro.rs", "/shop/sava-trade", null), {
+    type: "redirect",
+    hostname: "savatrade.vendro.rs",
+    pathname: "/",
+  });
+  assert.deepEqual(storeHostAction("www.vendro.rs", "/shop/sava-trade/proizvod/abc", null), {
+    type: "redirect",
+    hostname: "savatrade.vendro.rs",
+    pathname: "/proizvod/abc",
+  });
+  assert.deepEqual(storeHostAction("vendro.rs", "/s/sava-trade/potvrda/token", null), {
+    type: "redirect",
+    hostname: "savatrade.vendro.rs",
+    pathname: "/potvrda/token",
+  });
+  assert.equal(storeHostAction("vendro.rs", "/shop/mesara-pajic", null), null);
+  assert.equal(publicStoreUrl("sava-trade", null), "https://savatrade.vendro.rs");
+  assert.equal(publicStoreUrl("sava-trade", "vendro.rs"), "https://savatrade.vendro.rs");
+  assert.equal(publicConfirmationUrl("sava-trade", "token", null), "https://savatrade.vendro.rs/potvrda/token");
+});
+
 test("public addresses use the shop host", () => {
   assert.equal(publicStoreUrl("mesara-pajic", domain), "https://mesara-pajic.vendro.app");
   assert.equal(publicStoreUrl("mesara-pajic", "localhost"), "http://mesara-pajic.localhost:3000");

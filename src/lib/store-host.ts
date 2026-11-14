@@ -3,6 +3,11 @@ import { RESERVED_SLUGS } from "@/lib/constants";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/** Sava Trade keeps its slug. The public address is this host. */
+const SAVA_SLUG = "sava-trade";
+const SAVA_HOST = "savatrade.vendro.rs";
+const VENDRO_APEX = new Set(["vendro.rs", "www.vendro.rs", "vendro-app.netlify.app"]);
+
 /** Parent domain for shop addresses: mesara-pajic.vendro.app. Local dev uses *.localhost. */
 export function storeDomain() {
   const configured = process.env.NEXT_PUBLIC_STORE_DOMAIN?.trim().toLowerCase().replace(/^\.+|\.+$/g, "");
@@ -12,8 +17,9 @@ export function storeDomain() {
 }
 
 export function shopSlugFromHostname(hostname: string, domain = storeDomain()) {
-  if (!domain) return null;
   const host = hostname.toLowerCase().split(":")[0] ?? "";
+  if (host === SAVA_HOST) return SAVA_SLUG;
+  if (!domain) return null;
   const suffix = `.${domain}`;
   if (!host.endsWith(suffix)) return null;
   const label = host.slice(0, -suffix.length);
@@ -22,6 +28,7 @@ export function shopSlugFromHostname(hostname: string, domain = storeDomain()) {
 }
 
 export function publicStoreUrl(slug: string, domain = storeDomain()) {
+  if (slug === SAVA_SLUG && (!domain || domain === "vendro.rs")) return `https://${SAVA_HOST}`;
   if (!domain) return `${getAppUrl()}/shop/${slug}`;
   const local = domain === "localhost" || domain.endsWith(".localhost");
   const port = local ? process.env.PORT?.trim() || "3000" : "";
@@ -30,6 +37,7 @@ export function publicStoreUrl(slug: string, domain = storeDomain()) {
 
 export function publicConfirmationUrl(slug: string, token: string, domain = storeDomain()) {
   if (!slug || !token) return null;
+  if (!domain && slug === SAVA_SLUG) return `${publicStoreUrl(slug, null)}/potvrda/${token}`;
   if (!domain) return `${getAppUrl()}/s/${slug}/potvrda/${token}`;
   return `${publicStoreUrl(slug, domain)}/potvrda/${token}`;
 }
@@ -40,23 +48,30 @@ export type StoreHostAction =
 
 /** Map a public shop host onto the existing /shop and /s routes, and send apex /shop links to the shop host. */
 export function storeHostAction(hostname: string, pathname: string, domain = storeDomain()): StoreHostAction | null {
-  if (!domain) return null;
-  const slug = shopSlugFromHostname(hostname, domain);
+  const host = hostname.toLowerCase().split(":")[0] ?? "";
+  const slug = host === SAVA_HOST ? SAVA_SLUG : domain ? shopSlugFromHostname(hostname, domain) : null;
   if (slug) {
     const shortened = canonicalPath(pathname, slug);
-    if (shortened) return { type: "redirect", hostname, pathname: shortened };
+    if (shortened) return { type: "redirect", hostname: host === SAVA_HOST ? SAVA_HOST : hostname, pathname: shortened };
     const internal = internalPath(pathname, slug);
     if (internal) return { type: "rewrite", pathname: internal };
     return null;
   }
 
+  if (!domain && !VENDRO_APEX.has(host)) return null;
   const foreign = apexRedirect(pathname);
   if (!foreign) return null;
+  if (!domain && foreign.slug !== SAVA_SLUG) return null;
   return {
     type: "redirect",
-    hostname: `${foreign.slug}.${domain}`,
+    hostname: shopHostname(foreign.slug, domain),
     pathname: foreign.pathname,
   };
+}
+
+function shopHostname(slug: string, domain: string | null) {
+  if (slug === SAVA_SLUG && (!domain || domain === "vendro.rs")) return SAVA_HOST;
+  return `${slug}.${domain}`;
 }
 
 function canonicalPath(pathname: string, slug: string) {
