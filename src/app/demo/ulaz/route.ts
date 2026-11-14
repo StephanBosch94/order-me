@@ -18,8 +18,8 @@ export async function GET(request: Request) {
   const proto = (request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "")).split(",")[0]?.trim() || "https";
   const destination = demoEntryDestination(host, slug, role, Boolean(token));
   const target = new URL(destination, `${proto}://${host || url.host}`);
-  target.search = "";
-  const response = NextResponse.redirect(target);
+  // An explicit empty query stops the host from appending the sign-in parameters.
+  const response = NextResponse.redirect(`${target.origin}${target.pathname}?`);
   if (token) response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
   return response;
 }
