@@ -332,7 +332,7 @@ export function Shop({
               localStorage.removeItem(storageKey);
               sessionStorage.removeItem(idempotencyStorage);
               window.dispatchEvent(new Event("poruci-cart"));
-              router.push(`/s/${orderSlug || catalog.supplier.slug}/potvrda/${token}`);
+              window.location.assign(`/s/${orderSlug || catalog.supplier.slug}/potvrda/${token}`);
             }}
           />
         ) : null}
@@ -493,9 +493,9 @@ function LastOrder({
   return (
     <section className="mb-6 flex flex-col gap-4 rounded-lg border border-border bg-card px-5 py-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-6 sm:gap-y-3" aria-labelledby="poslednja-naslov">
       {href ? (
-        <Link href={href} className="group min-w-0 basis-full rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-1 sm:basis-auto">
+        <a href={href} className="group min-w-0 basis-full rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-1 sm:basis-auto">
           {summary}
-        </Link>
+        </a>
       ) : (
         <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">{summary}</div>
       )}
@@ -548,12 +548,12 @@ export function OrderList({
             return (
               <li key={order.id} className="flex flex-col sm:flex-row sm:items-stretch">
                 {href ? (
-                  <Link
+                  <a
                     href={href}
                     className="group flex min-w-0 flex-1 flex-col justify-center gap-2 px-4 py-3 outline-none hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-row sm:items-center sm:justify-between"
                   >
                     {summary}
-                  </Link>
+                  </a>
                 ) : (
                   <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     {summary}

@@ -1,0 +1,128 @@
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { connection } from "next/server";
+
+import { SupplierLogo } from "@/components/brand/supplier-logo";
+import { IpsPayment } from "@/components/shop/ips-payment";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { orderConfirmationEmail } from "@/lib/buyer";
+import { mailRecipient } from "@/lib/demo-shops";
+import { supplierTheme } from "@/lib/color";
+import { confirmationShopMatches, paymentLabel, storePath, unitLabel } from "@/lib/constants";
+import { getCommerce } from "@/lib/data";
+import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
+
+export async function OrderConfirmation({ token, slug }: { token: string; slug?: string }) {
+  await connection();
+  const view = await getCommerce().getOrderByToken(token);
+  if (!view || (slug && !confirmationShopMatches(slug, view.supplier.slug))) {
+    const catalog = slug ? await getCommerce().getPublicCatalog(slug) : null;
+    if (slug && !catalog) notFound();
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4">
+        <h1 className="text-2xl font-semibold">Porudžbina nije pronađena</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Link ne vodi do porudžbine. Vratite se u prodavnicu.
+        </p>
+        <Link
+          href={catalog ? storePath(catalog.supplier.slug) : "/"}
+          className="mt-6 text-sm font-medium underline-offset-2 hover:underline"
+        >
+          {catalog ? "Nazad u prodavnicu" : "Početna"}
+        </Link>
+      </main>
+    );
+  }
+
+  const { order, supplier } = view;
+  const emailNote =
+    order.customerEmailStatus === "sent"
+      ? `Poslali smo potvrdu na ${mailRecipient(supplier.slug, orderConfirmationEmail(order.customerSnapshot))}.`
+      : order.customerEmailStatus === "outbox"
+        ? "Porudžbina je sačuvana. Email servis nije podešen, pa je poruka upisana lokalno."
+        : order.customerEmailStatus === "failed"
+          ? "Porudžbina je primljena. Email trenutno nije poslat, ali porudžbina nije izgubljena."
+          : "Porudžbina je primljena.";
+
+  return (
+    <main className="mx-auto min-h-dvh max-w-2xl px-4 py-10" style={supplierTheme(supplier.brandColor)}>
+      <Link
+        href={storePath(supplier.slug)}
+        className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft className="size-4" aria-hidden="true" />
+        Nazad u prodavnicu
+      </Link>
+      <div className="mt-4 flex items-center gap-3">
+        <SupplierLogo name={supplier.name} logoUrl={supplier.logoUrl} />
+        <p className="text-sm font-medium">{supplier.name}</p>
+      </div>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+        <span className="inline-flex flex-wrap items-center gap-2 align-middle">
+          Porudžbina {order.number}
+          <StatusBadge status={order.status} />
+        </span>{" "}
+        je primljena
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
+      <p className="mt-4 text-sm">{emailNote}</p>
+      <section className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
+        <ul>
+          {order.items.map((item) => (
+            <li key={item.id} className="flex items-start justify-between gap-4 border-b border-border px-4 py-3 text-sm last:border-0">
+              <div>
+                <p className="font-medium">{item.name}</p>
+                <p className="text-muted-foreground">
+                  {formatQuantity(item.quantity)} {unitLabel(item.unit).toLowerCase()}
+                </p>
+              </div>
+              <p className="tabular-nums">{formatRsd(item.lineTotalPara)}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="flex justify-between px-4 py-3 text-sm font-semibold">
+          <span>Ukupno</span>
+          <span className="tabular-nums">{formatRsd(order.totalPara)}</span>
+        </div>
+        {order.paymentMethod && order.paymentMethod !== "racun" ? (
+          <p className="border-t border-border px-4 py-3 text-sm">
+            Način plaćanja: {paymentLabel(order.paymentMethod)}
+          </p>
+        ) : null}
+        {order.customerSnapshot.pib ? (
+          <p className="border-t border-border px-4 py-3 text-sm">
+            <span className="font-medium">{order.customerSnapshot.businessName}</span>
+            <span className="mt-1 block text-muted-foreground">
+              {[
+                order.customerSnapshot.mb ? `Matični broj ${order.customerSnapshot.mb}` : "",
+                `PIB ${order.customerSnapshot.pib}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </p>
+        ) : null}
+      </section>
+      {order.paymentMethod === "ips" ? (
+        <IpsPayment
+          account={supplier.ipsAccount}
+          recipient={supplier.name}
+          amountPara={order.totalPara}
+          orderNumber={order.number}
+        />
+      ) : null}
+      <p className="mt-4 text-sm text-muted-foreground">
+        {order.paymentMethod === "ips"
+          ? "Uplatu pošaljite IPS-om iz aplikacije banke. "
+          : null}
+        Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.
+      </p>
+      <div className="mt-6">
+        <a href={`/api/confirmations/${order.confirmationToken}/pdf`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[var(--primary-hover)]">
+          Preuzmi potvrdu
+        </a>
+      </div>
+    </main>
+  );
+}

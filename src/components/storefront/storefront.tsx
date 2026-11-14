@@ -279,7 +279,7 @@ export function Storefront({
               localStorage.removeItem(storageKey);
               sessionStorage.removeItem(idempotencyStorage);
               window.dispatchEvent(new Event("poruci-cart"));
-              router.push(`/s/${orderSlug || catalog.supplier.slug}/potvrda/${token}`);
+              window.location.assign(`/s/${orderSlug || catalog.supplier.slug}/potvrda/${token}`);
             }}
           />
         )}

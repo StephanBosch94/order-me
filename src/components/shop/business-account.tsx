@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { StoreAccountLinks } from "@/components/shop/account-links";
 import { confirmationPath } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -85,12 +83,12 @@ export function BusinessAccount({
             return (
               <li key={order.id} className="flex flex-col sm:flex-row sm:items-stretch">
                 {href ? (
-                  <Link
+                  <a
                     href={href}
                     className="group flex min-w-0 flex-1 flex-col justify-center gap-1 py-3 outline-none hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:pr-3"
                   >
                     {summary}
-                  </Link>
+                  </a>
                 ) : (
                   <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:pr-3">
                     {summary}

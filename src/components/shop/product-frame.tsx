@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { StoreAccountLinks } from "@/components/shop/account-links";
@@ -45,7 +44,6 @@ export function ProductFrame({
   accountName?: string | null;
   children: ReactNode;
 }) {
-  const router = useRouter();
   const backHref = storePath(slug);
   const storageKey = `poruci-shop:${slug}`;
   const idempotencyStorage = `poruci-shop-idem:${slug}`;
@@ -118,7 +116,7 @@ export function ProductFrame({
               localStorage.removeItem(storageKey);
               sessionStorage.removeItem(idempotencyStorage);
               window.dispatchEvent(new Event("poruci-cart"));
-              router.push(`/s/${orderSlug || slug}/potvrda/${token}`);
+              window.location.assign(`/s/${orderSlug || slug}/potvrda/${token}`);
             }}
           />
         </div>

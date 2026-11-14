@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { ConfirmOrderButton, SendEfakturaButton } from "@/components/admin/order-actions";
 import { IpsPayment } from "@/components/shop/ips-payment";
@@ -17,7 +16,17 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const session = await requireSession();
   const { id } = await params;
   const order = await getCommerce().getOrder(session.organization.id, id);
-  if (!order) notFound();
+  if (!order) {
+    return (
+      <div>
+        <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">
+          Sve porudžbine
+        </Link>
+        <h1 className="mt-3 text-xl font-semibold tracking-tight">Porudžbina nije pronađena</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Ova porudžbina nije u pregledu.</p>
+      </div>
+    );
+  }
   const customerRecord = await getCommerce().getCustomer(session.organization.id, order.customerId);
   const party = customerRecord?.party ?? partyForPib(order.customerSnapshot.pib);
   const kind = documentKind(party);
