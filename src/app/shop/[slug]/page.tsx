@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { CleanDemoEntryUrl } from "@/components/shop/clean-demo-entry-url";
 import { ClosedStore } from "@/components/shop/closed-store";
 import { Shop } from "@/components/shop/shop";
 import { getSession } from "@/lib/auth";
@@ -40,18 +41,21 @@ export default async function ShopPage({
     ? (await getCommerce().listBuyerOrders(buyer.userId)).filter((order) => order.supplierSlug === catalog.supplier.slug)
     : [];
   return (
-    <Shop
-      catalog={catalog}
-      buyer={buyer}
-      shopper={buyer ?? (session?.kind === "supplier" ? supplierCheckoutAccount(session) : null)}
-      showAccount={session?.kind !== "supplier"}
-      orders={orders}
-      repeatOrderId={query.ponovi}
-      openAccount={query.nalog === "1"}
-      categoryQuery={query.kategorija}
-      demoShop={demo}
-      demoRole={demoRole}
-      accountName={session?.kind === "supplier" ? session.name : null}
-    />
+    <>
+      <CleanDemoEntryUrl />
+      <Shop
+        catalog={catalog}
+        buyer={buyer}
+        shopper={buyer ?? (session?.kind === "supplier" ? supplierCheckoutAccount(session) : null)}
+        showAccount={session?.kind !== "supplier"}
+        orders={orders}
+        repeatOrderId={query.ponovi}
+        openAccount={query.nalog === "1"}
+        categoryQuery={query.kategorija}
+        demoShop={demo}
+        demoRole={demoRole}
+        accountName={session?.kind === "supplier" ? session.name : null}
+      />
+    </>
   );
 }
