@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { demoEntryDestination } from "./demo-shops";
 import { publicConfirmationUrl, publicStoreUrl, shopSlugFromHostname, storeHostAction } from "./store-host";
 
 const domain = "vendro.app";
@@ -138,6 +139,16 @@ test("every shop on vendro.rs uses its own host", () => {
     publicConfirmationUrl("mesara-pajic", "token", vendro),
     "https://mesara-pajic.vendro.rs/potvrda/token",
   );
+});
+
+test("a demo sign-in stays on the shop that set the cookie", () => {
+  const vendro = "vendro.rs";
+  assert.equal(demoEntryDestination("mesara-pajic.vendro.rs", "mesara-pajic", "kupac", true, vendro), "/");
+  assert.equal(demoEntryDestination("mercis-atelier.vendro.rs", "mercis-atelier", "kupac", true, vendro), "/");
+  assert.equal(demoEntryDestination("savatrade.vendro.rs", "sava-trade", "kupac", true, vendro), "/");
+  assert.equal(demoEntryDestination("vendro.rs", "mesara-pajic", "kupac", true, vendro), "/shop/mesara-pajic");
+  assert.equal(demoEntryDestination("mesara-pajic.vendro.rs", "mesara-pajic", "prodavac", true, vendro), "/dashboard");
+  assert.equal(demoEntryDestination("mesara-pajic.vendro.rs", "mesara-pajic", "kupac", false, vendro), "/");
 });
 
 test("public addresses use the shop host", () => {

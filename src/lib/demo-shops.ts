@@ -1,3 +1,5 @@
+import { shopSlugFromHostname } from "@/lib/store-host";
+
 export const DEMO_SHOP_ROLES = {
   "mesara-pajic": { prodavac: "ana@mesarapajic.rs", kupac: "marko@restorandunav.rs" },
   "mercis-atelier": { prodavac: "vera@mercisatelier.rs", kupac: "jovana@mercisatelier.rs" },
@@ -27,6 +29,14 @@ export function accountMailRecipient(email: string) {
 
 export function publishedDemoEntry(slug: string) {
   return `/demo/ulaz?slug=${encodeURIComponent(slug)}&role=kupac`;
+}
+
+/** Relative path after a demo sign-in. Staying on the current host keeps the session cookie. */
+export function demoEntryDestination(host: string, slug: string, role: DemoRole, signedIn: boolean, domain?: string | null) {
+  if (!signedIn || !slug) return "/";
+  if (role === "prodavac") return "/dashboard";
+  if (shopSlugFromHostname(host, domain) === slug) return "/";
+  return `/shop/${slug}`;
 }
 
 export function demoShopSlugFromPath(path: string) {
