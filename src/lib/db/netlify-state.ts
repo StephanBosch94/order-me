@@ -6,9 +6,18 @@ const DATABASE_KEY = "database";
 /** Shared demo database for Netlify functions. Local Postgres and the JSON file stay as they are. */
 export function netlifyDemoEnabled() {
   if (process.env.DATABASE_URL?.trim()) return false;
-  if (process.env.NETLIFY !== "true") return false;
   if (process.env.NEXT_PHASE === "phase-production-build") return false;
-  return true;
+  // The Next.js server handler does not always set NETLIFY=true. Without this,
+  // each instance keeps orders in /tmp and the seller list never sees them.
+  return (
+    process.env.NETLIFY === "true" ||
+    Boolean(process.env.NETLIFY_BLOBS_CONTEXT?.trim()) ||
+    Boolean(process.env.NETLIFY_SITE_ID?.trim()) ||
+    Boolean(process.env.SITE_ID?.trim()) ||
+    process.env.CONTEXT === "production" ||
+    process.env.CONTEXT === "deploy-preview" ||
+    process.env.CONTEXT === "branch-deploy"
+  );
 }
 
 async function store() {
