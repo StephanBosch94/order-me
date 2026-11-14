@@ -27,12 +27,9 @@ test("local demo stays in the JSON file", () => {
   });
 });
 
-test("the Netlify server shares one database even when NETLIFY is unset", () => {
+test("Netlify shares one database only when the runtime says it is Netlify", () => {
   withEnv({ SITE_ID: "site" }, () => {
-    assert.equal(netlifyDemoEnabled(), true);
-  });
-  withEnv({ CONTEXT: "production" }, () => {
-    assert.equal(netlifyDemoEnabled(), true);
+    assert.equal(netlifyDemoEnabled(), false);
   });
   withEnv({ NETLIFY: "true" }, () => {
     assert.equal(netlifyDemoEnabled(), true);
