@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320">
+  <rect width="480" height="320" fill="#f4f1ea"/>
+  <path d="M156 120h168l-18 120H174Z" fill="#fafaf9" stroke="#1c1917" stroke-width="4"/>
+  <path d="M170 120c10-36 130-36 140 0" fill="#e7e5e4" stroke="#1c1917" stroke-width="4"/>
+  <rect x="196" y="168" width="88" height="36" rx="4" fill="#fff" stroke="#1c1917" stroke-width="3"/>
+  <text x="240" y="192" text-anchor="middle" font-family="ui-sans-serif,system-ui" font-size="16" fill="#1c1917">T-400</text>
+</svg>

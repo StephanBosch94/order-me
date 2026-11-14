@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { isCompanyBuyer } from "@/lib/buyer";
-import { createSeedDatabase, ensureRetailDemo } from "@/lib/data/seed";
+import { applySavaPhotos, createSeedDatabase, ensureRetailDemo } from "@/lib/data/seed";
 import { verifyPassword } from "@/lib/password";
 import { productionLoginByEmail } from "@/lib/production-logins";
 
@@ -36,6 +36,7 @@ test("the production shop is published beside the demo shops", async () => {
   shop.name = "Sava";
   const flour = db.products.find((item) => item.organizationId === shop.id && item.sku === "ST-BR500");
   assert.ok(flour);
+  assert.equal(flour.imageUrl, "/products/st-brasno-500.svg");
   flour.name = "Brašno";
   assert.equal(await ensureRetailDemo(db), false);
   assert.equal(shop.name, "Sava");
@@ -302,4 +303,20 @@ test("missing warehouse stock is filled without replacing the meat shop", async 
   assert.equal(kulen.stockQuantity, 0);
   assert.equal(but.stockQuantity, 48);
   assert.equal(await ensureRetailDemo(db), false);
+});
+
+test("sava photos fill an empty product and keep a photo the seller saved", async () => {
+  const db = await createSeedDatabase();
+  const flour = db.products.find((item) => item.sku === "ST-BR500");
+  const coffee = db.products.find((item) => item.sku === "ST-KAF");
+  assert.ok(flour && coffee);
+  flour.imageUrl = "/api/media/custom.jpg";
+  flour.imageUrls = ["/api/media/custom.jpg"];
+  coffee.imageUrl = null;
+  coffee.imageUrls = [];
+  assert.equal(applySavaPhotos(db), true);
+  assert.equal(flour.imageUrl, "/api/media/custom.jpg");
+  assert.equal(coffee.imageUrl, "/products/st-kafa.svg");
+  assert.deepEqual(coffee.imageUrls, ["/products/st-kafa.svg"]);
+  assert.equal(applySavaPhotos(db), false);
 });

@@ -1337,6 +1337,40 @@ const SAVA_PRODUCTS: Array<{
   { sku: "ST-KEC", name: "Kečap blagi", unit: "kilogram", pricePara: 21500, minQuantity: 4, description: "Blagi kečap, doza od 1 kg." },
 ];
 
+const SAVA_PHOTOS: Record<string, string> = {
+  "ST-MAJ": "/products/st-majonez.svg",
+  "ST-KAF": "/products/st-kafa.svg",
+  "ST-VOD": "/products/st-voda.svg",
+  "ST-UBR": "/products/st-ubrus.svg",
+  "ST-DET": "/products/st-deterdzent.svg",
+  "ST-TES": "/products/st-testenina.svg",
+  "ST-ULJ": "/products/st-ulje.svg",
+  "ST-PEL": "/products/st-pelat.svg",
+  "ST-SOK": "/products/st-sok.svg",
+  "ST-BR400": "/products/st-brasno-400.svg",
+  "ST-SEC": "/products/st-secer.svg",
+  "ST-BR500": "/products/st-brasno-500.svg",
+  "ST-PIR": "/products/st-pirinac.svg",
+  "ST-SO": "/products/st-so.svg",
+  "ST-SIR": "/products/st-sirce.svg",
+  "ST-KEC": "/products/st-kecap.svg",
+};
+
+/** Fills a missing Sava Trade picture. A photo the seller already saved stays. */
+export function applySavaPhotos(db: DemoDatabase) {
+  let changed = false;
+  for (const product of db.products) {
+    const photo = SAVA_PHOTOS[product.sku];
+    if (!photo) continue;
+    const current = product.imageUrls ?? [];
+    if (product.imageUrl || current.length > 0) continue;
+    product.imageUrl = photo;
+    product.imageUrls = [photo];
+    changed = true;
+  }
+  return changed;
+}
+
 /** Sava Trade is the production shop. It is created only when missing, so an existing shop is left as it is. */
 async function ensureProductionShop(db: DemoDatabase) {
   if (db.organizations.some((item) => item.slug === "sava-trade")) return false;
@@ -1440,8 +1474,8 @@ async function ensureProductionShop(db: DemoDatabase) {
       unit: item.unit,
       pricePara: item.pricePara,
       salePricePara: null,
-      imageUrl: null,
-      imageUrls: [],
+      imageUrl: SAVA_PHOTOS[item.sku] ?? null,
+      imageUrls: SAVA_PHOTOS[item.sku] ? [SAVA_PHOTOS[item.sku]] : [],
       active: true,
       minQuantity: item.minQuantity,
       stockQuantity: 0,
@@ -1748,10 +1782,11 @@ export async function ensureRetailDemo(db: DemoDatabase) {
   const ownerChanged = await ensureBoutiqueOwner(db);
   const buyersChanged = await ensureDemoBuyers(db);
   const productionChanged = await ensureProductionShop(db);
+  const productionPhotos = applySavaPhotos(db);
   const productionOrders = ensureSavaOrders(db);
   const platformChanged = await ensurePlatformAdmin(db);
   const inboxChanged = ensureSampleInboxes(db);
-  return ownerChanged || buyersChanged || productionChanged || productionOrders || platformChanged || inboxChanged || changed;
+  return ownerChanged || buyersChanged || productionChanged || productionPhotos || productionOrders || platformChanged || inboxChanged || changed;
 }
 
 const PLAN_OSNOVNI_ID = seedId("plan:osnovni");
