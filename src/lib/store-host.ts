@@ -17,7 +17,7 @@ export function storeDomain() {
   return "vendro.rs";
 }
 
-export function shopSlugFromHostname(hostname: string, domain = storeDomain()) {
+export function shopSlugFromHostname(hostname: string, domain: string | null = storeDomain()) {
   const host = hostname.toLowerCase().split(":")[0] ?? "";
   if (host === SAVA_HOST) return SAVA_SLUG;
   if (!domain) return null;
@@ -28,7 +28,7 @@ export function shopSlugFromHostname(hostname: string, domain = storeDomain()) {
   return label;
 }
 
-export function publicStoreUrl(slug: string, domain = storeDomain()) {
+export function publicStoreUrl(slug: string, domain: string | null = storeDomain()) {
   if (slug === SAVA_SLUG && (!domain || domain === "vendro.rs")) return `https://${SAVA_HOST}`;
   if (!domain) return `${getAppUrl()}/shop/${slug}`;
   const local = domain === "localhost" || domain.endsWith(".localhost");
@@ -36,7 +36,7 @@ export function publicStoreUrl(slug: string, domain = storeDomain()) {
   return `${local ? "http" : "https"}://${slug}.${domain}${port ? `:${port}` : ""}`;
 }
 
-export function publicConfirmationUrl(slug: string, token: string, domain = storeDomain()) {
+export function publicConfirmationUrl(slug: string, token: string, domain: string | null = storeDomain()) {
   if (!slug || !token) return null;
   if (!domain && slug === SAVA_SLUG) return `${publicStoreUrl(slug, null)}/potvrda/${token}`;
   if (!domain) return `${getAppUrl()}/s/${slug}/potvrda/${token}`;
@@ -48,7 +48,7 @@ export type StoreHostAction =
   | { type: "rewrite"; pathname: string };
 
 /** Map a public shop host onto the existing /shop and /s routes, and send apex /shop links to the shop host. */
-export function storeHostAction(hostname: string, pathname: string, domain = storeDomain()): StoreHostAction | null {
+export function storeHostAction(hostname: string, pathname: string, domain: string | null = storeDomain()): StoreHostAction | null {
   const host = hostname.toLowerCase().split(":")[0] ?? "";
   if (host === SAVA_LEGACY_HOST) {
     return { type: "redirect", hostname: SAVA_HOST, pathname: canonicalPath(pathname, SAVA_SLUG) ?? pathname };
