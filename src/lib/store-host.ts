@@ -3,17 +3,18 @@ import { RESERVED_SLUGS } from "@/lib/constants";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-/** Sava Trade keeps its slug. The public address is this host. */
+/** Sava Trade keeps its slug. The public address drops the hyphen. */
 const SAVA_SLUG = "sava-trade";
 const SAVA_HOST = "savatrade.vendro.rs";
+const SAVA_LEGACY_HOST = "sava-trade.vendro.rs";
 const VENDRO_APEX = new Set(["vendro.rs", "www.vendro.rs", "vendro-app.netlify.app"]);
 
-/** Parent domain for shop addresses: mesara-pajic.vendro.app. Local dev uses *.localhost. */
+/** Parent domain for shop addresses. Production is vendro.rs. Local dev uses *.localhost. */
 export function storeDomain() {
   const configured = process.env.NEXT_PUBLIC_STORE_DOMAIN?.trim().toLowerCase().replace(/^\.+|\.+$/g, "");
   if (configured) return configured;
   if (process.env.NODE_ENV !== "production") return "localhost";
-  return null;
+  return "vendro.rs";
 }
 
 export function shopSlugFromHostname(hostname: string, domain = storeDomain()) {
@@ -49,6 +50,9 @@ export type StoreHostAction =
 /** Map a public shop host onto the existing /shop and /s routes, and send apex /shop links to the shop host. */
 export function storeHostAction(hostname: string, pathname: string, domain = storeDomain()): StoreHostAction | null {
   const host = hostname.toLowerCase().split(":")[0] ?? "";
+  if (host === SAVA_LEGACY_HOST) {
+    return { type: "redirect", hostname: SAVA_HOST, pathname: canonicalPath(pathname, SAVA_SLUG) ?? pathname };
+  }
   const slug = host === SAVA_HOST ? SAVA_SLUG : domain ? shopSlugFromHostname(hostname, domain) : null;
   if (slug) {
     const shortened = canonicalPath(pathname, slug);
