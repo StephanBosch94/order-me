@@ -18,7 +18,6 @@ import { useEffect, useState } from "react";
 import { SetupGuide } from "@/components/admin/setup-guide";
 import { BuyerMenu } from "@/components/shop/buyer-menu";
 import { StoreHeader } from "@/components/shop/store-header";
-import { supplierTheme } from "@/lib/color";
 import { isShopManager } from "@/lib/members";
 import { storePath } from "@/lib/constants";
 import type { AccountContext } from "@/lib/data/types";
@@ -91,11 +90,11 @@ export function AdminShell({
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
+                "flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm text-foreground hover:bg-muted",
                 active && "bg-accent font-medium text-accent-foreground",
               )}
             >
-              <Icon className="size-4" aria-hidden="true" />
+              <Icon className={cn("size-4", active && "text-[#EE8139]")} aria-hidden="true" />
               {item.label}
             </Link>
           );
@@ -117,11 +116,11 @@ export function AdminShell({
             href="/invoices"
             aria-current={active ? "page" : undefined}
             className={cn(
-              "mt-1 flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
+              "mt-1 flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm text-foreground hover:bg-muted",
               active && "bg-accent font-medium text-accent-foreground",
             )}
           >
-            <Receipt className="size-4" aria-hidden="true" />
+            <Receipt className={cn("size-4", active && "text-[#EE8139]")} aria-hidden="true" />
             Fakture
           </Link>
         ) : null}
@@ -130,12 +129,11 @@ export function AdminShell({
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background" style={supplierTheme(session.organization.brandColor)}>
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
       <StoreHeader
         href="/dashboard"
         name={session.organization.name}
         logoUrl={session.organization.logoUrl}
-        brandColor={session.organization.brandColor}
         alignMenu
         role={demoShop ? { slug: demoShop, active: "prodavac" } : null}
       >

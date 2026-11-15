@@ -8,11 +8,11 @@ export function normalizeHex(value: string | null | undefined) {
 }
 
 export function contrastForeground(hex: string) {
-  const color = normalizeHex(hex) ?? "#18181b";
+  const color = normalizeHex(hex) ?? "#111111";
   const channel = (start: number) => parseInt(color.slice(start, start + 2), 16) / 255;
   const linear = (value: number) => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
   const luminance = 0.2126 * linear(channel(1)) + 0.7152 * linear(channel(3)) + 0.0722 * linear(channel(5));
-  return luminance > 0.42 ? "#18181b" : "#fafafa";
+  return luminance > 0.42 ? "#111111" : "#fafafa";
 }
 
 export function darkenHex(value: string | null | undefined, ratio = 0.82) {

@@ -60,7 +60,7 @@ export async function OrderConfirmation({ token, slug }: { token: string; slug?:
       </div>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">
         <span className="inline-flex flex-wrap items-center gap-2 align-middle">
-          Porudžbina {order.number}
+          Porudžbina <span className="font-mono">{order.number}</span>
           <StatusBadge status={order.status} />
         </span>{" "}
         je primljena

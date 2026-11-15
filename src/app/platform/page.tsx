@@ -40,7 +40,7 @@ export default async function PlatformSuppliersPage() {
                 <td className="px-4 py-3">{supplierAudienceLabel(row.organization.audience)}</td>
                 <td className="px-4 py-3">{row.organization.active ? "Aktivan" : "Neaktivan"}</td>
                 <td className="px-4 py-3">
-                  <Link href={storePath(row.organization.slug)} className="text-indigo-700 hover:underline" target="_blank">
+                  <Link href={storePath(row.organization.slug)} className="text-foreground underline-offset-2 hover:underline" target="_blank">
                     Otvori
                   </Link>
                 </td>

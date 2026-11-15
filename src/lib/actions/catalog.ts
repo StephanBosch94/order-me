@@ -196,8 +196,10 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
   const ipsEnabled = formData.get("ipsEnabled") === "on";
   if (ipsEnabled && !parsed.data.ipsAccount) {
     return {
-      error: "Unesite IPS kod da biste uključili plaćanje.",
-      fieldErrors: { ipsAccount: "Unesite tekući račun ili IPS kod." },
+      error: "IPS plaćanje je uključeno, a račun nije unet.",
+      fieldErrors: {
+        ipsAccount: "IPS plaćanje je uključeno, a račun nije unet. Kupac tu opciju ne dobija dok račun nije ispravan.",
+      },
     };
   }
 

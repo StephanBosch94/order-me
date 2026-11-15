@@ -64,7 +64,7 @@ export function DemoPicker({ className }: { className?: string }) {
       </button>
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a2540]/45 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/45 p-4"
           onClick={() => setOpen(false)}
         >
           <div
@@ -73,7 +73,7 @@ export function DemoPicker({ className }: { className?: string }) {
             aria-modal="true"
             aria-labelledby={titleId}
             tabIndex={-1}
-            className="w-full max-w-lg rounded-2xl bg-white p-6 text-[#0a2540] shadow-[0_30px_70px_rgba(50,50,93,0.25)] outline-none"
+            className="w-full max-w-lg rounded-[16px] border border-[#E7E5E2] bg-white p-6 text-[#111111] outline-none"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
@@ -82,7 +82,7 @@ export function DemoPicker({ className }: { className?: string }) {
               </h2>
               <button
                 type="button"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-[#425466] hover:bg-[#f6f9fc] hover:text-[#0a2540]"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] text-[#6B6B6B] hover:bg-[#F7F6F4] hover:text-[#111111]"
                 onClick={() => setOpen(false)}
               >
                 <span className="sr-only">Zatvorite</span>
@@ -98,9 +98,9 @@ export function DemoPicker({ className }: { className?: string }) {
                   href={choice.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-xl border border-[#e6ebf1] px-4 py-4 transition-colors hover:border-[#635bff] hover:bg-[#f6f9fc]"
+                  className="rounded-[16px] border border-[#E7E5E2] px-4 py-4 transition-colors hover:border-[#111111] hover:bg-[#F7F6F4]"
                 >
-                  <span className="block text-xs font-medium text-[#635bff]">{choice.label}</span>
+                  <span className="block text-xs font-medium text-[#6B6B6B]">{choice.label}</span>
                   <span className="mt-2 block text-lg font-semibold tracking-tight">{choice.title}</span>
                   <span className="mt-1 block text-sm text-[#425466]">{choice.shop}</span>
                 </Link>

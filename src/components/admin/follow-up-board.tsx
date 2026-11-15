@@ -23,7 +23,7 @@ export function FollowUpBoard({ items }: { items: SalesFollowUp[] }) {
           <h2 className="text-sm font-semibold">Kupci za poziv</h2>
           <InfoTip text={MEANING} />
         </div>
-        <Link href="/customers" className="text-sm font-medium text-indigo-700 hover:underline">
+        <Link href="/customers" className="text-sm font-medium text-foreground underline-offset-2 hover:underline">
           Svi kupci
         </Link>
       </div>

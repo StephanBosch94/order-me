@@ -49,11 +49,11 @@ export function PlatformShell({
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm text-zinc-700 hover:bg-zinc-100",
+                "flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm text-foreground hover:bg-muted",
                 active && "bg-accent font-medium text-accent-foreground",
               )}
             >
-              <Icon className="size-4" aria-hidden="true" />
+              <Icon className={cn("size-4", active && "text-[#EE8139]")} aria-hidden="true" />
               {item.label}
             </Link>
           );

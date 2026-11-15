@@ -28,19 +28,19 @@ export default async function MarketplacePage({
   const stores = (await getCommerce().listMarketplaceStores()).filter((store) => !selected || store.trade === selected);
 
   return (
-    <div className="min-h-dvh bg-white text-[#0a2540]">
-      <header className="sticky top-0 z-20 border-b border-[#e6ebf1] bg-white/90 backdrop-blur">
+    <div className="min-h-dvh bg-white text-[#111111]">
+      <header className="sticky top-0 z-20 border-b border-[#E7E5E2] bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" aria-label="Vendro, početna" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#635bff]">
+          <Link href="/" aria-label="Vendro, početna" className="rounded-[10px] outline-none focus-visible:ring-2 focus-visible:ring-[#111111]">
             <Logo />
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/login" className="inline-flex h-10 items-center px-3 text-sm font-medium text-[#0a2540] hover:text-[#635bff]">
+            <Link href="/login" className="inline-flex h-10 items-center px-3 text-sm font-semibold text-[#111111] hover:underline">
               Prijava
             </Link>
             <Link
               href="/signup"
-              className="inline-flex h-10 items-center justify-center rounded-md bg-[#635bff] px-3.5 text-sm font-medium text-white shadow-[0_4px_12px_rgba(99,91,255,0.28)] hover:bg-[#4f46e5]"
+              className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[#EE8139] px-4 text-sm font-bold text-[#111111] hover:bg-[#e07028]"
             >
               Otvorite nalog
             </Link>
@@ -48,9 +48,9 @@ export default async function MarketplacePage({
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-        <p className="text-sm font-medium text-[#635bff]">Marketplace</p>
-        <h1 className="mt-3 max-w-2xl text-4xl font-semibold tracking-[-0.03em] text-balance">Prodavnice koje su otvorile nalog</h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-[#425466]">
+        <p className="text-sm font-medium text-[#6B6B6B]">Marketplace</p>
+        <h1 className="mt-3 max-w-2xl text-[40px] leading-[48px] font-bold tracking-[-0.03em] text-balance">Prodavnice koje su otvorile nalog</h1>
+        <p className="mt-4 max-w-2xl text-base leading-6 text-[#6B6B6B]">
           Izaberite prodavca i poručite na njegovoj stranici. Ovde su samo prodavnice koje primaju porudžbine.
         </p>
         <nav aria-label="Delatnost" className="mt-8 flex flex-wrap gap-2">
@@ -64,7 +64,7 @@ export default async function MarketplacePage({
           ))}
         </nav>
         {stores.length === 0 ? (
-          <p className="mt-12 rounded-2xl border border-[#e6ebf1] bg-[#f6f9fc] px-6 py-10 text-sm text-[#425466]">
+          <p className="mt-12 rounded-[16px] border border-[#E7E5E2] bg-[#F7F6F4] px-6 py-10 text-sm text-[#6B6B6B]">
             {selected ? "Nema prodavnica u ovoj delatnosti." : "Još nijedna javna prodavnica nije otvorena."}
           </p>
         ) : (
@@ -73,9 +73,9 @@ export default async function MarketplacePage({
               <li key={store.id}>
                 <Link
                   href={storePath(store.slug)}
-                  className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e6ebf1] bg-white transition-shadow hover:shadow-[0_18px_40px_rgba(50,50,93,0.12)]"
+                  className="flex h-full flex-col overflow-hidden rounded-[16px] border border-[#E7E5E2] bg-white"
                 >
-                  <span className="relative block h-40 overflow-hidden" style={{ background: store.brandColor || "#e6ebf1" }}>
+                  <span className="relative block h-40 overflow-hidden" style={{ background: store.brandColor || "#E7E5E2" }}>
                     {store.coverUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={store.coverUrl} alt="" className="size-full object-cover" />
@@ -85,12 +85,12 @@ export default async function MarketplacePage({
                     <SupplierLogo name={store.name} logoUrl={store.logoUrl} className="size-12" />
                     <span className="min-w-0">
                       <span className="block truncate text-base font-semibold">{store.name}</span>
-                      {store.trade ? <span className="mt-0.5 block text-sm font-medium text-[#635bff]">{tradeLabel(store.trade)}</span> : null}
-                      {store.city ? <span className="mt-0.5 block text-sm text-[#425466]">{store.city}</span> : null}
+                      {store.trade ? <span className="mt-0.5 block text-sm font-medium text-[#6B6B6B]">{tradeLabel(store.trade)}</span> : null}
+                      {store.city ? <span className="mt-0.5 block text-sm text-[#6B6B6B]">{store.city}</span> : null}
                       {store.description ? (
-                        <span className="mt-2 line-clamp-3 block text-sm leading-6 text-[#425466]">{store.description}</span>
+                        <span className="mt-2 line-clamp-3 block text-sm leading-6 text-[#6B6B6B]">{store.description}</span>
                       ) : null}
-                      <span className="mt-3 block text-sm font-medium text-[#635bff]">{productLabel(store.productCount)}</span>
+                      <span className="mt-3 block text-sm font-medium text-[#111111]">{productLabel(store.productCount)}</span>
                     </span>
                   </span>
                 </Link>
@@ -110,8 +110,8 @@ function FilterChip({ href, selected, children }: { href: string; selected: bool
       aria-current={selected ? "page" : undefined}
       className={
         selected
-          ? "inline-flex h-9 items-center rounded-full bg-[#635bff] px-3.5 text-sm font-medium text-white"
-          : "inline-flex h-9 items-center rounded-full border border-[#cdd5e0] bg-white px-3.5 text-sm font-medium text-[#0a2540] hover:bg-[#f6f9fc]"
+          ? "inline-flex h-9 items-center rounded-full bg-[#EE8139] px-3.5 text-sm font-bold text-[#111111]"
+          : "inline-flex h-9 items-center rounded-full border border-[#E7E5E2] bg-white px-3.5 text-sm font-medium text-[#111111] hover:bg-[#F7F6F4]"
       }
     >
       {children}

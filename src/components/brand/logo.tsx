@@ -10,23 +10,12 @@ export function Logo({
   medium?: boolean;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center font-semibold tracking-tight",
-        medium ? "gap-1.5 text-sm" : compact ? "gap-1.5 text-xs font-medium" : "gap-2",
-        className,
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "flex items-center justify-center bg-[#635bff] text-white",
-          medium ? "size-6 rounded-md text-[11px]" : compact ? "size-4 rounded text-[9px]" : "size-7 rounded-md text-xs",
-        )}
-      >
-        V
-      </span>
-      Vendro
+    <span className={cn("inline-flex", className)}>
+      <img
+        src="/brand/vendro-logo.png"
+        alt="Vendro"
+        className={cn("w-auto", compact ? "h-7" : medium ? "h-8" : "h-10")}
+      />
     </span>
   );
 }

@@ -480,7 +480,7 @@ function LastOrder({
       <h2 id="poslednja-naslov" className="text-base font-semibold">
         Poslednja porudžbina
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-normal sm:ml-3 sm:mt-0 sm:inline-flex">
-          <span className="whitespace-nowrap font-medium text-foreground underline-offset-2 group-hover:underline">{order.number}</span>
+          <span className="font-mono whitespace-nowrap font-medium text-foreground underline-offset-2 group-hover:underline">{order.number}</span>
           <StatusBadge status={order.status} />
           <span className="whitespace-nowrap text-muted-foreground">· {formatRsd(order.totalPara)}</span>
         </span>
@@ -537,7 +537,7 @@ export function OrderList({
               <>
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                    <span className="underline-offset-2 group-hover:underline">{order.number}</span>
+                    <span className="font-mono underline-offset-2 group-hover:underline">{order.number}</span>
                     <StatusBadge status={order.status} />
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(order.createdAt)}</p>

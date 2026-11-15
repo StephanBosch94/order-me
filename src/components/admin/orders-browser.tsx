@@ -86,7 +86,7 @@ export function OrdersBrowser({
               <div key={order.id} className="relative flex items-center gap-3 rounded-lg border border-border bg-card p-4">
                 <Link href={`/orders/${order.id}`} className="block min-w-0 flex-1 after:absolute after:inset-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{order.number}</span>
+                    <span className="font-mono font-medium">{order.number}</span>
                     {order.status === "nova" ? <StatusBadge status={order.status} /> : null}
                   </div>
                   <p className="mt-2 text-sm">{order.businessName}</p>
@@ -121,7 +121,7 @@ export function OrdersBrowser({
                   <tr key={order.id} className="relative border-b border-border last:border-0">
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Link href={`/orders/${order.id}`} className="font-medium hover:underline after:absolute after:inset-0">
+                        <Link href={`/orders/${order.id}`} className="font-mono font-medium hover:underline after:absolute after:inset-0">
                           {order.number}
                         </Link>
                         {order.status === "nova" ? (

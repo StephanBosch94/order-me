@@ -19,7 +19,7 @@ import {
   IMAGE_TYPE_ERROR,
 } from "@/components/ui/file-dropzone";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fields";
-import { formatIpsAccount } from "@/lib/ips";
+import { formatIpsAccount, parseIpsAccount } from "@/lib/ips";
 import { TRADES } from "@/lib/trades";
 
 const initial: FormState = {};
@@ -36,6 +36,17 @@ export function SettingsForm({
 }) {
   const [state, action, pending] = useActionState(updateSettingsAction, initial);
   const [tab, setTab] = useState<SettingsTab>(initialTab);
+  const [ipsOn, setIpsOn] = useState(organization.ipsEnabled === true);
+  const [ipsAccount, setIpsAccount] = useState(formatIpsAccount(organization.ipsAccount));
+  const ipsMissing = ipsOn && ipsAccount.trim() === "";
+  const ipsWrong = ipsOn && ipsAccount.trim() !== "" && parseIpsAccount(ipsAccount) === null;
+  const ipsAlert =
+    state.fieldErrors?.ipsAccount ??
+    (ipsWrong
+      ? "Ovaj navod nije tačan IPS račun. Potrebno je 18 cifara i tačan kontrolni broj."
+      : ipsMissing
+        ? "IPS plaćanje je uključeno, a račun nije unet. Kupac tu opciju ne dobija dok račun nije ispravan."
+        : undefined);
   const changes = useUnchangedForm();
 
   useEffect(() => {
@@ -46,7 +57,10 @@ export function SettingsForm({
     const errors = state.fieldErrors;
     if (!errors) return;
     const keys = Object.keys(errors);
-    if (keys.includes("ipsAccount")) setTab("placanje");
+    if (keys.includes("ipsAccount")) {
+      setTab("placanje");
+      setIpsOn(true);
+    }
     else if (keys.some((key) => key === "description" || key === "brandColor")) setTab("izgled");
     else if (keys.length > 0) setTab("podaci");
   }, [state]);
@@ -114,38 +128,44 @@ export function SettingsForm({
             <input
               type="checkbox"
               name="ipsEnabled"
-              defaultChecked={organization.ipsEnabled === true}
+              checked={ipsOn}
+              onChange={(event) => setIpsOn(event.target.checked)}
               className="mt-0.5 size-4 accent-zinc-950"
             />
             <span>
               <span className="text-sm font-medium">IPS plaćanje</span>
               <span className="mt-1 block text-xs text-muted-foreground">
                 Kad je uključeno, kupac može da plati IPS-om. Na potvrdi dobija QR kod, a isti kod stoji i na fakturi.
+                Isključeno plaćanje krije tu opciju. Sačuvani račun ostaje.
               </span>
             </span>
           </label>
-          <div className="mt-4">
-            <Label htmlFor="ipsAccount">IPS kod</Label>
+          <div className={ipsOn ? "mt-4" : "hidden"}>
+            <Label htmlFor="ipsAccount">Tekući račun</Label>
             <Input
               id="ipsAccount"
               name="ipsAccount"
-              defaultValue={formatIpsAccount(organization.ipsAccount)}
-              placeholder="160-0000000011111-14"
+              value={ipsAccount}
+              onChange={(event) => setIpsAccount(event.target.value)}
+              placeholder="000-0000000000000-00"
               autoComplete="off"
               spellCheck={false}
-              className="mt-1.5 font-mono"
+              aria-invalid={ipsAlert ? true : undefined}
+              className={ipsAlert ? "mt-1.5 border-[#111111] font-mono" : "mt-1.5 font-mono"}
             />
-            <div className="mt-2 space-y-2 text-xs text-muted-foreground">
-              <p>IPS kod je tekući račun vaše firme. Kupac ga ne unosi.</p>
-              <ol className="list-decimal space-y-1 pl-4">
-                <li>Otvorite elektronsko bankarstvo ili aplikaciju banke, za firmu.</li>
-                <li>Pronađite tekući račun. To je broj od 18 cifara, u obliku 000-0000000000000-00.</li>
-                <li>Ako banka nudi gotov IPS kod, niz koji počinje sa K:PR, možete nalepiti i njega. Iz njega se uzima račun.</li>
-                <li>Nalepite broj ovde i uključite IPS plaćanje iznad.</li>
+            {ipsAlert ? (
+              <p role="alert" className="mt-3 rounded-[10px] border border-[#111111] bg-[#FCEDE9] px-4 py-3 text-base leading-6 font-bold text-[#111111]">
+                {ipsAlert}
+              </p>
+            ) : null}
+            <div className="mt-3 space-y-2 text-base leading-6 text-[#111111]">
+              <p>Ovde ide tekući račun firme. Kupac ga ne unosi. QR kod se pravi posebno za svaku porudžbinu, sa njenim iznosom i brojem.</p>
+              <ol className="list-decimal space-y-1 pl-5">
+                <li>Otvorite elektronsko bankarstvo firme.</li>
+                <li>Uzmite tekući račun od 18 cifara, u obliku 000-0000000000000-00. Poslednje dve cifre su kontrolni broj. Broj koji samo liči na taj oblik nije tačan.</li>
+                <li>Niz koji počinje sa K:PR možete nalepiti. Iz njega se uzima samo račun.</li>
               </ol>
-              <p>Bez uključenog IPS-a kupac ne vidi tu opciju. Račun ostaje sačuvan i kad isključite plaćanje.</p>
             </div>
-            <FieldError message={state.fieldErrors?.ipsAccount} />
           </div>
         </div>
       </div>

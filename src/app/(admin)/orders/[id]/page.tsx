@@ -40,8 +40,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       </Link>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold tracking-tight">
-            {order.number}
+          <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight">
+            <span className="font-mono">{order.number}</span>
             <StatusBadge status={order.status} />
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>

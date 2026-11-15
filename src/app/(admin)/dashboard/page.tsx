@@ -60,7 +60,7 @@ export default async function DashboardPage() {
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Porudžbine koje čekaju prihvatanje</h2>
-          <Link href="/orders" className="text-sm font-medium text-indigo-700 hover:underline">
+          <Link href="/orders" className="text-sm font-medium text-foreground underline-offset-2 hover:underline">
             Sve porudžbine
           </Link>
         </div>
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
             {data.recentOrders.map((order) => (
               <div key={order.id} className="rounded-lg border border-border bg-card p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
+                  <Link href={`/orders/${order.id}`} className="font-mono font-medium hover:underline">
                     {order.number}
                   </Link>
                   <StatusBadge status={order.status} />
@@ -112,7 +112,7 @@ export default async function DashboardPage() {
                   <tr key={order.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
+                        <Link href={`/orders/${order.id}`} className="font-mono font-medium hover:underline">
                           {order.number}
                         </Link>
                         <StatusBadge status={order.status} />

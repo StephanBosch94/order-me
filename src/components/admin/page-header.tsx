@@ -12,7 +12,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="flex items-baseline gap-2 text-xl font-semibold tracking-tight">
+        <h1 className="flex items-baseline gap-2 text-xl font-bold tracking-tight">
           {title}
           {typeof count === "number" ? (
             <span className="text-base font-normal tabular-nums text-muted-foreground">{count}</span>

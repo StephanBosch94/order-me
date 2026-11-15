@@ -59,7 +59,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                 <li key={order.id} className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 text-sm last:border-0">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/orders/${order.id}`} className="font-medium hover:underline">
+                      <Link href={`/orders/${order.id}`} className="font-mono font-medium hover:underline">
                         {order.number}
                       </Link>
                       <StatusBadge status={order.status} />

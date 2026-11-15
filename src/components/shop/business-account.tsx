@@ -70,7 +70,7 @@ export function BusinessAccount({
               <>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium underline-offset-2 group-hover:underline">{order.number}</span>
+                    <span className="font-mono text-sm font-medium underline-offset-2 group-hover:underline">{order.number}</span>
                     <StatusBadge status={order.status} />
                   </div>
                   <p className="text-xs text-muted-foreground">

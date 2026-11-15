@@ -65,7 +65,7 @@ export default async function BuyerHomePage() {
                 <>
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                      <span className="underline-offset-2 group-hover:underline">{order.number}</span>
+                      <span className="font-mono underline-offset-2 group-hover:underline">{order.number}</span>
                       <StatusBadge status={order.status} />
                       <span className="font-normal text-muted-foreground">· {order.supplierName}</span>
                     </p>

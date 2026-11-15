@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { ordersPath, storePath } from "@/lib/constants";
 import { salePricePara } from "@/lib/data/pricing";
@@ -121,6 +122,12 @@ export function ShopFooter({
           </nav>
         </div>
         <p className="mt-20 text-center text-sm text-muted-foreground">© {year} {supplier.name}</p>
+        <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <span>Powered by</span>
+          <Link href="/" className="text-foreground">
+            <Logo medium />
+          </Link>
+        </p>
       </div>
     </footer>
   );

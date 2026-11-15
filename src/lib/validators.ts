@@ -228,8 +228,8 @@ export const organizationSchema = z.object({
   ipsAccount: z
     .string()
     .trim()
-    .max(500, "IPS kod je predugačak.")
-    .refine((value) => parseIpsAccount(value) !== null, "Unesite ispravan tekući račun ili IPS kod.")
+    .max(500, "Unos je predugačak.")
+    .refine((value) => parseIpsAccount(value) !== null, "Ovaj navod nije tačan IPS račun. Potrebno je 18 cifara i tačan kontrolni broj.")
     .transform((value) => parseIpsAccount(value) ?? ""),
 });
 

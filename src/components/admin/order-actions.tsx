@@ -386,7 +386,7 @@ export function CsvImport({
               {title}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-            <a href={templateHref} download className="mt-3 inline-block text-sm font-medium text-indigo-700 underline-offset-2 hover:underline">
+            <a href={templateHref} download className="mt-3 inline-block text-sm font-medium text-foreground underline-offset-2 hover:underline">
               Preuzmite šablon
             </a>
             <form
