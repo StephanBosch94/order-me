@@ -40,7 +40,7 @@ export default async function MarketplacePage({
             </Link>
             <Link
               href="/signup"
-              className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[#111111] px-4 text-sm font-bold text-white hover:bg-[#333333]"
+              className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[#111111] px-4 text-sm font-medium text-white hover:bg-[#333333]"
             >
               Otvorite nalog
             </Link>
@@ -110,7 +110,7 @@ function FilterChip({ href, selected, children }: { href: string; selected: bool
       aria-current={selected ? "page" : undefined}
       className={
         selected
-          ? "inline-flex h-9 items-center rounded-full bg-[#EE8139] px-3.5 text-sm font-bold text-[#111111]"
+          ? "inline-flex h-9 items-center rounded-full bg-[#EE8139] px-3.5 text-sm font-medium text-[#111111]"
           : "inline-flex h-9 items-center rounded-full border border-[#E7E5E2] bg-white px-3.5 text-sm font-medium text-[#111111] hover:bg-[#F7F6F4]"
       }
     >

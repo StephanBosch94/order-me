@@ -290,7 +290,7 @@ export function Storefront({
         <div className="fixed inset-x-0 bottom-0 border-t border-border bg-card p-3 lg:hidden">
           <button
             type="button"
-            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-[10px] bg-[#111111] px-4 text-sm font-bold text-white hover:bg-[#333333] disabled:opacity-50"
+            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-[10px] bg-[#111111] px-4 text-sm font-medium text-white hover:bg-[#333333] disabled:opacity-50"
             disabled={count === 0}
             onClick={() => setCartOpen(true)}
           >

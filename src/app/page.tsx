@@ -294,12 +294,12 @@ const sectionTitle = "max-w-2xl text-[28px] leading-9 font-bold tracking-[-0.02e
 const focusRing = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]";
 
 const primaryButton = cn(
-  "inline-flex h-10 items-center justify-center gap-1.5 rounded-[10px] bg-[#111111] px-4 text-sm leading-5 font-bold text-white transition-colors hover:bg-[#333333]",
+  "inline-flex h-10 items-center justify-center gap-1.5 rounded-[10px] bg-[#111111] px-4 text-sm leading-5 font-medium text-white transition-colors hover:bg-[#333333]",
   focusRing,
 );
 const primaryButtonLg = cn(primaryButton, "h-12 px-5 text-base leading-6");
 const outlineButton = cn(
-  "inline-flex h-10 items-center justify-center rounded-[10px] border border-[#111111] bg-white px-4 text-sm leading-5 font-semibold text-[#111111] transition-colors hover:bg-[#F7F6F4]",
+  "inline-flex h-10 items-center justify-center rounded-[10px] border border-[#111111] bg-white px-4 text-sm leading-5 font-medium text-[#111111] transition-colors hover:bg-[#F7F6F4]",
   focusRing,
 );
 const outlineButtonLg = cn(outlineButton, "h-12 px-5 text-base leading-6");
