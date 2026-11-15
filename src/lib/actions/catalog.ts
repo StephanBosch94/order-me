@@ -193,6 +193,13 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
       fieldErrors: fieldErrors(parsed.error),
     };
   }
+  const ipsEnabled = formData.get("ipsEnabled") === "on";
+  if (ipsEnabled && !parsed.data.ipsAccount) {
+    return {
+      error: "Unesite IPS kod da biste uključili plaćanje.",
+      fieldErrors: { ipsAccount: "Unesite tekući račun ili IPS kod." },
+    };
+  }
 
   let logoUrl = session.organization.logoUrl;
   if (formData.get("removeLogo") === "on") logoUrl = null;
@@ -224,6 +231,7 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
       efakturaEnabled: formData.get("efakturaEnabled") === "on",
       efakturaEnvironment: "produkcija",
       ipsAccount: parsed.data.ipsAccount,
+      ipsEnabled,
     });
   } catch (error) {
     if (error instanceof DataError) {

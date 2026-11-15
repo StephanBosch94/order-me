@@ -7,7 +7,7 @@ import { loadNetlifySnapshot, netlifyDemoEnabled, saveNetlifyDatabase } from "@/
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor, sefRegisteredFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
-import { parseIpsAccount } from "@/lib/ips";
+import { offeredIpsAccount, parseIpsAccount } from "@/lib/ips";
 import { compareMemberRoles } from "@/lib/members";
 import type { SessionCarry } from "@/lib/session-token";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
@@ -97,7 +97,7 @@ function toPublicSupplier(organization: Organization): PublicSupplier {
     description: organization.description,
     channel: organization.channel,
     audience: organization.audience,
-    ipsAccount: organization.ipsAccount,
+    ipsAccount: offeredIpsAccount(organization.ipsEnabled, organization.ipsAccount),
   };
 }
 
@@ -349,6 +349,7 @@ export class DemoStore implements CommerceRepository {
         efakturaEnabled: false,
         efakturaEnvironment: "demo",
         ipsAccount: "",
+        ipsEnabled: false,
         createdAt: now,
         updatedAt: now,
       };
@@ -601,6 +602,7 @@ export class DemoStore implements CommerceRepository {
         ...input,
         logoUrl: input.logoUrl,
         ipsAccount: parseIpsAccount(input.ipsAccount) ?? "",
+        ipsEnabled: input.ipsEnabled === true,
         channel: channelForAudience(input.audience),
         updatedAt: new Date().toISOString(),
       });
@@ -1028,8 +1030,8 @@ export class DemoStore implements CommerceRepository {
       if (!organization) return { ok: false, message: "Dobavljač nije pronađen." };
       if (!organization.active) return { ok: false, message: STORE_CLOSED_MESSAGE };
       if (organization.publicStore === false) return { ok: false, message: STORE_MANUAL_MESSAGE };
-      if (input.paymentMethod === "ips" && !organization.ipsAccount) {
-        return { ok: false, message: "Ova prodavnica nema IPS kod." };
+      if (input.paymentMethod === "ips" && !offeredIpsAccount(organization.ipsEnabled, organization.ipsAccount)) {
+        return { ok: false, message: "Ova prodavnica ne prima IPS plaćanje." };
       }
 
       const existing = db.orders.find(
@@ -1640,6 +1642,7 @@ function normalizeDatabase(db: DemoDatabase) {
     if (organization.efakturaEnvironment !== "produkcija") organization.efakturaEnvironment = "demo";
     const ipsAccount = parseIpsAccount(typeof organization.ipsAccount === "string" ? organization.ipsAccount : "");
     organization.ipsAccount = ipsAccount ?? "";
+    if (organization.ipsEnabled !== true) organization.ipsEnabled = false;
   }
   for (const customer of db.customers) {
     if (customer.party !== "fizicka" && customer.party !== "pravna") {

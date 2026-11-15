@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { formatIpsAccount, ipsPayload, ipsPurpose, parseIpsAccount } from "@/lib/ips";
+import { formatIpsAccount, ipsPayload, ipsPurpose, offeredIpsAccount, parseIpsAccount } from "@/lib/ips";
 import { organizationSchema } from "@/lib/validators";
 
 const ACCOUNT = "160000000001111114";
 const DASHED = "160-0000000011111-14";
+
+test("buyers see the account only when the shop has turned IPS on", () => {
+  assert.equal(offeredIpsAccount(true, ACCOUNT), ACCOUNT);
+  assert.equal(offeredIpsAccount(false, ACCOUNT), "");
+  assert.equal(offeredIpsAccount(true, ""), "");
+});
 
 test("accepts a dashed current account and an IPS string from the bank", () => {
   assert.equal(parseIpsAccount(""), "");

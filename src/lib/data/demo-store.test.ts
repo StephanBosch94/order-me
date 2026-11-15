@@ -707,6 +707,7 @@ test("orders change warehouse stock only while tracking is on", async () => {
       efakturaEnabled: false,
       efakturaEnvironment: "demo" as const,
       ipsAccount: "",
+      ipsEnabled: false,
     };
     const enabled = await store.updateOrganization(organization.id, { ...settings, trackStock: true });
     assert.equal(enabled.trackStock, true);
@@ -911,10 +912,13 @@ test("turning off the public store blocks the page and keeps staff orders", asyn
       efakturaEnabled: false,
       efakturaEnvironment: "demo",
       ipsAccount: "160-0000000011111-14",
+      ipsEnabled: false,
     });
     assert.equal(closed.publicStore, false);
     assert.equal(closed.ipsAccount, "160000000001111114");
+    assert.equal(closed.ipsEnabled, false);
     const catalog = await store.getPublicCatalog(organization.slug);
+    assert.equal(catalog?.supplier.ipsAccount, "");
     assert.equal(catalog?.closedMessage, STORE_MANUAL_MESSAGE);
     const blocked = await store.createPublicOrder(
       {
@@ -993,6 +997,7 @@ test("marketplace lists active public stores and hides a closed one", async () =
       efakturaEnabled: false,
       efakturaEnvironment: "demo",
       ipsAccount: "",
+      ipsEnabled: false,
     });
     const pausedUser = await store.createUser({
       name: "Vera Ilić",

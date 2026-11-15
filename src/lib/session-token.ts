@@ -82,6 +82,7 @@ function readCarry(value: unknown, userId: string): SessionCarry | null {
         ...org,
         efakturaApiKey: "",
         ipsAccount: typeof org.ipsAccount === "string" ? org.ipsAccount : "",
+        ipsEnabled: org.ipsEnabled === true,
       };
     }
   }

@@ -6,7 +6,7 @@ import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor, sefRegisteredFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
-import { parseIpsAccount } from "@/lib/ips";
+import { offeredIpsAccount, parseIpsAccount } from "@/lib/ips";
 import { compareMemberRoles, memberRole } from "@/lib/members";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
 import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
@@ -118,6 +118,7 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     efakturaEnabled: row.efaktura_enabled === true,
     efakturaEnvironment: row.efaktura_environment === "produkcija" ? "produkcija" : "demo",
     ipsAccount: parseIpsAccount(typeof row.ips_account === "string" ? row.ips_account : "") ?? "",
+    ipsEnabled: row.ips_enabled === true,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -140,7 +141,7 @@ function toPublic(organization: Organization): PublicSupplier {
     description: organization.description,
     channel: organization.channel,
     audience: organization.audience,
-    ipsAccount: organization.ipsAccount,
+    ipsAccount: offeredIpsAccount(organization.ipsEnabled, organization.ipsAccount),
   };
 }
 
@@ -616,6 +617,7 @@ export const supabaseRepository: CommerceRepository = {
         efaktura_enabled: input.efakturaEnabled,
         efaktura_environment: input.efakturaEnvironment === "produkcija" ? "produkcija" : "demo",
         ips_account: parseIpsAccount(input.ipsAccount) ?? "",
+        ips_enabled: input.ipsEnabled === true,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -1078,8 +1080,8 @@ export const supabaseRepository: CommerceRepository = {
     const organization = mapOrganization(orgResult.data as Record<string, unknown>);
     if (!organization.active) return { ok: false, message: STORE_CLOSED_MESSAGE };
     if (organization.publicStore === false) return { ok: false, message: STORE_MANUAL_MESSAGE };
-    if (input.paymentMethod === "ips" && !organization.ipsAccount) {
-      return { ok: false, message: "Ova prodavnica nema IPS kod." };
+    if (input.paymentMethod === "ips" && !offeredIpsAccount(organization.ipsEnabled, organization.ipsAccount)) {
+      return { ok: false, message: "Ova prodavnica ne prima IPS plaćanje." };
     }
 
     const existing = await admin

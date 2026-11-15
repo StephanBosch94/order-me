@@ -112,6 +112,8 @@ export type Organization = {
   efakturaEnvironment: "demo" | "produkcija";
   /** Seller's current account, 18 digits, used to build the NBS IPS QR code. Empty until they set it. */
   ipsAccount: string;
+  /** When true, buyers can pay an order with IPS. The account can stay saved while this is off. */
+  ipsEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -132,7 +134,7 @@ export type PublicSupplier = {
   description: string;
   channel: StoreChannel;
   audience: Audience;
-  /** Seller account for IPS. Empty when the shop has not set a code. */
+  /** Seller account for IPS. Empty when the shop has turned IPS off or has not set a code. */
   ipsAccount: string;
 };
 
@@ -419,6 +421,7 @@ export type OrganizationInput = {
   efakturaEnabled: boolean;
   efakturaEnvironment: "demo" | "produkcija";
   ipsAccount: string;
+  ipsEnabled: boolean;
 };
 
 export type CustomerInput = {

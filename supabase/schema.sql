@@ -42,6 +42,7 @@ create table if not exists public.organizations (
   efaktura_enabled boolean not null default false,
   efaktura_environment text not null default 'demo' check (efaktura_environment in ('demo', 'produkcija')),
   ips_account text not null default '',
+  ips_enabled boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -418,6 +419,7 @@ alter table public.organizations add column if not exists cover_url text;
 alter table public.organizations add column if not exists description text not null default '';
 alter table public.organizations add column if not exists trade text not null default '';
 alter table public.organizations add column if not exists ips_account text not null default '';
+alter table public.organizations add column if not exists ips_enabled boolean not null default false;
 
 alter table public.customers alter column party set default 'fizicka';
 alter table public.customers alter column payment_term_days set default 0;

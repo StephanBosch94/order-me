@@ -1,5 +1,10 @@
 /** Narodna banka Srbije IPS QR payload. Account check is ISO 7064 mod 97-10. */
 
+/** Account buyers may pay, or empty when the shop has not turned IPS on. */
+export function offeredIpsAccount(enabled: boolean, account: string) {
+  return enabled && account ? account : "";
+}
+
 const ACCOUNT_DIGITS = 18;
 
 export function parseIpsAccount(input: string): string | null {

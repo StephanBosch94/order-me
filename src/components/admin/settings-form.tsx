@@ -23,7 +23,7 @@ import { formatIpsAccount } from "@/lib/ips";
 import { TRADES } from "@/lib/trades";
 
 const initial: FormState = {};
-type SettingsTab = "podaci" | "prodaja" | "izgled";
+type SettingsTab = "podaci" | "prodaja" | "placanje" | "izgled";
 
 export function SettingsForm({
   organization,
@@ -45,9 +45,10 @@ export function SettingsForm({
   useEffect(() => {
     const errors = state.fieldErrors;
     if (!errors) return;
-    const appearance = ["description", "brandColor"];
-    if (Object.keys(errors).some((key) => appearance.includes(key))) setTab("izgled");
-    else if (Object.keys(errors).length > 0) setTab("podaci");
+    const keys = Object.keys(errors);
+    if (keys.includes("ipsAccount")) setTab("placanje");
+    else if (keys.some((key) => key === "description" || key === "brandColor")) setTab("izgled");
+    else if (keys.length > 0) setTab("podaci");
   }, [state]);
 
   return (
@@ -60,6 +61,9 @@ export function SettingsForm({
         </SettingsTabButton>
         <SettingsTabButton selected={tab === "prodaja"} onClick={() => setTab("prodaja")}>
           Prodaja
+        </SettingsTabButton>
+        <SettingsTabButton selected={tab === "placanje"} onClick={() => setTab("placanje")}>
+          Plaćanje
         </SettingsTabButton>
         <SettingsTabButton selected={tab === "izgled"} onClick={() => setTab("izgled")}>
           Izgled stranice
@@ -103,21 +107,46 @@ export function SettingsForm({
         </div>
         <Setting name="pib" label="PIB" defaultValue={organization.pib} error={state.fieldErrors?.pib} />
         <Setting name="mb" label="Matični broj" defaultValue={organization.mb} error={state.fieldErrors?.mb} />
-        <div className="sm:col-span-2">
-          <Label htmlFor="ipsAccount">IPS kod</Label>
-          <Input
-            id="ipsAccount"
-            name="ipsAccount"
-            defaultValue={formatIpsAccount(organization.ipsAccount)}
-            placeholder="160-0000000011111-14"
-            autoComplete="off"
-            spellCheck={false}
-            className="mt-1.5 font-mono"
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Tekući račun firme, ili IPS kod iz banke. Kupac koji plati IPS-om dobija QR kod, a isti kod stoji i na fakturi.
-          </p>
-          <FieldError message={state.fieldErrors?.ipsAccount} />
+      </div>
+      <div className={tab === "placanje" ? "grid gap-4" : "hidden"} role="tabpanel">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="ipsEnabled"
+              defaultChecked={organization.ipsEnabled === true}
+              className="mt-0.5 size-4 accent-zinc-950"
+            />
+            <span>
+              <span className="text-sm font-medium">IPS plaćanje</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Kad je uključeno, kupac može da plati IPS-om. Na potvrdi dobija QR kod, a isti kod stoji i na fakturi.
+              </span>
+            </span>
+          </label>
+          <div className="mt-4">
+            <Label htmlFor="ipsAccount">IPS kod</Label>
+            <Input
+              id="ipsAccount"
+              name="ipsAccount"
+              defaultValue={formatIpsAccount(organization.ipsAccount)}
+              placeholder="160-0000000011111-14"
+              autoComplete="off"
+              spellCheck={false}
+              className="mt-1.5 font-mono"
+            />
+            <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+              <p>IPS kod je tekući račun vaše firme. Kupac ga ne unosi.</p>
+              <ol className="list-decimal space-y-1 pl-4">
+                <li>Otvorite elektronsko bankarstvo ili aplikaciju banke, za firmu.</li>
+                <li>Pronađite tekući račun. To je broj od 18 cifara, u obliku 000-0000000000000-00.</li>
+                <li>Ako banka nudi gotov IPS kod, niz koji počinje sa K:PR, možete nalepiti i njega. Iz njega se uzima račun.</li>
+                <li>Nalepite broj ovde i uključite IPS plaćanje iznad.</li>
+              </ol>
+              <p>Bez uključenog IPS-a kupac ne vidi tu opciju. Račun ostaje sačuvan i kad isključite plaćanje.</p>
+            </div>
+            <FieldError message={state.fieldErrors?.ipsAccount} />
+          </div>
         </div>
       </div>
       <div className={tab === "prodaja" ? "grid gap-4" : "hidden"} role="tabpanel">

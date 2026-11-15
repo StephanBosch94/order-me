@@ -156,6 +156,7 @@ export async function createSeedDatabase(): Promise<DemoDatabase> {
     efakturaEnabled: false,
     efakturaEnvironment: "demo",
     ipsAccount: "",
+    ipsEnabled: false,
     createdAt: ago(120),
     updatedAt: now,
   };
@@ -1061,6 +1062,7 @@ function ensureJewelryShop(db: DemoDatabase) {
       efakturaEnabled: false,
       efakturaEnvironment: "demo",
       ipsAccount: "",
+      ipsEnabled: false,
       createdAt: now,
       updatedAt: now,
     };
@@ -1404,6 +1406,7 @@ async function ensureProductionShop(db: DemoDatabase) {
     efakturaEnabled: false,
     efakturaEnvironment: "demo",
     ipsAccount: "",
+    ipsEnabled: false,
     createdAt: now,
     updatedAt: now,
   };
