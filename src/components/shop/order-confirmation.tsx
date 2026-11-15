@@ -119,7 +119,7 @@ export async function OrderConfirmation({ token, slug }: { token: string; slug?:
         Ovo je potvrda porudžbine. Nije fiskalni račun ni faktura.
       </p>
       <div className="mt-6">
-        <a href={`/api/confirmations/${order.confirmationToken}/pdf`} className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[var(--primary-hover)]">
+        <a href={`/api/confirmations/${order.confirmationToken}/pdf`} className="inline-flex h-11 items-center rounded-[10px] bg-[#111111] px-4 text-sm font-bold text-white hover:bg-[#333333]">
           Preuzmi potvrdu
         </a>
       </div>

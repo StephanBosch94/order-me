@@ -40,7 +40,7 @@ export default async function MarketplacePage({
             </Link>
             <Link
               href="/signup"
-              className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[#EE8139] px-4 text-sm font-bold text-[#111111] hover:bg-[#e07028]"
+              className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[#111111] px-4 text-sm font-bold text-white hover:bg-[#333333]"
             >
               Otvorite nalog
             </Link>
