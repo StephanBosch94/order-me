@@ -121,6 +121,7 @@ export default function HomePage() {
                 Kupac vidi sliku, cenu i količinu, pa sam poručuje. Porudžbina stiže u vaš pregled, umesto
                 poziva ili poruke.
               </p>
+              <p className="mt-4 text-base font-semibold text-[#0a2540]">3 meseca besplatno.</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/signup" className={primaryButtonLg}>
                   Otvorite veleprodaju
@@ -241,6 +242,7 @@ export default function HomePage() {
             <div>
               <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.03em] text-balance">Otvorite veleprodaju</h2>
               <p className="mt-4 max-w-xl text-base leading-7 text-[#425466]">
+                3 meseca besplatno. Pogledajte{" "}
                 <DemoStoreLink href="/shop/mesara-pajic" className="font-medium text-[#635bff] hover:underline">
                   {distributionDemoLabel}
                 </DemoStoreLink>{" "}
