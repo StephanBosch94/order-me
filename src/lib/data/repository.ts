@@ -72,6 +72,13 @@ export type CreateOrganizationInput = {
   audience?: "fizicka" | "pravna" | "oba";
 };
 
+export type StaffInvite = {
+  member: OrganizationMember;
+  inviteToken: string;
+  inviteType: "invite" | "recovery";
+  resent: boolean;
+};
+
 export type { AccountContext };
 
 export interface CommerceRepository {
@@ -82,8 +89,8 @@ export interface CommerceRepository {
   listMembers(organizationId: string): Promise<OrganizationMember[]>;
   addStaffMember(
     organizationId: string,
-    input: { name: string; email: string; password: string; role: "admin" | "staff" },
-  ): Promise<OrganizationMember>;
+    input: { name: string; email: string; role: "admin" | "staff" },
+  ): Promise<StaffInvite>;
   resolveAccount(userId: string): Promise<SessionAccount | null>;
   saveBuyerBankAccount(userId: string, bankAccount: string): Promise<void>;
   updateBuyerProfile(userId: string, input: UpdateBuyerInput): Promise<void>;

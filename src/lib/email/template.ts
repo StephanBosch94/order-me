@@ -99,6 +99,43 @@ export function emailDocument(input: { logoUrl: string; title: string; bodyHtml:
 </html>`;
 }
 
+/** Staff invitation. The person chooses a password. The mail never contains one. */
+export function staffInviteEmail(input: {
+  name: string;
+  shopName: string;
+  roleLabel: string;
+  inviteUrl: string;
+  logoUrl: string;
+  appUrl: string;
+}) {
+  const subject = `Pozivnica za ${input.shopName}`;
+  const text = [
+    `${input.name}, dobili ste pristup prodavnici ${input.shopName}.`,
+    `Uloga: ${input.roleLabel}.`,
+    "",
+    "Napravite lozinku ovde:",
+    input.inviteUrl,
+    "",
+    "Lozinku birate sami. Niko drugi je ne vidi.",
+    "Posle toga ulazite u porudžbine i katalog te prodavnice.",
+  ].join("\n");
+  const safeUrl = escapeHtml(input.inviteUrl);
+  const html = emailDocument({
+    logoUrl: input.logoUrl,
+    title: subject,
+    appUrl: input.appUrl,
+    preheader: `Napravite lozinku za ${input.shopName}.`,
+    bodyHtml: `<p style="margin:16px 0 0;font-size:16px;line-height:1.55">${escapeHtml(input.name)}, dobili ste pristup prodavnici.</p>
+              <p style="margin:8px 0 0;font-size:16px;line-height:1.55">Uloga: ${escapeHtml(input.roleLabel)}.</p>
+              <p style="margin:8px 0 0;font-size:16px;line-height:1.55">Napravite lozinku. Lozinku birate sami i niko drugi je ne vidi.</p>
+              ${emailButton(input.inviteUrl, "Napravite lozinku")}
+              <p style="margin:28px 0 0;font-size:13px;line-height:1.5;color:#71717a">Ako dugme ne radi, kopirajte ovu adresu u pregledač:</p>
+              <p style="margin:6px 0 0;font-size:13px;line-height:1.5;word-break:break-all"><a href="${safeUrl}" style="color:#18181b">${safeUrl}</a></p>
+              <p style="margin:22px 0 0;padding-top:18px;border-top:1px solid #e4e4e7;font-size:13px;line-height:1.5;color:#71717a">Posle toga ulazite u porudžbine i katalog te prodavnice.</p>`,
+  });
+  return { subject, text, html };
+}
+
 /** Registration confirmation. Same shell as the other mail, with a confirm button and no photo. */
 export function signupConfirmationEmail(input: { name: string; confirmUrl: string; logoUrl: string; appUrl: string }) {
   const greeting = input.name.trim() ? `${input.name.trim()},` : "Zdravo,";

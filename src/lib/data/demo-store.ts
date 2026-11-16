@@ -10,7 +10,7 @@ import { offeredIpsAccount, parseIpsAccount } from "@/lib/ips";
 import { compareMemberRoles } from "@/lib/members";
 import type { SessionCarry } from "@/lib/session-token";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
-import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
+import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, StaffInvite, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
 import {
   isFractionalUnit,
@@ -71,6 +71,7 @@ import { DataError } from "@/lib/errors";
 import { belgradeDateKey, belgradeMonthKey, belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { loadDatabase, saveDatabase } from "@/lib/db/postgres-state";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { newStaffInviteToken, staffInviteExpiry, staffInviteMatches, staffInviteTokenHash } from "@/lib/staff-invite";
 import { getDataMode, getLocalDataDir, isEphemeralRuntime } from "@/lib/config";
 import { fold, orderPrefixFromName } from "@/lib/text";
 import { isTrade, tradeOrDefault } from "@/lib/trades";
@@ -223,7 +224,7 @@ export class DemoStore implements CommerceRepository {
   async verifyCredentials(email: string, password: string) {
     const db = await this.read();
     const user = db.users.find((item) => item.email.toLowerCase() === email.toLowerCase());
-    if (!user) return null;
+    if (!user || user.inviteTokenHash) return null;
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) return null;
     return { id: user.id, email: user.email, name: user.name };
@@ -480,17 +481,43 @@ export class DemoStore implements CommerceRepository {
 
   async addStaffMember(
     organizationId: string,
-    input: { name: string; email: string; password: string; role: "admin" | "staff" },
-  ): Promise<OrganizationMember> {
-    const passwordHash = await hashPassword(input.password);
+    input: { name: string; email: string; role: "admin" | "staff" },
+  ): Promise<StaffInvite> {
     const email = input.email.trim().toLowerCase();
     const name = input.name.trim();
+    const role = input.role === "admin" ? "admin" : "staff";
+    const inviteToken = newStaffInviteToken();
+    const inviteTokenHash = staffInviteTokenHash(inviteToken);
+    const inviteExpiresAt = staffInviteExpiry();
+    const passwordHash = await hashPassword(randomBytes(32).toString("base64url"));
     return this.exclusive(async (db) => {
       if (!db.organizations.some((organization) => organization.id === organizationId)) {
         throw new DataError("Prodavnica nije pronađena.", "not_found");
       }
-      if (db.users.some((user) => user.email.toLowerCase() === email)) {
-        throw new DataError("Nalog sa ovom email adresom već postoji.", "conflict");
+      const existing = db.users.find((user) => user.email.toLowerCase() === email);
+      if (existing) {
+        if (!existing.inviteTokenHash) throw new DataError("Nalog sa ovom email adresom već postoji.", "conflict");
+        const member = db.members.find((item) => item.userId === existing.id);
+        if (!member || member.organizationId !== organizationId) {
+          throw new DataError("Nalog sa ovom email adresom već postoji.", "conflict");
+        }
+        existing.name = name;
+        existing.inviteTokenHash = inviteTokenHash;
+        existing.inviteExpiresAt = inviteExpiresAt;
+        member.role = role;
+        return {
+          member: {
+            id: member.id,
+            userId: existing.id,
+            name,
+            email: existing.email,
+            role,
+            createdAt: member.createdAt,
+          },
+          inviteToken,
+          inviteType: "invite" as const,
+          resent: true,
+        };
       }
       const now = new Date().toISOString();
       const user: DemoUser = {
@@ -509,24 +536,45 @@ export class DemoStore implements CommerceRepository {
         bankAccount: "",
         confirmationEmail: "",
         createdAt: now,
+        inviteTokenHash,
+        inviteExpiresAt,
       };
       const member: DemoMembership = {
         id: randomUUID(),
         organizationId,
         userId: user.id,
-        role: input.role === "admin" ? "admin" : "staff",
+        role,
         createdAt: now,
       };
       db.users.push(user);
       db.members.push(member);
       return {
-        id: member.id,
-        userId: user.id,
-        name: user.name,
-        email: user.email,
-        role: member.role,
-        createdAt: member.createdAt,
+        member: {
+          id: member.id,
+          userId: user.id,
+          name: user.name,
+          email: user.email,
+          role: member.role,
+          createdAt: member.createdAt,
+        },
+        inviteToken,
+        inviteType: "invite" as const,
+        resent: false,
       };
+    });
+  }
+
+  async acceptStaffInvite(token: string, password: string) {
+    const passwordHash = await hashPassword(password);
+    return this.exclusive(async (db) => {
+      const user = db.users.find((item) => item.inviteTokenHash && staffInviteMatches(token, item.inviteTokenHash));
+      if (!user?.inviteExpiresAt || user.inviteExpiresAt < new Date().toISOString()) {
+        throw new DataError("Pozivnica nije važeća ili je istekla.", "not_found");
+      }
+      user.passwordHash = passwordHash;
+      delete user.inviteTokenHash;
+      delete user.inviteExpiresAt;
+      return { id: user.id, email: user.email, name: user.name };
     });
   }
 

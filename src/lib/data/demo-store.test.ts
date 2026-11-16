@@ -422,19 +422,20 @@ test("owner adds a staff member to the same shop", async () => {
       slug: "mesara-test",
       phone: "",
     });
-    const employee = await store.addStaffMember(organization.id, {
+    const employeeInvite = await store.addStaffMember(organization.id, {
       name: "Petar Jović",
       email: "Petar@MesaraPajic.rs",
-      password: "lozinka123",
       role: "staff",
     });
+    const employee = employeeInvite.member;
     assert.equal(employee.role, "staff");
-    const admin = await store.addStaffMember(organization.id, {
+    assert.equal(employeeInvite.resent, false);
+    const adminInvite = await store.addStaffMember(organization.id, {
       name: "Ivana Admin",
       email: "ivana.admin@mesarapajic.rs",
-      password: "lozinka123",
       role: "admin",
     });
+    const admin = adminInvite.member;
     assert.equal(admin.role, "admin");
     assert.equal(employee.email, "petar@mesarapajic.rs");
 
@@ -453,6 +454,19 @@ test("owner adds a staff member to the same shop", async () => {
         { email: "petar@mesarapajic.rs", role: "staff" },
       ],
     );
+    assert.equal(await store.verifyCredentials("petar@mesarapajic.rs", "lozinka123"), null);
+    const refreshed = await store.addStaffMember(organization.id, {
+      name: "Petar Jović",
+      email: "petar@mesarapajic.rs",
+      role: "staff",
+    });
+    assert.equal(refreshed.resent, true);
+    await assert.rejects(
+      () => store.acceptStaffInvite(employeeInvite.inviteToken, "lozinka123"),
+      (error: unknown) => error instanceof DataError && error.message === "Pozivnica nije važeća ili je istekla.",
+    );
+    const accepted = await store.acceptStaffInvite(refreshed.inviteToken, "lozinka123");
+    assert.equal(accepted.id, employee.userId);
     const login = await store.verifyCredentials("petar@mesarapajic.rs", "lozinka123");
     assert.equal(login?.id, employee.userId);
     const changed = await store.changePassword(employee.userId, "lozinka123", "nova-lozinka");
@@ -479,7 +493,6 @@ test("owner adds a staff member to the same shop", async () => {
         store.addStaffMember(organization.id, {
           name: "Drugi Ana",
           email: "ANA@example.com",
-          password: "lozinka123",
           role: "staff",
         }),
       (error: unknown) => error instanceof DataError && error.message === "Nalog sa ovom email adresom već postoji.",

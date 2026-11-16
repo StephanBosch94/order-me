@@ -3,13 +3,14 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
+import { getAppUrl } from "@/lib/config";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor, sefRegisteredFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
 import { offeredIpsAccount, parseIpsAccount } from "@/lib/ips";
 import { compareMemberRoles, memberRole } from "@/lib/members";
 import { RESERVED_SLUGS, STORE_CLOSED_MESSAGE, STORE_MANUAL_MESSAGE, channelForAudience } from "@/lib/constants";
-import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, UpdateBuyerInput } from "@/lib/data/repository";
+import type { CommerceRepository, CreateBuyerInput, CreateOrganizationInput, StaffInvite, UpdateBuyerInput } from "@/lib/data/repository";
 import { syncProductImages } from "@/lib/data/images";
 import {
   nextStockQuantities,
@@ -1716,35 +1717,36 @@ async function listOrganizationMembers(organizationId: string): Promise<Organiza
 
 async function insertStaffMember(
   organizationId: string,
-  input: { name: string; email: string; password: string; role: "admin" | "staff" },
-): Promise<OrganizationMember> {
+  input: { name: string; email: string; role: "admin" | "staff" },
+): Promise<StaffInvite> {
   const admin = db();
   const email = input.email.trim().toLowerCase();
   const name = input.name.trim();
+  const role = input.role === "admin" ? "admin" : "staff";
   const organization = await admin.from("organizations").select("id").eq("id", organizationId).maybeSingle();
   fail(organization.error);
   if (!organization.data) throw new DataError("Prodavnica nije pronađena.", "not_found");
 
   const existing = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
   fail(existing.error);
-  if (existing.data) throw new DataError(DUPLICATE_EMAIL, "conflict");
+  if (existing.data) return refreshStaffInvite(organizationId, String(existing.data.id), name, email, role);
 
-  const created = await admin.auth.admin.createUser({
+  const created = await admin.auth.admin.generateLink({
+    type: "invite",
     email,
-    password: input.password,
-    email_confirm: true,
-    user_metadata: { name },
+    options: {
+      data: { name },
+      redirectTo: `${getAppUrl()}/auth/pozivnica`,
+    },
   });
-  if (created.error || !created.data.user) {
+  const userId = created.data?.user?.id ?? "";
+  const inviteToken = created.data?.properties?.hashed_token ?? "";
+  if (created.error || !userId || !inviteToken) {
+    if (userId) await admin.auth.admin.deleteUser(userId).catch(() => undefined);
     if (duplicateAccount(created.error)) throw new DataError(DUPLICATE_EMAIL, "conflict");
-    const message = created.error?.message?.toLowerCase() ?? "";
-    if (message.includes("password")) {
-      throw new DataError("Lozinka mora imati bar 8 karaktera.", "validation");
-    }
     throw new DataError("Zaposleni nije dodat. Pokušajte ponovo.", "validation");
   }
 
-  const userId = created.data.user.id;
   const profile = await admin.from("profiles").upsert({
     id: userId,
     email,
@@ -1762,7 +1764,7 @@ async function insertStaffMember(
     .insert({
       organization_id: organizationId,
       user_id: userId,
-      role: input.role === "admin" ? "admin" : "staff",
+      role,
     })
     .select("id, created_at")
     .single();
@@ -1774,12 +1776,79 @@ async function insertStaffMember(
 
   const row = member.data as Record<string, unknown>;
   return {
-    id: String(row.id),
-    userId,
-    name,
+    member: {
+      id: String(row.id),
+      userId,
+      name,
+      email,
+      role,
+      createdAt: String(row.created_at),
+    },
+    inviteToken,
+    inviteType: "invite" as const,
+    resent: false,
+  };
+}
+
+async function refreshStaffInvite(
+  organizationId: string,
+  userId: string,
+  name: string,
+  email: string,
+  role: "admin" | "staff",
+): Promise<StaffInvite> {
+  const admin = db();
+  const authUser = await admin.auth.admin.getUserById(userId);
+  if (authUser.error || !authUser.data.user) throw new DataError(DUPLICATE_EMAIL, "conflict");
+  if (authUser.data.user.email_confirmed_at) throw new DataError(DUPLICATE_EMAIL, "conflict");
+
+  const memberships = await admin
+    .from("organization_members")
+    .select("id, organization_id, role, created_at")
+    .eq("user_id", userId);
+  fail(memberships.error);
+  const rows = (memberships.data ?? []) as Record<string, unknown>[];
+  if (rows.some((row) => String(row.organization_id) !== organizationId)) {
+    throw new DataError(DUPLICATE_EMAIL, "conflict");
+  }
+
+  const profile = await admin.from("profiles").update({ name }).eq("id", userId);
+  fail(profile.error);
+
+  const current = rows[0];
+  let memberId = "";
+  let createdAt = new Date().toISOString();
+  if (!current) {
+    const inserted = await admin
+      .from("organization_members")
+      .insert({ organization_id: organizationId, user_id: userId, role })
+      .select("id, created_at")
+      .single();
+    fail(inserted.error);
+    const row = inserted.data as Record<string, unknown>;
+    memberId = String(row.id);
+    createdAt = String(row.created_at);
+  } else {
+    memberId = String(current.id);
+    createdAt = String(current.created_at);
+    if (String(current.role) !== role) {
+      const updated = await admin.from("organization_members").update({ role }).eq("id", memberId);
+      fail(updated.error);
+    }
+  }
+
+  const link = await admin.auth.admin.generateLink({
+    type: "recovery",
     email,
-    role: input.role === "admin" ? "admin" : "staff",
-    createdAt: String(row.created_at),
+    options: { redirectTo: `${getAppUrl()}/auth/pozivnica` },
+  });
+  const inviteToken = link.data?.properties?.hashed_token ?? "";
+  if (link.error || !inviteToken) throw new DataError("Pozivnica nije poslata. Pokušajte ponovo.", "validation");
+  return {
+    member: { id: memberId, userId, name, email, role, createdAt },
+    inviteToken,
+    inviteType: "recovery" as const,
+    resent: true,
   };
 }
 

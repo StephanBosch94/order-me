@@ -19,9 +19,19 @@ const slugSchema = z
 export const employeeSchema = z.object({
   name: z.string().trim().min(2, "Unesite ime.").max(80),
   email: z.email("Unesite ispravnu email adresu."),
-  password: z.string().min(8, "Lozinka mora imati bar 8 karaktera.").max(72, "Lozinka može imati najviše 72 karaktera."),
   role: z.enum(["admin", "staff"], "Izaberite ulogu."),
 });
+
+export const invitePasswordSchema = z
+  .object({
+    token: z.string().trim().min(1, "Pozivnica nije potpuna. Otvorite link iz emaila."),
+    password: z.string().min(8, "Lozinka mora imati bar 8 karaktera.").max(72, "Lozinka može imati najviše 72 karaktera."),
+    confirmPassword: z.string().min(1, "Ponovite lozinku."),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Lozinka i potvrda se ne poklapaju.",
+  });
 
 export const passwordChangeSchema = z
   .object({

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { emailButton, emailDocument, emailLogoUrl, orderLinesHtml, orderLinesText, signupConfirmationEmail } from "@/lib/email/template";
+import { emailButton, emailDocument, emailLogoUrl, orderLinesHtml, orderLinesText, signupConfirmationEmail, staffInviteEmail } from "@/lib/email/template";
 import { confirmedAccountUrl, signupConfirmUrl } from "@/lib/signup-confirm";
+import { staffInviteUrl } from "@/lib/staff-invite";
 import { publicStoreUrl } from "@/lib/store-host";
 
 const lines = [
@@ -82,4 +83,24 @@ test("a registration confirmation shows the Vendro logo and the confirm link", (
   assert.match(message.html, />Potvrdite adresu</);
   assert.match(message.html, /href="https:\/\/vendro\.rs\/auth\/v1\/verify\?token=abc&amp;type=signup"/);
   assert.equal(message.html.includes("<script>"), false);
+});
+
+test("a staff invitation asks the person to choose a password", () => {
+  const inviteUrl = staffInviteUrl("https://vendro.rs", "token-1", "invite");
+  assert.equal(inviteUrl, "https://vendro.rs/auth/pozivnica?token=token-1&type=invite");
+  const message = staffInviteEmail({
+    name: "Stefan <b>",
+    shopName: "Sava Trade",
+    roleLabel: "Korisnik",
+    inviteUrl,
+    logoUrl: "https://vendro.rs/brand/vendro-logo.png",
+    appUrl: "https://vendro.rs",
+  });
+  assert.equal(message.subject, "Pozivnica za Sava Trade");
+  assert.match(message.text, /Napravite lozinku ovde:/);
+  assert.equal(message.text.includes("Početna lozinka"), false);
+  assert.match(message.html, />Napravite lozinku</);
+  assert.match(message.html, /Stefan &lt;b&gt;/);
+  assert.equal(message.html.includes("Početna lozinka"), false);
+  assert.match(message.html, /bgcolor="#111111"/);
 });

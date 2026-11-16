@@ -39,6 +39,9 @@ export type DemoUser = {
   bankAccount: string;
   confirmationEmail?: string;
   createdAt: string;
+  /** Set until the invited person chooses a password. Login stays closed. */
+  inviteTokenHash?: string;
+  inviteExpiresAt?: string;
 };
 
 export type DemoSession = {

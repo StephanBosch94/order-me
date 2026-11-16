@@ -50,7 +50,7 @@ function EmployeeForm() {
     <section className="mb-8 max-w-2xl rounded-lg border border-border bg-card p-4">
       <h2 className="text-sm font-semibold">Novi zaposleni</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Unesite ime, email, ulogu i početnu lozinku. Pozivnica stiže na email. Admin menja podešavanja i dodaje zaposlene. Korisnik radi sa porudžbinama, kupcima i proizvodima.
+        Unesite ime, email i ulogu. Pozivnica stiže na email, a lozinku pravi sam zaposleni. Admin menja podešavanja i dodaje zaposlene. Korisnik radi sa porudžbinama, kupcima i proizvodima.
       </p>
       <form ref={formRef} action={action} className="mt-4 grid gap-4 sm:grid-cols-2">
       {state.error ? (
@@ -70,19 +70,6 @@ function EmployeeForm() {
         <Label htmlFor="employee-email">Email</Label>
         <Input id="employee-email" name="email" type="email" autoComplete="off" required className="mt-1.5" />
         <FieldError message={state.fieldErrors?.email} />
-      </div>
-      <div className="sm:col-span-2">
-        <Label htmlFor="employee-password">Lozinka</Label>
-        <Input
-          id="employee-password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          className="mt-1.5"
-        />
-        <FieldError message={state.fieldErrors?.password} />
-        <p className="mt-1 text-xs text-muted-foreground">Najmanje 8 karaktera. Stiže u pozivnici i služi za prvu prijavu.</p>
       </div>
       <fieldset className="sm:col-span-2">
         <legend className="text-sm font-medium">Uloga</legend>
@@ -110,7 +97,7 @@ function EmployeeForm() {
       </fieldset>
       <div>
         <Button type="submit" disabled={pending}>
-          {pending ? "Dodavanje…" : "Dodaj zaposlenog"}
+          {pending ? "Slanje…" : "Pošaljite pozivnicu"}
         </Button>
       </div>
     </form>
