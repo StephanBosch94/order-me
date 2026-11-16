@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { emailDocument, emailLogoUrl, orderLinesHtml, orderLinesText } from "@/lib/email/template";
+import { emailDocument, emailLogoUrl, orderLinesHtml, orderLinesText, signupConfirmationEmail } from "@/lib/email/template";
+import { signupConfirmUrl } from "@/lib/signup-confirm";
 
 const lines = [
   { name: "Petrovačka kobasica", quantity: 2, unit: "kilogram" as const, lineTotalPara: 290000 },
@@ -38,6 +39,35 @@ test("an order mail lists each product and the order total", () => {
     orderLinesText(lines),
     "Petrovačka kobasica · 2 kilogram · 2.900,00 RSD\nSuva kobasica · 1 komad · 890,00 RSD",
   );
+});
+
+test("a registration link confirms the address and keeps the return path", () => {
+  assert.equal(
+    signupConfirmUrl("https://vendro.rs", "abc", ""),
+    "https://vendro.rs/auth/potvrda?token_hash=abc&type=signup",
+  );
+  assert.equal(
+    signupConfirmUrl("https://vendro.rs", "abc", "/shop/sava-trade"),
+    "https://vendro.rs/auth/potvrda?token_hash=abc&type=signup&next=%2Fshop%2Fsava-trade",
+  );
+  assert.equal(signupConfirmUrl("https://vendro.rs", "abc", "https://evil.test"), "https://vendro.rs/auth/potvrda?token_hash=abc&type=signup");
+});
+
+test("a registration confirmation shows the Vendro logo and the confirm link", () => {
+  const message = signupConfirmationEmail({
+    name: "Ana <script>",
+    confirmUrl: "https://vendro.rs/auth/v1/verify?token=abc&type=signup",
+    logoUrl: "https://vendro.rs/brand/vendro-logo.png",
+    appUrl: "https://vendro.rs",
+  });
+  assert.equal(message.subject, "Potvrdite email adresu");
+  assert.match(message.text, /Ana <script>,/);
+  assert.match(message.text, /https:\/\/vendro\.rs\/auth\/v1\/verify\?token=abc&type=signup/);
+  assert.match(message.html, /src="https:\/\/vendro\.rs\/brand\/vendro-logo\.png"/);
+  assert.match(message.html, /alt="Vendro"/);
+  assert.match(message.html, /Ana &lt;script&gt;,/);
+  assert.match(message.html, /href="https:\/\/vendro\.rs\/auth\/v1\/verify\?token=abc&amp;type=signup"/);
+  assert.equal(message.html.includes("<script>"), false);
 });
 
 test("a shop without a logo still shows its initials", () => {

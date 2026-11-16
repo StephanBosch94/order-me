@@ -4,9 +4,11 @@ import { redirect } from "next/navigation";
 
 import { buyerDestination, clearDemoSession, landingPath, setDemoSession } from "@/lib/auth";
 import { RESERVED_SLUGS } from "@/lib/constants";
-import { getDataMode } from "@/lib/config";
+import { getAppUrl, getDataMode } from "@/lib/config";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
+import { deliverSignupConfirmationEmail } from "@/lib/email/signup";
 import { DataError } from "@/lib/errors";
+import { signupConfirmUrl } from "@/lib/signup-confirm";
 import { safeNextPath, slugCandidate } from "@/lib/text";
 import { normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { signDemoSession } from "@/lib/session-token";
@@ -131,58 +133,90 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
       redirect(parsed.data.kind === "buyer" ? await buyerDestination(requestedNext, user.id) : "/dashboard");
     }
 
-    const { createSupabaseServer } = await import("@/lib/supabase/server");
-    const supabase = await createSupabaseServer();
-    const created = await supabase.auth.signUp({
+    const { getServiceClient } = await import("@/lib/supabase/admin");
+    const admin = getServiceClient();
+    const created = await admin.auth.admin.generateLink({
+      type: "signup",
       email: parsed.data.email,
       password: parsed.data.password,
-      options: { data: { name: parsed.data.name } },
+      options: {
+        data: { name: parsed.data.name },
+        redirectTo: getAppUrl(),
+      },
     });
     if (created.error || !created.data.user) {
-      return { error: created.error?.message ?? "Registracija nije uspela." };
-    }
-    if (parsed.data.kind === "buyer") {
-      await getCommerce().createBuyerProfile({
-        userId: created.data.user.id,
-        name: parsed.data.name,
-        email: parsed.data.email,
-        businessName: parsed.data.businessName,
-        phone: parsed.data.phone,
-        address: parsed.data.address,
-        city: parsed.data.city,
-        pib: parsed.data.pib,
-        mb: normalizeMb(parsed.data.mb) ?? "",
-        postalCode: normalizePostalCode(parsed.data.postalCode) ?? "",
-        bankAccount: "",
-        confirmationEmail: parsed.data.confirmationEmail,
-      });
-    } else {
-      await getCommerce().createOrganization({
-        userId: created.data.user.id,
-        userName: parsed.data.name,
-        userEmail: parsed.data.email,
-        name: parsed.data.organizationName,
-        slug,
-        phone: parsed.data.phone,
-        audience: parsed.data.audience,
-      });
-    }
-    if (!created.data.session) {
-      const signedIn = await supabase.auth.signInWithPassword({
-        email: parsed.data.email,
-        password: parsed.data.password,
-      });
-      if (signedIn.error) {
-        return {
-          error: "Nalog je kreiran. Potvrdite email adresu, pa se prijavite.",
-        };
+      if (emailAlreadyUsed(created.error)) {
+        return { error: "Nalog sa ovom email adresom već postoji.", fieldErrors: { email: "Email je zauzet." } };
       }
+      return { error: "Registracija nije uspela." };
     }
-    redirect(parsed.data.kind === "buyer" ? await buyerDestination(requestedNext, created.data.user.id) : "/dashboard");
+    const userId = created.data.user.id;
+    const tokenHash = created.data.properties?.hashed_token ?? "";
+    if (!tokenHash) {
+      await admin.auth.admin.deleteUser(userId);
+      return { error: "Registracija nije uspela." };
+    }
+    try {
+      if (parsed.data.kind === "buyer") {
+        await getCommerce().createBuyerProfile({
+          userId,
+          name: parsed.data.name,
+          email: parsed.data.email,
+          businessName: parsed.data.businessName,
+          phone: parsed.data.phone,
+          address: parsed.data.address,
+          city: parsed.data.city,
+          pib: parsed.data.pib,
+          mb: normalizeMb(parsed.data.mb) ?? "",
+          postalCode: normalizePostalCode(parsed.data.postalCode) ?? "",
+          bankAccount: "",
+          confirmationEmail: parsed.data.confirmationEmail,
+        });
+      } else {
+        await getCommerce().createOrganization({
+          userId,
+          userName: parsed.data.name,
+          userEmail: parsed.data.email,
+          name: parsed.data.organizationName,
+          slug,
+          phone: parsed.data.phone,
+          audience: parsed.data.audience,
+        });
+      }
+    } catch (error) {
+      await removeUnfinishedSignup(userId);
+      throw error;
+    }
+    const next = requestedNext !== "/dashboard" ? requestedNext : "";
+    const delivery = await deliverSignupConfirmationEmail({
+      to: parsed.data.email,
+      name: parsed.data.name,
+      confirmUrl: signupConfirmUrl(getAppUrl(), tokenHash, next),
+    }).catch(() => "failed" as const);
+    if (delivery === "failed") {
+      await removeUnfinishedSignup(userId);
+      return { error: "Nismo uspeli da pošaljemo email za potvrdu. Pokušajte ponovo." };
+    }
+    redirect(next ? `/signup/potvrda?next=${encodeURIComponent(next)}` : "/signup/potvrda");
   } catch (error) {
     if (error instanceof DataError) return { error: error.message };
     throw error;
   }
+}
+
+async function removeUnfinishedSignup(userId: string) {
+  const { getServiceClient } = await import("@/lib/supabase/admin");
+  const admin = getServiceClient();
+  const member = await admin.from("organization_members").select("organization_id").eq("user_id", userId).maybeSingle();
+  const organizationId = member.data?.organization_id;
+  if (organizationId) await admin.from("organizations").delete().eq("id", organizationId);
+  await admin.auth.admin.deleteUser(userId);
+}
+
+function emailAlreadyUsed(error: { message?: string; code?: string } | null) {
+  if (!error) return false;
+  const message = error.message?.toLowerCase() ?? "";
+  return error.code === "email_exists" || message.includes("already") || message.includes("registered");
 }
 
 async function freeSlug(name: string) {
