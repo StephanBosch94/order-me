@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 
 import { AdminShell } from "@/components/admin/shell";
@@ -8,6 +9,8 @@ import { demoShopRole } from "@/lib/demo-shops";
 import { isSetupGuideClosed, SETUP_GUIDE_COOKIE, storeSetup } from "@/lib/setup";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();

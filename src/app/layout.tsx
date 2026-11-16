@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 
 import { ResumeEmailSession } from "@/components/auth/resume-email-session";
+import { getAppUrl } from "@/lib/config";
+import { siteDescription, siteName } from "@/lib/seo";
 
 import "./globals.css";
 
@@ -26,12 +28,24 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getAppUrl()),
   title: {
-    default: "Vendro",
+    default: siteName,
     template: "%s · Vendro",
   },
-  description:
-    "Internet prodavnica za kupce i odvojeno poručivanje za firme. Korpa, cenovnik, statusi i potvrda porudžbine u dinarima.",
+  description: siteDescription,
+  applicationName: siteName,
+  openGraph: {
+    type: "website",
+    locale: "sr_RS",
+    siteName,
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteName,
+    description: siteDescription,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

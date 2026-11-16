@@ -6,7 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { safeNextPath } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Potvrdite email" };
+export const metadata: Metadata = { title: "Potvrdite email", robots: { index: false, follow: false } };
 
 export default async function SignupConfirmationPage({
   searchParams,

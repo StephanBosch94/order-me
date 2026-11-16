@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { JsonLd } from "@/components/seo/json-ld";
 import { CleanDemoEntryUrl } from "@/components/shop/clean-demo-entry-url";
 import { ClosedStore } from "@/components/shop/closed-store";
 import { Shop } from "@/components/shop/shop";
@@ -10,11 +11,13 @@ import { isDemoMode } from "@/lib/config";
 import { ordersPath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { demoShopRole, publishedDemoEntry, type DemoRole } from "@/lib/demo-shops";
+import { storeJsonLd, storeMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const catalog = await getCommerce().getPublicCatalog(slug);
-  return { title: catalog ? catalog.supplier.name : "Prodavnica" };
+  if (!catalog) return { title: "Prodavnica", robots: { index: false, follow: false } };
+  return storeMetadata(catalog.supplier, !catalog.closedMessage);
 }
 
 export default async function ShopPage({
@@ -43,6 +46,7 @@ export default async function ShopPage({
   return (
     <>
       <CleanDemoEntryUrl />
+      <JsonLd data={storeJsonLd(catalog.supplier)} />
       <Shop
         catalog={catalog}
         buyer={buyer}

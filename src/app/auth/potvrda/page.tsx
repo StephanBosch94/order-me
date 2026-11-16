@@ -5,7 +5,7 @@ import { AuthShell } from "@/app/login/page";
 import { OpenConfirmedAccount } from "@/components/auth/open-confirmed-account";
 import { safeNextPath } from "@/lib/text";
 
-export const metadata: Metadata = { title: "Otvaramo nalog" };
+export const metadata: Metadata = { title: "Otvaramo nalog", robots: { index: false, follow: false } };
 
 export default async function ConfirmEmailPage({
   searchParams,

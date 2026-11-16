@@ -11,7 +11,7 @@ import { ordersPath, storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { demoShopRole, type DemoRole } from "@/lib/demo-shops";
 
-export const metadata: Metadata = { title: "Porudžbine" };
+export const metadata: Metadata = { title: "Porudžbine", robots: { index: false, follow: false } };
 
 export default async function BuyerOrdersPage({
   params,

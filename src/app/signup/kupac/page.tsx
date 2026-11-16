@@ -8,8 +8,13 @@ import { listProductionLoginChoices } from "@/lib/actions/production-login";
 import { getSession } from "@/lib/auth";
 import { isDemoShopAccount } from "@/lib/demo-shops";
 import { AuthShell } from "@/app/login/page";
+import { signupMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Nalog kupca" };
+export const metadata: Metadata = signupMetadata(
+  "Nalog kupca",
+  "Otvorite nalog kupca na Vendro i pratite svoje porudžbine kod veleprodaje.",
+  "/signup/kupac",
+);
 
 export default async function BuyerSignupPage() {
   const session = await getSession();

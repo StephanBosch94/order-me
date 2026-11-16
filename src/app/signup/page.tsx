@@ -8,8 +8,13 @@ import { listProductionLoginChoices } from "@/lib/actions/production-login";
 import { getSession } from "@/lib/auth";
 import { isDemoShopAccount } from "@/lib/demo-shops";
 import { AuthShell } from "@/app/login/page";
+import { signupMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Registracija" };
+export const metadata: Metadata = signupMetadata(
+  "Otvorite veleprodaju",
+  "Otvorite veleprodaju na Vendro. Kupci sami unose količine, a porudžbine stižu na vašu adresu. Prva 3 meseca besplatno.",
+  "/signup",
+);
 
 export default async function SignupPage() {
   const session = await getSession();

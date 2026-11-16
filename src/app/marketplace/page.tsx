@@ -10,10 +10,11 @@ import { showMarketplace } from "@/lib/marketing";
 import { isTrade, tradeLabel, TRADES } from "@/lib/trades";
 
 export function generateMetadata(): Metadata {
-  if (!showMarketplace) return { title: "Stranica nije pronađena" };
+  if (!showMarketplace) return { title: "Stranica nije pronađena", robots: { index: false, follow: false } };
   return {
     title: "Marketplace",
-    description: "Prodavnice koje su otvorile nalog na Prodori.",
+    description: "Javne prodavnice na Vendro. Izaberite prodavca i poručite na njegovoj stranici.",
+    alternates: { canonical: "/marketplace" },
   };
 }
 

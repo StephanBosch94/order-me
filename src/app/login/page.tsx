@@ -13,9 +13,10 @@ import { supplierTheme } from "@/lib/color";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { isDemoShopAccount } from "@/lib/demo-shops";
+import { noIndex } from "@/lib/seo";
 import { safeNextPath } from "@/lib/text";
 
-export const metadata: Metadata = { title: "Prijava" };
+export const metadata: Metadata = { title: "Prijava", ...noIndex };
 
 export default async function LoginPage({
   searchParams,

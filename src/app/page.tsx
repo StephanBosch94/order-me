@@ -4,14 +4,32 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { DemoPicker } from "@/components/marketing/demo-picker";
 import { distributionDemo, distributionDemoLabel, showMarketplace, showOnlineStore } from "@/lib/marketing";
+import { JsonLd } from "@/components/seo/json-ld";
+import { getAppUrl } from "@/lib/config";
+import { organizationJsonLd, siteDescription, siteTitle } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 const retailDescription = "Kupac vidi katalog i poručuje. Manje poziva i poruka „imate li ovu?“.";
-const distributionDescription = "Porudžbine, bez poziva. Kupci naručuju online, a sve porudžbine stoje na jednom mestu.";
+
+const homeDescription = showOnlineStore ? retailDescription : siteDescription;
 
 export const metadata: Metadata = {
-  title: { absolute: "Vendro" },
-  description: showOnlineStore ? retailDescription : distributionDescription,
+  title: { absolute: siteTitle },
+  description: homeDescription,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "sr_RS",
+    siteName: "Vendro",
+    title: siteTitle,
+    description: homeDescription,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: homeDescription,
+  },
 };
 
 const messages = [
@@ -76,6 +94,7 @@ const previewLines = [
 export default function HomePage() {
   return (
     <div className="min-h-dvh bg-white text-[#111111]">
+      <JsonLd data={organizationJsonLd(getAppUrl())} />
       <header className="sticky top-0 z-20 border-b border-[#E7E5E2] bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -5,6 +6,8 @@ import { Logo } from "@/components/brand/logo";
 import { requireBuyerSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function BuyerLayout({ children }: { children: React.ReactNode }) {
   const session = await requireBuyerSession();

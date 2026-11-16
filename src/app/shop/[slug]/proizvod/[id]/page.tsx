@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { JsonLd } from "@/components/seo/json-ld";
 import { ClosedStore } from "@/components/shop/closed-store";
 import { ProductDetail } from "@/components/shop/product-detail";
 import { ProductFrame } from "@/components/shop/product-frame";
@@ -10,6 +11,7 @@ import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 import { demoShopRole, publishedDemoEntry, type DemoRole } from "@/lib/demo-shops";
 import type { Product } from "@/lib/data/types";
+import { productJsonLd, productMetadata } from "@/lib/seo";
 
 function otherProducts(products: Product[], current: Product) {
   const rest = products.filter((item) => item.id !== current.id);
@@ -26,7 +28,8 @@ export async function generateMetadata({
   const { slug, id } = await params;
   const catalog = await getCommerce().getPublicCatalog(slug);
   const product = catalog?.products.find((item) => item.id === id);
-  return { title: product && catalog ? `${product.name} · ${catalog.supplier.name}` : "Proizvod" };
+  if (!catalog || !product) return { title: "Proizvod", robots: { index: false, follow: false } };
+  return productMetadata(catalog.supplier, product, !catalog.closedMessage);
 }
 
 export default async function ProductPage({
@@ -52,7 +55,9 @@ export default async function ProductPage({
   const category = catalog.categories.find((item) => item.id === product.categoryId);
 
   return (
-    <ProductFrame
+    <>
+      <JsonLd data={productJsonLd(catalog.supplier, product)} />
+      <ProductFrame
       slug={catalog.supplier.slug}
       name={catalog.supplier.name}
       logoUrl={catalog.supplier.logoUrl}
@@ -76,5 +81,6 @@ export default async function ProductPage({
         others={otherProducts(catalog.products, product)}
       />
     </ProductFrame>
+    </>
   );
 }
