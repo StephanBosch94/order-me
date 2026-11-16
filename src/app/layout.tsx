@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 
+import { ResumeEmailSession } from "@/components/auth/resume-email-session";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -40,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Preskoči na sadržaj
         </a>
         <div id="sadrzaj">{children}</div>
+        <ResumeEmailSession />
         <Toaster position="top-center" />
       </body>
     </html>

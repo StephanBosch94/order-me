@@ -3,7 +3,7 @@ import "server-only";
 import { getAppUrl } from "@/lib/config";
 import type { EmailDelivery } from "@/lib/data/types";
 import { sendEmail } from "@/lib/email/send";
-import { emailLogoUrl, signupConfirmationEmail } from "@/lib/email/template";
+import { signupConfirmationEmail, vendroLogoUrl } from "@/lib/email/template";
 
 export async function deliverSignupConfirmationEmail(input: {
   to: string;
@@ -11,7 +11,7 @@ export async function deliverSignupConfirmationEmail(input: {
   confirmUrl: string;
 }): Promise<EmailDelivery> {
   const appUrl = getAppUrl();
-  const logoUrl = emailLogoUrl("/brand/vendro-logo.png", appUrl);
+  const logoUrl = vendroLogoUrl(appUrl);
   if (!logoUrl || !input.confirmUrl.startsWith("http")) return "failed";
   const message = signupConfirmationEmail({
     name: input.name,

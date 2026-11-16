@@ -19,17 +19,21 @@ export function emailLogoUrl(path: string | null | undefined, appUrl: string) {
   return null;
 }
 
-export function emailLogoHtml(name: string, logoUrl: string | null) {
-  if (logoUrl) {
-    return `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(name)}" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:8px;border:1px solid #e4e4e7;object-fit:contain;background:#ffffff" />`;
-  }
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-  return `<div style="width:48px;height:48px;line-height:48px;text-align:center;border-radius:8px;background:#18181b;color:#ffffff;font-weight:700;font-size:14px">${escapeHtml(initials || "P")}</div>`;
+export function vendroLogoUrl(appUrl: string) {
+  return emailLogoUrl("/brand/vendro-logo.png", appUrl);
+}
+
+/** Black button shared by every mail that has an action. */
+export function emailButton(href: string, label: string) {
+  const safeUrl = escapeHtml(href);
+  const safeLabel = escapeHtml(label);
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;border-collapse:separate">
+    <tr>
+      <td align="center" bgcolor="#111111" style="background-color:#111111;border-radius:12px">
+        <a href="${safeUrl}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:Arial,sans-serif;font-size:16px;line-height:20px;font-weight:700;color:#ffffff;text-decoration:none;background-color:#111111;border-radius:12px">${safeLabel}</a>
+      </td>
+    </tr>
+  </table>`;
 }
 
 export function orderLinesText(items: EmailLine[]) {
@@ -59,11 +63,43 @@ export function orderLinesHtml(items: EmailLine[], totalPara: number) {
     </tr></table>`;
 }
 
-export function emailDocument(input: { name: string; logoUrl: string | null; title: string; bodyHtml: string }) {
-  return `<div style="font-family:Arial,sans-serif;color:#18181b;background:#ffffff;max-width:560px">${emailLogoHtml(input.name, input.logoUrl)}<p style="margin:12px 0 0;font-size:14px;font-weight:600">${escapeHtml(input.name)}</p><h1 style="font-size:20px;line-height:1.3;margin:8px 0 0">${escapeHtml(input.title)}</h1>${input.bodyHtml}</div>`;
+/** Shared mail: Vendro logo, white card, and the same button when the body includes one. */
+export function emailDocument(input: { logoUrl: string; title: string; bodyHtml: string; appUrl: string; preheader?: string }) {
+  const home = input.appUrl.replace(/\/$/, "");
+  const host = escapeHtml(home.replace(/^https?:\/\//, ""));
+  const logo = escapeHtml(input.logoUrl);
+  const preheader = input.preheader
+    ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(input.preheader)}</div>`
+    : "";
+  return `<!DOCTYPE html>
+<html lang="sr">
+<body style="margin:0;padding:0;background:#f4f4f5">
+  ${preheader}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;border-collapse:collapse">
+    <tr>
+      <td align="center" style="padding:28px 12px">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:560px;max-width:560px;background:#ffffff;border-radius:20px;border-collapse:separate;overflow:hidden">
+          <tr>
+            <td style="padding:28px 32px 0;font-family:Arial,sans-serif">
+              <img src="${logo}" alt="Vendro" width="148" height="44" style="display:block;border:0;outline:none;width:148px;height:44px" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px 32px;font-family:Arial,sans-serif;color:#18181b">
+              <h1 style="margin:0;font-size:26px;line-height:1.25;font-weight:700">${escapeHtml(input.title)}</h1>
+              ${input.bodyHtml}
+            </td>
+          </tr>
+        </table>
+        <p style="margin:18px 0 0;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;color:#71717a">Vendro · <a href="${escapeHtml(home)}" style="color:#71717a;text-decoration:underline">${host}</a></p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
-/** Registration confirmation. Text carries the message; the logo is an extra, not the only content. */
+/** Registration confirmation. Same shell as the other mail, with a confirm button and no photo. */
 export function signupConfirmationEmail(input: { name: string; confirmUrl: string; logoUrl: string; appUrl: string }) {
   const greeting = input.name.trim() ? `${input.name.trim()},` : "Zdravo,";
   const home = input.appUrl.replace(/\/$/, "");
@@ -80,38 +116,17 @@ export function signupConfirmationEmail(input: { name: string; confirmUrl: strin
     `Vendro · ${home}`,
   ].join("\n");
   const safeUrl = escapeHtml(input.confirmUrl);
-  const html = `<!DOCTYPE html>
-<html lang="sr">
-<body style="margin:0;padding:0;background:#f4f4f5">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0">Potvrdite email adresu i odmah ulazite u Vendro.</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;border-collapse:collapse">
-    <tr>
-      <td align="center" style="padding:32px 16px">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;border-collapse:collapse">
-          <tr>
-            <td style="padding:32px 32px 28px;font-family:Arial,sans-serif;color:#18181b">
-              <img src="${escapeHtml(input.logoUrl)}" alt="Vendro" width="134" height="40" style="display:block;border:0;outline:none;width:134px;height:40px" />
-              <h1 style="margin:28px 0 0;font-size:22px;line-height:1.3;font-weight:700">Potvrdite email adresu</h1>
-              <p style="margin:16px 0 0;font-size:15px;line-height:1.5">${escapeHtml(greeting)}</p>
-              <p style="margin:8px 0 0;font-size:15px;line-height:1.5">Nalog na Vendro je otvoren. Potvrdite email adresu i odmah ulazite u aplikaciju.</p>
-              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 0;border-collapse:collapse">
-                <tr>
-                  <td bgcolor="#111111" style="border-radius:10px">
-                    <a href="${safeUrl}" style="display:inline-block;padding:12px 18px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none">Potvrdite adresu</a>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#52525b">Ako dugme ne radi, kopirajte ovaj link u pregledač:</p>
-              <p style="margin:8px 0 0;font-size:13px;line-height:1.5;word-break:break-all"><a href="${safeUrl}" style="color:#18181b">${safeUrl}</a></p>
-              <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#71717a">Ako niste vi otvorili nalog, zanemarite ovu poruku.</p>
-            </td>
-          </tr>
-        </table>
-        <p style="margin:16px 0 0;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;color:#71717a">Vendro · <a href="${escapeHtml(home)}" style="color:#71717a;text-decoration:underline">${escapeHtml(home.replace(/^https?:\/\//, ""))}</a></p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+  const html = emailDocument({
+    logoUrl: input.logoUrl,
+    title: subject,
+    appUrl: input.appUrl,
+    preheader: "Potvrdite email adresu i odmah ulazite u Vendro.",
+    bodyHtml: `<p style="margin:16px 0 0;font-size:16px;line-height:1.55">${escapeHtml(greeting)}</p>
+              <p style="margin:8px 0 0;font-size:16px;line-height:1.55">Nalog na Vendro je otvoren. Potvrdite email adresu i odmah ulazite u aplikaciju.</p>
+              ${emailButton(input.confirmUrl, "Potvrdite adresu")}
+              <p style="margin:28px 0 0;font-size:13px;line-height:1.5;color:#71717a">Ako dugme ne radi, kopirajte ovu adresu u pregledač:</p>
+              <p style="margin:6px 0 0;font-size:13px;line-height:1.5;word-break:break-all"><a href="${safeUrl}" style="color:#18181b">${safeUrl}</a></p>
+              <p style="margin:22px 0 0;padding-top:18px;border-top:1px solid #e4e4e7;font-size:13px;line-height:1.5;color:#71717a">Ako niste vi otvorili nalog, zanemarite ovu poruku.</p>`,
+  });
   return { subject, text, html };
 }

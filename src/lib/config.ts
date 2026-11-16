@@ -32,6 +32,13 @@ export function getAppUrl() {
   return "http://localhost:3000";
 }
 
+/** Share the signed-in session between vendro.rs and each shop host. */
+export function authCookieDomainForHost(hostname: string) {
+  const host = hostname.toLowerCase().split(",")[0]?.trim().split(":")[0] ?? "";
+  if (host === "vendro.rs" || host.endsWith(".vendro.rs")) return ".vendro.rs";
+  return undefined;
+}
+
 export function isEphemeralRuntime() {
   return process.env.NETLIFY === "true" || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
 }

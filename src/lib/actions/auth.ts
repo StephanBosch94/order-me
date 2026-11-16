@@ -9,6 +9,7 @@ import { getCommerce, getDemoIdentity } from "@/lib/data";
 import { deliverSignupConfirmationEmail } from "@/lib/email/signup";
 import { DataError } from "@/lib/errors";
 import { signupConfirmUrl } from "@/lib/signup-confirm";
+import { publicStoreUrl } from "@/lib/store-host";
 import { safeNextPath, slugCandidate } from "@/lib/text";
 import { normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { signDemoSession } from "@/lib/session-token";
@@ -141,7 +142,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
       password: parsed.data.password,
       options: {
         data: { name: parsed.data.name },
-        redirectTo: getAppUrl(),
+        redirectTo: parsed.data.kind === "supplier" ? publicStoreUrl(slug) : getAppUrl(),
       },
     });
     if (created.error || !created.data.user) {

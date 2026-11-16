@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { authCookieDomainForHost } from "@/lib/config";
 import { REQUEST_PATH_HEADER } from "@/lib/order-link";
 import { readDemoSessionCarry, requireSessionSecret } from "@/lib/session-token";
 import { storeHostAction } from "@/lib/store-host";
@@ -31,8 +32,11 @@ function storeHostResponse(request: NextRequest) {
   return NextResponse.rewrite(url);
 }
 
-function withCookies(response: NextResponse, cookies: PendingCookie[]) {
-  for (const cookie of cookies) response.cookies.set(cookie.name, cookie.value, cookie.options);
+function withCookies(response: NextResponse, cookies: PendingCookie[], hostname: string) {
+  const domain = authCookieDomainForHost(hostname);
+  for (const cookie of cookies) {
+    response.cookies.set(cookie.name, cookie.value, domain ? { ...cookie.options, domain } : cookie.options);
+  }
   return response;
 }
 
@@ -69,17 +73,18 @@ export async function proxy(request: NextRequest) {
   );
   const user = supabaseConfigured ? await supabaseUser(request, pending) : null;
 
+  const hostname = requestHostname(request);
   const hosted = storeHostResponse(request);
-  if (hosted) return withCookies(hosted, pending);
+  if (hosted) return withCookies(hosted, pending, hostname);
 
   const { pathname } = request.nextUrl;
   // Catalog photos live under /products/*.jpg and must stay public.
-  if (/\.[a-z0-9]+$/i.test(pathname)) return withCookies(NextResponse.next(), pending);
+  if (/\.[a-z0-9]+$/i.test(pathname)) return withCookies(NextResponse.next(), pending, hostname);
 
   const isProtected = protectedRoots.some(
     (root) => pathname === root || pathname.startsWith(`${root}/`),
   );
-  if (!isProtected) return withCookies(NextResponse.next(), pending);
+  if (!isProtected) return withCookies(NextResponse.next(), pending, hostname);
 
   const hasSession = supabaseConfigured
     ? Boolean(user)
@@ -89,7 +94,7 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
-    return withCookies(NextResponse.redirect(url), pending);
+    return withCookies(NextResponse.redirect(url), pending, hostname);
   }
 
   const orderId = pathname.match(/^\/orders\/([^/]+)$/)?.[1];
@@ -100,13 +105,13 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = `/narudzbina/${orderId}`;
       url.search = "";
-      return withCookies(NextResponse.redirect(url), pending);
+      return withCookies(NextResponse.redirect(url), pending, hostname);
     }
   }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(REQUEST_PATH_HEADER, pathname);
-  return withCookies(NextResponse.next({ request: { headers: requestHeaders } }), pending);
+  return withCookies(NextResponse.next({ request: { headers: requestHeaders } }), pending, hostname);
 }
 
 export const config = {

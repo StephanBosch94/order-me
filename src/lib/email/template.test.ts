@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { emailDocument, emailLogoUrl, orderLinesHtml, orderLinesText, signupConfirmationEmail } from "@/lib/email/template";
-import { signupConfirmUrl } from "@/lib/signup-confirm";
+import { emailButton, emailDocument, emailLogoUrl, orderLinesHtml, orderLinesText, signupConfirmationEmail } from "@/lib/email/template";
+import { confirmedAccountUrl, signupConfirmUrl } from "@/lib/signup-confirm";
+import { publicStoreUrl } from "@/lib/store-host";
 
 const lines = [
   { name: "Petrovačka kobasica", quantity: 2, unit: "kilogram" as const, lineTotalPara: 290000 },
@@ -20,13 +21,13 @@ test("a shop logo path becomes an absolute mail address", () => {
 
 test("an order mail lists each product and the order total", () => {
   const html = emailDocument({
-    name: "Mesara Pajić",
-    logoUrl: "https://vendro-app.netlify.app/suppliers/mesara-pajic-logo.jpg",
+    logoUrl: "https://vendro.rs/brand/vendro-logo.png",
     title: "Potvrda porudžbine PU-2026-1019",
-    bodyHtml: orderLinesHtml(lines, 379000),
+    appUrl: "https://vendro.rs",
+    bodyHtml: `${orderLinesHtml(lines, 379000)}${emailButton("https://vendro.rs/potvrda/abc", "Preuzmite PDF")}`,
   });
-  assert.match(html, /src="https:\/\/vendro-app\.netlify\.app\/suppliers\/mesara-pajic-logo\.jpg"/);
-  assert.match(html, /alt="Mesara Pajić"/);
+  assert.match(html, /src="https:\/\/vendro\.rs\/brand\/vendro-logo\.png"/);
+  assert.match(html, /alt="Vendro"/);
   assert.match(html, /Petrovačka kobasica/);
   assert.match(html, /2 kilogram/);
   assert.match(html, /2\.900,00 RSD/);
@@ -35,6 +36,9 @@ test("an order mail lists each product and the order total", () => {
   assert.match(html, /890,00 RSD/);
   assert.match(html, /Ukupno/);
   assert.match(html, /3\.790,00 RSD/);
+  assert.match(html, /bgcolor="#111111"/);
+  assert.match(html, />Preuzmite PDF</);
+  assert.equal(html.includes("biznis.jpg"), false);
   assert.equal(
     orderLinesText(lines),
     "Petrovačka kobasica · 2 kilogram · 2.900,00 RSD\nSuva kobasica · 1 komad · 890,00 RSD",
@@ -53,6 +57,13 @@ test("a registration link confirms the address and keeps the return path", () =>
   assert.equal(signupConfirmUrl("https://vendro.rs", "abc", "https://evil.test"), "https://vendro.rs/auth/potvrda?token_hash=abc&type=signup");
 });
 
+test("a confirmed supplier opens the shop they created", () => {
+  assert.equal(confirmedAccountUrl("supplier", "nova-radnja", "/"), publicStoreUrl("nova-radnja"));
+  assert.notEqual(publicStoreUrl("nova-radnja"), "/");
+  assert.equal(confirmedAccountUrl("buyer", "nova-radnja", "/kupac"), "/kupac");
+  assert.equal(confirmedAccountUrl("supplier", "", "/dashboard"), "/dashboard");
+});
+
 test("a registration confirmation shows the Vendro logo and the confirm link", () => {
   const message = signupConfirmationEmail({
     name: "Ana <script>",
@@ -65,18 +76,10 @@ test("a registration confirmation shows the Vendro logo and the confirm link", (
   assert.match(message.text, /https:\/\/vendro\.rs\/auth\/v1\/verify\?token=abc&type=signup/);
   assert.match(message.html, /src="https:\/\/vendro\.rs\/brand\/vendro-logo\.png"/);
   assert.match(message.html, /alt="Vendro"/);
+  assert.equal(message.html.includes("biznis.jpg"), false);
   assert.match(message.html, /Ana &lt;script&gt;,/);
+  assert.match(message.html, /bgcolor="#111111"/);
+  assert.match(message.html, />Potvrdite adresu</);
   assert.match(message.html, /href="https:\/\/vendro\.rs\/auth\/v1\/verify\?token=abc&amp;type=signup"/);
   assert.equal(message.html.includes("<script>"), false);
-});
-
-test("a shop without a logo still shows its initials", () => {
-  const html = emailDocument({
-    name: "Mesara Pajić",
-    logoUrl: null,
-    title: "Nova porudžbina",
-    bodyHtml: "",
-  });
-  assert.equal(html.includes("<img"), false);
-  assert.match(html, />MP</);
 });

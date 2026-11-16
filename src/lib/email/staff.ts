@@ -4,6 +4,7 @@ import { getAppUrl } from "@/lib/config";
 import type { EmailDelivery } from "@/lib/data/types";
 import { accountMailRecipient } from "@/lib/demo-shops";
 import { sendEmail } from "@/lib/email/send";
+import { emailButton, emailDocument, vendroLogoUrl } from "@/lib/email/template";
 import { escapeHtml } from "@/lib/text";
 
 export async function deliverStaffInvite(input: {
@@ -13,7 +14,10 @@ export async function deliverStaffInvite(input: {
   password: string;
   roleLabel: string;
 }): Promise<EmailDelivery> {
-  const loginUrl = `${getAppUrl()}/login`;
+  const appUrl = getAppUrl();
+  const logoUrl = vendroLogoUrl(appUrl);
+  if (!logoUrl) return "failed";
+  const loginUrl = `${appUrl}/login`;
   const text = [
     `${input.name}, dobili ste pristup prodavnici ${input.shopName}.`,
     `Uloga: ${input.roleLabel}.`,
@@ -24,7 +28,12 @@ export async function deliverStaffInvite(input: {
     "",
     "Posle prijave vidite porudžbine i katalog te prodavnice.",
   ].join("\n");
-  const html = `<div style="font-family:Arial,sans-serif;color:#18181b"><h1 style="font-size:20px">Pozivnica za ${escapeHtml(input.shopName)}</h1><p>${escapeHtml(input.name)}, dobili ste pristup prodavnici.</p><p>Uloga: ${escapeHtml(input.roleLabel)}.</p><p><a href="${loginUrl}">Prijavite se</a></p><p>Email: ${escapeHtml(input.to)}<br>Početna lozinka: ${escapeHtml(input.password)}</p><p>Posle prijave vidite porudžbine i katalog te prodavnice.</p></div>`;
+  const html = emailDocument({
+    logoUrl,
+    title: `Pozivnica za ${input.shopName}`,
+    appUrl,
+    bodyHtml: `<p style="margin:16px 0 0;font-size:16px;line-height:1.55">${escapeHtml(input.name)}, dobili ste pristup prodavnici.</p><p style="margin:8px 0 0;font-size:16px;line-height:1.55">Uloga: ${escapeHtml(input.roleLabel)}.</p>${emailButton(loginUrl, "Prijavite se")}<p style="margin:28px 0 0;font-size:16px;line-height:1.55">Email: ${escapeHtml(input.to)}<br>Početna lozinka: ${escapeHtml(input.password)}</p><p style="margin:8px 0 0;font-size:16px;line-height:1.55">Posle prijave vidite porudžbine i katalog te prodavnice.</p>`,
+  });
   return sendEmail({
     to: accountMailRecipient(input.to),
     subject: `Pozivnica za ${input.shopName}`,

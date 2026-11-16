@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { landingPath } from "@/lib/auth";
 import { getDataMode } from "@/lib/config";
 import { getCommerce } from "@/lib/data";
+import { confirmedAccountUrl } from "@/lib/signup-confirm";
 import { safeNextPath } from "@/lib/text";
 
 export async function confirmSignup(formData: FormData) {
@@ -21,5 +22,6 @@ export async function confirmSignup(formData: FormData) {
   if (!data.user) redirect("/login");
   const account = await getCommerce().resolveAccount(data.user.id);
   if (!account) redirect("/login");
-  redirect(await landingPath(account, next));
+  const fallback = await landingPath(account, next);
+  redirect(confirmedAccountUrl(account.kind, account.kind === "supplier" ? account.organization.slug : "", fallback));
 }
