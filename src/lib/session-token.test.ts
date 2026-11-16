@@ -1,9 +1,21 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 
 import { readDemoSession, readDemoSessionCarry, signDemoSession, type SessionCarry } from "@/lib/session-token";
 
 const DAY = 24 * 60 * 60 * 1000;
+const TEST_SECRET = "test-session-secret-at-least-32b!!";
+process.env.SESSION_SECRET = TEST_SECRET;
+
+function signWith(secret: string, userId: string, carry?: unknown) {
+  const payload = Buffer.from(
+    JSON.stringify({ userId, exp: Date.now() + DAY, ...(carry ? { carry } : {}) }),
+    "utf8",
+  ).toString("base64url");
+  const signature = createHmac("sha256", secret).update(payload).digest("base64url");
+  return `v1.${payload}.${signature}`;
+}
 
 test("a signed demo session carries the user id without the sessions table", () => {
   const token = signDemoSession("user-ana");
@@ -14,10 +26,10 @@ test("a signed demo session carries the user id without the sessions table", () 
 
   const previous = process.env.SESSION_SECRET;
   try {
-    process.env.SESSION_SECRET = "domain-secret";
+    process.env.SESSION_SECRET = "domain-secret-that-is-at-least-32b";
     const signed = signDemoSession("user-ana");
     assert.equal(readDemoSession(signed), "user-ana");
-    process.env.SESSION_SECRET = "other-secret";
+    process.env.SESSION_SECRET = "other-secret-that-is-at-least-32bx";
     assert.equal(readDemoSession(signed), null);
   } finally {
     if (previous === undefined) delete process.env.SESSION_SECRET;
@@ -89,4 +101,38 @@ test("a signed session can carry a new account for another server", () => {
   assert.equal(restored?.organization?.efakturaApiKey, "");
   assert.equal(restored?.member?.role, "owner");
   assert.equal(readDemoSessionCarry(signDemoSession("user-ana")), null);
+});
+
+test("a token signed with the old public key is rejected", () => {
+  for (const secret of ["vendro-demo-session-v1", "prodora-demo-session-v1"]) {
+    assert.equal(readDemoSession(signWith(secret, "user-ana")), null);
+    assert.equal(readDemoSessionCarry(signWith(secret, "user-ana")), null);
+  }
+});
+
+test("a short or missing session secret is refused", () => {
+  const previous = process.env.SESSION_SECRET;
+  try {
+    delete process.env.SESSION_SECRET;
+    assert.throws(() => signDemoSession("user-ana"), /32 bajta/);
+    process.env.SESSION_SECRET = "kratko";
+    assert.throws(() => signDemoSession("user-ana"), /32 bajta/);
+  } finally {
+    process.env.SESSION_SECRET = previous;
+  }
+});
+
+test("a carried platform account is not restored from the cookie", () => {
+  const token = signWith(TEST_SECRET, "platform-1", {
+    user: {
+      id: "platform-1",
+      email: "admin@example.com",
+      name: "Platforma",
+      passwordHash: "salt:hash",
+      kind: "platform",
+      createdAt: "2026-11-03T00:00:00.000Z",
+    },
+  });
+  assert.equal(readDemoSession(token), "platform-1");
+  assert.equal(readDemoSessionCarry(token), null);
 });

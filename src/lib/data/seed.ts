@@ -4,7 +4,7 @@ import { nextCustomerCode } from "@/lib/customers";
 import { DEMO_INBOX } from "@/lib/demo-shops";
 import { effectivePricePara } from "@/lib/data/pricing";
 import { belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
-import { hashPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { PRODUCTION_LOGINS } from "@/lib/production-logins";
 import type {
   Category,
@@ -1665,6 +1665,7 @@ function ensureSavaOrders(db: DemoDatabase) {
   }
 
   const buyer = db.users.find((item) => item.email === "petar@restoranmorava.rs");
+  const jelena = db.users.find((item) => item.email === "jelena.stankovic@example.com");
   const year = belgradeYear(now);
   for (const spec of SAVA_ORDERS) {
     const customer = customers.get(spec.customer);
@@ -1718,7 +1719,8 @@ function ensureSavaOrders(db: DemoDatabase) {
       id: orderId,
       organizationId: organization.id,
       customerId: customer.id,
-      buyerUserId: spec.customer === "morava" ? buyer?.id ?? null : null,
+      buyerUserId:
+        spec.customer === "morava" ? buyer?.id ?? null : spec.customer === "jelena" ? jelena?.id ?? null : null,
       number,
       status: spec.status,
       notes: spec.notes,
@@ -1785,11 +1787,12 @@ export async function ensureRetailDemo(db: DemoDatabase) {
   const ownerChanged = await ensureBoutiqueOwner(db);
   const buyersChanged = await ensureDemoBuyers(db);
   const productionChanged = await ensureProductionShop(db);
+  const productionBuyer = await ensureSavaBuyer(db);
   const productionPhotos = applySavaPhotos(db);
   const productionOrders = ensureSavaOrders(db);
   const platformChanged = await ensurePlatformAdmin(db);
   const inboxChanged = ensureSampleInboxes(db);
-  return ownerChanged || buyersChanged || productionChanged || productionPhotos || productionOrders || platformChanged || inboxChanged || changed;
+  return ownerChanged || buyersChanged || productionChanged || productionBuyer || productionPhotos || productionOrders || platformChanged || inboxChanged || changed;
 }
 
 const PLAN_OSNOVNI_ID = seedId("plan:osnovni");
@@ -1807,7 +1810,11 @@ function billingMonth(monthsBack: number) {
   };
 }
 
-export async function ensurePlatformAdmin(db: DemoDatabase) {
+export function seedPlatformAdminLocally(env: NodeJS.ProcessEnv = process.env) {
+  return env.NODE_ENV !== "production" && env.NETLIFY !== "true";
+}
+
+export async function ensurePlatformAdmin(db: DemoDatabase, options?: { allowSeed?: boolean }) {
   db.plans ??= [];
   db.subscriptions ??= [];
   db.invoices ??= [];
@@ -1818,38 +1825,58 @@ export async function ensurePlatformAdmin(db: DemoDatabase) {
   let admin =
     db.users.find((user) => user.email === PLATFORM_ADMIN_EMAIL) ??
     db.users.find((user) => user.email === "admin@prodora.rs");
-  if (admin && admin.email !== PLATFORM_ADMIN_EMAIL) {
-    admin.email = PLATFORM_ADMIN_EMAIL;
-    changed = true;
-  }
-  if (admin?.name === "Prodora administracija") {
-    admin.name = "Vendro administracija";
-    changed = true;
-  }
-  if (!admin) {
-    admin = {
-      id: seedId(`user:${PLATFORM_ADMIN_EMAIL}`),
-      email: PLATFORM_ADMIN_EMAIL,
-      name: "Vendro administracija",
-      passwordHash: await hashPassword(DEMO_PASSWORD),
-      kind: "platform",
-      businessName: "",
-      phone: "",
-      address: "",
-      city: "",
-      pib: "",
-      bankAccount: "",
-      createdAt: now,
-    };
-    db.users.push(admin);
-    changed = true;
+
+  if (!(options?.allowSeed ?? seedPlatformAdminLocally())) {
+    const candidates = db.users.filter(
+      (user) =>
+        user.kind === "platform" ||
+        user.email === PLATFORM_ADMIN_EMAIL ||
+        user.email === "admin@prodora.rs",
+    );
+    const removed = new Set<string>();
+    for (const user of candidates) {
+      if (await verifyPassword(DEMO_PASSWORD, user.passwordHash)) removed.add(user.id);
+    }
+    if (removed.size > 0) {
+      db.users = db.users.filter((user) => !removed.has(user.id));
+      db.members = db.members.filter((member) => !removed.has(member.userId));
+      changed = true;
+    }
+    admin = db.users.find((user) => user.email === PLATFORM_ADMIN_EMAIL);
+  } else {
+    if (admin && admin.email !== PLATFORM_ADMIN_EMAIL) {
+      admin.email = PLATFORM_ADMIN_EMAIL;
+      changed = true;
+    }
+    if (admin?.name === "Prodora administracija") {
+      admin.name = "Vendro administracija";
+      changed = true;
+    }
+    if (!admin) {
+      admin = {
+        id: seedId(`user:${PLATFORM_ADMIN_EMAIL}`),
+        email: PLATFORM_ADMIN_EMAIL,
+        name: "Vendro administracija",
+        passwordHash: await hashPassword(DEMO_PASSWORD),
+        kind: "platform",
+        businessName: "",
+        phone: "",
+        address: "",
+        city: "",
+        pib: "",
+        bankAccount: "",
+        createdAt: now,
+      };
+      db.users.push(admin);
+      changed = true;
+    }
   }
 
-  if (admin.kind !== "platform" && !db.members.some((member) => member.userId === admin.id)) {
+  if (admin && admin.kind !== "platform" && !db.members.some((member) => member.userId === admin.id)) {
     admin.kind = "platform";
     changed = true;
   }
-  if (admin.kind === "platform") {
+  if (admin?.kind === "platform") {
     const members = db.members.filter((member) => member.userId !== admin.id);
     if (members.length !== db.members.length) {
       db.members = members;
@@ -2005,6 +2032,52 @@ function ensureSampleInboxes(db: DemoDatabase) {
   const petar = db.users.find((item) => item.email === "petar@restoranmorava.rs");
   if (petar && petar.confirmationEmail !== DEMO_INBOX) {
     petar.confirmationEmail = DEMO_INBOX;
+    changed = true;
+  }
+  const jelena = db.users.find((item) => item.email === "jelena.stankovic@example.com");
+  if (jelena && jelena.confirmationEmail !== DEMO_INBOX) {
+    jelena.confirmationEmail = DEMO_INBOX;
+    changed = true;
+  }
+  return changed;
+}
+
+async function ensureSavaBuyer(db: DemoDatabase) {
+  const login = PRODUCTION_LOGINS.find((account) => account.email === "jelena.stankovic@example.com");
+  if (!login) return false;
+  let user = db.users.find((item) => item.email === login.email);
+  let changed = false;
+  if (!user) {
+    user = {
+      id: seedId(`user:${login.email}`),
+      email: login.email,
+      name: login.name,
+      passwordHash: await hashPassword(login.password),
+      kind: "buyer",
+      businessName: "",
+      phone: "+381 64 330 2211",
+      address: "Cara Dušana 42",
+      city: "Zemun",
+      pib: "",
+      mb: "",
+      postalCode: "11080",
+      bankAccount: "",
+      confirmationEmail: DEMO_INBOX,
+      createdAt: "2026-05-18T12:20:00.000Z",
+    };
+    db.users.push(user);
+    changed = true;
+  } else if (!(await verifyPassword(login.password, user.passwordHash))) {
+    user.passwordHash = await hashPassword(login.password);
+    user.kind = "buyer";
+    user.name = login.name;
+    changed = true;
+  }
+  for (const order of db.orders) {
+    if (order.buyerUserId) continue;
+    const customer = db.customers.find((item) => item.id === order.customerId);
+    if (customer?.email.toLowerCase() !== login.email) continue;
+    order.buyerUserId = user.id;
     changed = true;
   }
   return changed;

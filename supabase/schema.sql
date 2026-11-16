@@ -38,7 +38,6 @@ create table if not exists public.organizations (
   active boolean not null default true,
   public_store boolean not null default true,
   track_stock boolean not null default false,
-  efaktura_api_key text not null default '',
   efaktura_enabled boolean not null default false,
   efaktura_environment text not null default 'demo' check (efaktura_environment in ('demo', 'produkcija')),
   ips_account text not null default '',
@@ -226,9 +225,6 @@ create policy organizations_member_select on public.organizations
 for select using (id in (select public.user_organization_ids()));
 
 drop policy if exists organizations_member_update on public.organizations;
-create policy organizations_member_update on public.organizations
-for update using (id in (select public.user_organization_ids()))
-with check (id in (select public.user_organization_ids()));
 
 drop policy if exists profiles_self on public.profiles;
 create policy profiles_self on public.profiles
@@ -240,33 +236,35 @@ for select using (organization_id in (select public.user_organization_ids()));
 
 drop policy if exists categories_member on public.categories;
 create policy categories_member on public.categories
-for all using (organization_id in (select public.user_organization_ids()))
-with check (organization_id in (select public.user_organization_ids()));
+for select using (organization_id in (select public.user_organization_ids()));
 
 drop policy if exists products_member on public.products;
 create policy products_member on public.products
-for all using (organization_id in (select public.user_organization_ids()))
-with check (organization_id in (select public.user_organization_ids()));
+for select using (organization_id in (select public.user_organization_ids()));
 
 drop policy if exists customers_member on public.customers;
 create policy customers_member on public.customers
-for all using (organization_id in (select public.user_organization_ids()))
-with check (organization_id in (select public.user_organization_ids()));
+for select using (organization_id in (select public.user_organization_ids()));
 
 drop policy if exists orders_member on public.orders;
 create policy orders_member on public.orders
-for all using (organization_id in (select public.user_organization_ids()))
-with check (organization_id in (select public.user_organization_ids()));
+for select using (organization_id in (select public.user_organization_ids()));
 
 drop policy if exists order_items_member on public.order_items;
 create policy order_items_member on public.order_items
-for all using (organization_id in (select public.user_organization_ids()))
-with check (organization_id in (select public.user_organization_ids()));
+for select using (organization_id in (select public.user_organization_ids()));
 
 drop policy if exists history_member on public.order_status_history;
 create policy history_member on public.order_status_history
-for all using (organization_id in (select public.user_organization_ids()))
-with check (organization_id in (select public.user_organization_ids()));
+for select using (organization_id in (select public.user_organization_ids()));
+
+revoke insert, update, delete on public.organizations from anon, authenticated;
+revoke insert, update, delete on public.categories from anon, authenticated;
+revoke insert, update, delete on public.products from anon, authenticated;
+revoke insert, update, delete on public.customers from anon, authenticated;
+revoke insert, update, delete on public.orders from anon, authenticated;
+revoke insert, update, delete on public.order_items from anon, authenticated;
+revoke insert, update, delete on public.order_status_history from anon, authenticated;
 
 revoke all on public.rate_limit_events from anon, authenticated;
 
@@ -404,7 +402,6 @@ set payment_term_days = case when party = 'pravna' then 15 else 0 end
 where payment_term_days is null;
 alter table public.organizations add column if not exists track_stock boolean not null default false;
 alter table public.organizations add column if not exists public_store boolean not null default true;
-alter table public.organizations add column if not exists efaktura_api_key text not null default '';
 alter table public.organizations add column if not exists efaktura_enabled boolean not null default false;
 alter table public.organizations add column if not exists efaktura_environment text not null default 'demo';
 do $$ begin
@@ -469,3 +466,25 @@ join public.subscription_plans p
 where not exists (
   select 1 from public.subscriptions s where s.organization_id = o.id
 );
+
+create table if not exists public.organization_secrets (
+  organization_id uuid primary key references public.organizations(id) on delete cascade,
+  efaktura_api_key text not null default ''
+);
+alter table public.organization_secrets enable row level security;
+revoke all on public.organization_secrets from anon, authenticated;
+
+do $$ begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'organizations'
+      and column_name = 'efaktura_api_key'
+  ) then
+    insert into public.organization_secrets (organization_id, efaktura_api_key)
+    select id, efaktura_api_key from public.organizations
+    on conflict (organization_id) do update set efaktura_api_key = excluded.efaktura_api_key;
+    alter table public.organizations drop column efaktura_api_key;
+  end if;
+end $$;

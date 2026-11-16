@@ -9,11 +9,11 @@ export const PRODUCTION_LOGINS = [
     password: "Sava-trgovina-2026",
   },
   {
-    email: "petar@restoranmorava.rs",
-    name: "Petar Marković",
+    email: "jelena.stankovic@example.com",
+    name: "Jelena Stanković",
     role: "kupac",
     roleLabel: "Kupac",
-    shop: "Restoran Morava",
+    shop: "Sava Trade",
     password: "Sava-trgovina-2026",
   },
 ] as const;

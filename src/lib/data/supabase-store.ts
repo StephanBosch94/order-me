@@ -85,7 +85,25 @@ function db() {
   return getServiceClient();
 }
 
-function mapOrganization(row: Record<string, unknown>): Organization {
+async function readEfakturaKey(organizationId: string) {
+  const { data, error } = await db()
+    .from("organization_secrets")
+    .select("efaktura_api_key")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  fail(error);
+  const row = data as Record<string, unknown> | null;
+  return typeof row?.efaktura_api_key === "string" ? row.efaktura_api_key : "";
+}
+
+async function writeEfakturaKey(organizationId: string, apiKey: string) {
+  const { error } = await db()
+    .from("organization_secrets")
+    .upsert({ organization_id: organizationId, efaktura_api_key: apiKey });
+  fail(error);
+}
+
+function mapOrganization(row: Record<string, unknown>, apiKey?: string): Organization {
   return {
     id: String(row.id),
     name: String(row.name),
@@ -114,7 +132,7 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     active: Boolean(row.active),
     publicStore: row.public_store !== false,
     trackStock: row.track_stock === true,
-    efakturaApiKey: typeof row.efaktura_api_key === "string" ? row.efaktura_api_key : "",
+    efakturaApiKey: apiKey ?? "",
     efakturaEnabled: row.efaktura_enabled === true,
     efakturaEnvironment: row.efaktura_environment === "produkcija" ? "produkcija" : "demo",
     ipsAccount: parseIpsAccount(typeof row.ips_account === "string" ? row.ips_account : "") ?? "",
@@ -477,7 +495,8 @@ export const supabaseRepository: CommerceRepository = {
   async getOrganization(id) {
     const { data, error } = await db().from("organizations").select("*").eq("id", id).maybeSingle();
     fail(error);
-    return data ? mapOrganization(data as Record<string, unknown>) : null;
+    if (!data) return null;
+    return mapOrganization(data as Record<string, unknown>, await readEfakturaKey(id));
   },
 
   async getAccount(userId) {
@@ -613,7 +632,6 @@ export const supabaseRepository: CommerceRepository = {
         channel: channelForAudience(input.audience),
         track_stock: input.trackStock,
         public_store: input.publicStore !== false,
-        efaktura_api_key: input.efakturaApiKey,
         efaktura_enabled: input.efakturaEnabled,
         efaktura_environment: input.efakturaEnvironment === "produkcija" ? "produkcija" : "demo",
         ips_account: parseIpsAccount(input.ipsAccount) ?? "",
@@ -625,7 +643,8 @@ export const supabaseRepository: CommerceRepository = {
       .single();
     if (error?.code === "23505") throw new DataError("Ova adresa je već zauzeta.", "conflict");
     fail(error);
-    return mapOrganization(data as Record<string, unknown>);
+    await writeEfakturaKey(id, input.efakturaApiKey);
+    return mapOrganization(data as Record<string, unknown>, input.efakturaApiKey);
   },
 
   async isSlugTaken(slug, exceptId) {
@@ -1485,7 +1504,7 @@ export const supabaseRepository: CommerceRepository = {
       ordersByOrg.set(id, list);
     }
     const rows: PlatformSupplier[] = ((organizations.data ?? []) as Record<string, unknown>[])
-      .map(mapOrganization)
+      .map((row) => mapOrganization(row))
       .sort((a, b) => a.name.localeCompare(b.name, "sr"))
       .map((organization) => {
         const subscription = subscriptionRows.find((item) => item.organizationId === organization.id) ?? null;

@@ -1,7 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
-
 import { revalidatePath } from "next/cache";
 
 import { requireSession } from "@/lib/auth";
@@ -43,6 +41,10 @@ export async function sendEfakturaAction(orderId: string): Promise<EfakturaActio
         invoiceId: order.sefInvoiceId,
         message: `E-faktura je već poslata. Identifikator: ${order.sefInvoiceId}`,
       };
+    }
+
+    if (organization.efakturaEnvironment !== "demo") {
+      return { ok: false, message: "Slanje e-fakture u produkciju trenutno nije uključeno." };
     }
 
     const apiKey = organization.efakturaApiKey.trim();
@@ -104,10 +106,10 @@ export async function sendEfakturaAction(orderId: string): Promise<EfakturaActio
     });
 
     const posted = await postSalesInvoice({
-      environment: "produkcija",
+      environment: "demo",
       apiKey,
       xml,
-      requestId: randomUUID(),
+      requestId: order.id,
     });
     if (!posted.ok) return posted;
 

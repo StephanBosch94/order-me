@@ -32,9 +32,13 @@ export function getAppUrl() {
   return "http://localhost:3000";
 }
 
+export function isEphemeralRuntime() {
+  return process.env.NETLIFY === "true" || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+}
+
 export function getLocalDataDir() {
-  if (process.env.NETLIFY === "true" || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    return "/tmp/poruci";
+  if (isEphemeralRuntime()) {
+    throw new Error("Podaci se ne čuvaju na privremeni disk. Povežite Supabase.");
   }
   return `${process.cwd()}/.data`;
 }

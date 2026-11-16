@@ -23,11 +23,12 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; lozinka?: string }>;
 }) {
   const params = await searchParams;
+  const explicitNext = typeof params.next === "string" && params.next.length > 0;
   const nextPath = safeNextPath(params.next);
   const changingPassword = params.lozinka === "1";
   const session = await getSession();
   const demoAccount = Boolean(session && isDemoShopAccount(session.email));
-  if (session && !demoAccount) redirect(await landingPath(session, nextPath));
+  if (session && !demoAccount && explicitNext) redirect(await landingPath(session, nextPath));
   const store = await storeFromPath(nextPath);
   const accounts = changingPassword ? [] : await listProductionLoginChoices();
   return (

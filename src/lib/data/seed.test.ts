@@ -16,15 +16,20 @@ test("the production shop is published beside the demo shops", async () => {
   assert.equal(db.products.filter((item) => item.organizationId === shop.id && item.active).length, 16);
   const milan = db.users.find((item) => item.email === "milan.kostic@savatrade.rs");
   const petar = db.users.find((item) => item.email === "petar@restoranmorava.rs");
+  const jelena = db.users.find((item) => item.email === "jelena.stankovic@example.com");
   assert.equal(milan?.kind, "supplier");
   assert.equal(petar?.kind, "buyer");
+  assert.equal(jelena?.kind, "buyer");
+  assert.equal(jelena?.name, "Jelena Stanković");
   assert.equal(
     db.members.some((item) => item.userId === milan?.id && item.organizationId === shop.id && item.role === "owner"),
     true,
   );
   const login = productionLoginByEmail("milan.kostic@savatrade.rs");
-  assert.ok(milan && login);
+  const buyerLogin = productionLoginByEmail("jelena.stankovic@example.com");
+  assert.ok(milan && login && jelena && buyerLogin);
   assert.equal(await verifyPassword(login.password, milan.passwordHash), true);
+  assert.equal(await verifyPassword(buyerLogin.password, jelena.passwordHash), true);
   const savaOrders = db.orders.filter((order) => order.organizationId === shop.id);
   assert.ok(savaOrders.length >= 6);
   assert.equal(savaOrders.every((order) => order.customerEmailStatus === "skipped" && order.supplierEmailStatus === "skipped"), true);
@@ -32,7 +37,10 @@ test("the production shop is published beside the demo shops", async () => {
     savaOrders.some((order) => order.buyerUserId === petar?.id && order.customerSnapshot.businessName === "Restoran Morava"),
     true,
   );
-  assert.equal(savaOrders.some((order) => order.customerSnapshot.businessName === "Jelena Stanković"), true);
+  assert.equal(
+    savaOrders.some((order) => order.buyerUserId === jelena?.id && order.customerSnapshot.businessName === "Jelena Stanković"),
+    true,
+  );
   shop.name = "Sava";
   const flour = db.products.find((item) => item.organizationId === shop.id && item.sku === "ST-BR500");
   assert.ok(flour);

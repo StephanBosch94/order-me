@@ -10,8 +10,11 @@ import {
   PLATFORM_ADMIN_EMAIL,
   SEED_GENERATION,
   createSeedDatabase,
+  emptyDatabase,
   ensurePlatformAdmin,
+  seedPlatformAdminLocally,
 } from "@/lib/data/seed";
+import { hashPassword } from "@/lib/password";
 
 test("seed and ensure create the platform admin, plans, subscriptions, and scoped invoices", async () => {
   assert.equal(SEED_GENERATION, 2);
@@ -65,5 +68,73 @@ test("seed and ensure create the platform admin, plans, subscriptions, and scope
     assert.equal(suppliers.some((item) => item.organization.name === "Mercis Atelier"), true);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("production does not keep a platform admin that uses the demo password", async () => {
+  assert.equal(seedPlatformAdminLocally({ NODE_ENV: "production" }), false);
+  assert.equal(seedPlatformAdminLocally({ NODE_ENV: "development", NETLIFY: "true" }), false);
+  assert.equal(seedPlatformAdminLocally({ NODE_ENV: "development" }), true);
+  {
+    const fresh = emptyDatabase();
+    await ensurePlatformAdmin(fresh, { allowSeed: false });
+    assert.equal(fresh.users.some((user) => user.kind === "platform"), false);
+    assert.equal(fresh.users.some((user) => user.email === PLATFORM_ADMIN_EMAIL), false);
+    assert.ok(fresh.plans.length >= 2);
+
+    const seeded = emptyDatabase();
+    const demoHash = await hashPassword(DEMO_PASSWORD);
+    seeded.users.push(
+      {
+        id: "user-platform-demo",
+        email: PLATFORM_ADMIN_EMAIL,
+        name: "Vendro administracija",
+        passwordHash: demoHash,
+        kind: "platform",
+        businessName: "",
+        phone: "",
+        address: "",
+        city: "",
+        pib: "",
+        bankAccount: "",
+        createdAt: "2026-11-15T00:00:00.000Z",
+      },
+      {
+        id: "user-shop-demo",
+        email: "ana@example.com",
+        name: "Ana Petrović",
+        passwordHash: demoHash,
+        kind: "supplier",
+        businessName: "",
+        phone: "",
+        address: "",
+        city: "",
+        pib: "",
+        bankAccount: "",
+        createdAt: "2026-11-15T00:00:00.000Z",
+      },
+    );
+    await ensurePlatformAdmin(seeded, { allowSeed: false });
+    assert.equal(seeded.users.some((user) => user.email === PLATFORM_ADMIN_EMAIL), false);
+    assert.equal(seeded.users.some((user) => user.kind === "platform"), false);
+    assert.equal(seeded.users.some((user) => user.email === "ana@example.com"), true);
+
+    const kept = emptyDatabase();
+    kept.users.push({
+      id: "user-platform-kept",
+      email: PLATFORM_ADMIN_EMAIL,
+      name: "Vendro administracija",
+      passwordHash: await hashPassword("Jaka-lozinka-koja-nije-demo-vrednost"),
+      kind: "platform",
+      businessName: "",
+      phone: "",
+      address: "",
+      city: "",
+      pib: "",
+      bankAccount: "",
+      createdAt: "2026-11-15T00:00:00.000Z",
+    });
+    await ensurePlatformAdmin(kept, { allowSeed: false });
+    assert.equal(kept.users.find((user) => user.email === PLATFORM_ADMIN_EMAIL)?.kind, "platform");
   }
 });

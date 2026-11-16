@@ -3,7 +3,6 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { CsvCustomerRow, CsvProductRow } from "@/lib/csv";
-import { loadNetlifySnapshot, netlifyDemoEnabled, saveNetlifyDatabase } from "@/lib/db/netlify-state";
 import { isCompanyOrder } from "@/lib/company-order";
 import { nextCustomerCode, normalizeCustomerCode, partyForPib, paymentTermFor, sefRegisteredFor } from "@/lib/customers";
 import { salesFollowUps } from "@/lib/follow-ups";
@@ -72,7 +71,7 @@ import { DataError } from "@/lib/errors";
 import { belgradeDateKey, belgradeMonthKey, belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { loadDatabase, saveDatabase } from "@/lib/db/postgres-state";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { getDataMode, getLocalDataDir } from "@/lib/config";
+import { getDataMode, getLocalDataDir, isEphemeralRuntime } from "@/lib/config";
 import { fold, orderPrefixFromName } from "@/lib/text";
 import { isTrade, tradeOrDefault } from "@/lib/trades";
 
@@ -278,7 +277,7 @@ export class DemoStore implements CommerceRepository {
   async sessionCarry(userId: string): Promise<SessionCarry | null> {
     const db = await this.read();
     const user = db.users.find((item) => item.id === userId);
-    if (!user) return null;
+    if (!user || user.kind === "platform") return null;
     const member = db.members.find((item) => item.userId === userId);
     const organization = member ? db.organizations.find((item) => item.id === member.organizationId) : undefined;
     return {
@@ -289,12 +288,13 @@ export class DemoStore implements CommerceRepository {
   }
 
   async ensureCarriedAccount(carry: SessionCarry) {
+    if (carry.user.kind !== "supplier" && carry.user.kind !== "buyer") return;
     await this.exclusive(async (db) => {
       const user = carry.user;
-      if (!db.users.some((item) => item.id === user.id)) {
-        if (db.users.some((item) => item.email.toLowerCase() === user.email.toLowerCase())) return;
-        db.users.push({ ...user });
-      }
+      const existing = db.users.find((item) => item.id === user.id);
+      if (existing) return;
+      if (db.users.some((item) => item.email.toLowerCase() === user.email.toLowerCase())) return;
+      db.users.push({ ...user });
       const organization = carry.organization;
       if (organization && !db.organizations.some((item) => item.id === organization.id)) {
         let slug = organization.slug;
@@ -1436,9 +1436,6 @@ export class DemoStore implements CommerceRepository {
 
   private async read(): Promise<DemoDatabase> {
     if (this.options.postgres) return this.readPostgres();
-    if (netlifyDemoEnabled()) {
-      return (await this.loadNetlify()).db;
-    }
     await mkdir(path.dirname(this.filePath), { recursive: true });
     try {
       const raw = await readFile(this.filePath, "utf8");
@@ -1511,35 +1508,13 @@ export class DemoStore implements CommerceRepository {
     return changed;
   }
 
-  private async loadNetlify(): Promise<{ db: DemoDatabase; etag: string | null }> {
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      const snapshot = await loadNetlifySnapshot();
-      const existing = snapshot.db;
-      if (!existing) {
-        const db = normalizeDatabase(this.options.seed === false ? emptyDatabase() : await createSeedDatabase());
-        const written = await saveNetlifyDatabase(db, snapshot.etag);
-        if (written.modified) return { db, etag: written.etag };
-        continue;
-      }
-      const changed = await this.migrate(existing);
-      if (!changed) return { db: existing, etag: snapshot.etag };
-      const written = snapshot.etag
-        ? await saveNetlifyDatabase(existing, snapshot.etag)
-        : await saveNetlifyDatabase(existing);
-      if (written.modified) return { db: existing, etag: written.etag ?? snapshot.etag };
-    }
-    throw new Error("Netlify baza je zauzeta. Pokušajte ponovo.");
-  }
-
   private async persist(db: DemoDatabase) {
     if (this.options.postgres) {
       await saveDatabase(db);
       return;
     }
-    if (netlifyDemoEnabled()) {
-      const written = await saveNetlifyDatabase(db);
-      if (!written.modified) throw new Error("Netlify baza nije sačuvana.");
-      return;
+    if (isEphemeralRuntime()) {
+      throw new Error("Podaci se ne čuvaju na privremeni disk. Povežite Supabase.");
     }
     await mkdir(path.dirname(this.filePath), { recursive: true });
     const temporary = `${this.filePath}.${process.pid}.tmp`;
@@ -1549,21 +1524,10 @@ export class DemoStore implements CommerceRepository {
 
   private async exclusive<T>(fn: (db: DemoDatabase) => Promise<T> | T): Promise<T> {
     const job = this.chain.then(async () => {
-      if (!netlifyDemoEnabled()) {
-        const db = await this.read();
-        const result = await fn(db);
-        await this.persist(db);
-        return result;
-      }
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        const loaded = await this.loadNetlify();
-        const result = await fn(loaded.db);
-        const written = loaded.etag
-          ? await saveNetlifyDatabase(loaded.db, loaded.etag)
-          : await saveNetlifyDatabase(loaded.db);
-        if (written.modified) return result;
-      }
-      throw new Error("Netlify baza je zauzeta. Pokušajte ponovo.");
+      const db = await this.read();
+      const result = await fn(db);
+      await this.persist(db);
+      return result;
     });
     this.chain = job.then(
       () => undefined,
@@ -1806,10 +1770,14 @@ let singleton: DemoStore | null = null;
 
 export function getDemoStore() {
   if (!singleton) {
-    singleton = new DemoStore(path.join(getLocalDataDir(), "demo-db.json"), {
-      seed: true,
-      postgres: getDataMode() === "demo" && Boolean(process.env.DATABASE_URL?.trim()),
-    });
+    const postgres = getDataMode() === "demo" && Boolean(process.env.DATABASE_URL?.trim());
+    if (isEphemeralRuntime() && !postgres) {
+      throw new Error("Podaci se ne čuvaju na privremeni disk. Povežite Supabase.");
+    }
+    const filePath = isEphemeralRuntime()
+      ? path.join(process.cwd(), ".data", "demo-db.json")
+      : path.join(getLocalDataDir(), "demo-db.json");
+    singleton = new DemoStore(filePath, { seed: true, postgres });
   }
   return singleton;
 }

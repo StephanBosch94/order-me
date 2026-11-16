@@ -799,6 +799,53 @@ test("a new account can be restored on a database that never saw the signup", as
   });
 });
 
+test("a carried platform account is not created and an existing account is not replaced", async () => {
+  await withStore(async (store) => {
+    const user = await store.createUser({
+      name: "Ana Petrović",
+      email: "ana@example.com",
+      password: "lozinka123",
+    });
+    await store.ensureCarriedAccount({
+      user: {
+        id: "platform-new",
+        email: "admin@example.com",
+        name: "Platforma",
+        passwordHash: "salt:hash",
+        kind: "platform",
+        businessName: "",
+        phone: "",
+        address: "",
+        city: "",
+        pib: "",
+        bankAccount: "",
+        createdAt: "2026-11-03T00:00:00.000Z",
+      },
+    });
+    assert.equal(await store.resolveAccount("platform-new"), null);
+    await store.ensureCarriedAccount({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: "Zamenjen",
+        passwordHash: "salt:other",
+        kind: "platform",
+        businessName: "",
+        phone: "",
+        address: "",
+        city: "",
+        pib: "",
+        bankAccount: "",
+        createdAt: "2026-11-03T00:00:00.000Z",
+      },
+    });
+    const again = await store.verifyCredentials("ana@example.com", "lozinka123");
+    assert.equal(again?.id, user.id);
+    assert.equal(again?.name, "Ana Petrović");
+    assert.equal((await store.sessionCarry(user.id))?.user.kind, "supplier");
+  });
+});
+
 test("CSV import adds customers and skips an email that already exists", async () => {
   await withStore(async (store) => {
     const user = await store.createUser({

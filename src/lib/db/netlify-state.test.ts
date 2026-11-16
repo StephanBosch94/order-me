@@ -27,12 +27,12 @@ test("local demo stays in the JSON file", () => {
   });
 });
 
-test("Netlify shares one database only when the runtime says it is Netlify", () => {
+test("Netlify never stores the database in blobs", () => {
   withEnv({ SITE_ID: "site" }, () => {
     assert.equal(netlifyDemoEnabled(), false);
   });
   withEnv({ NETLIFY: "true" }, () => {
-    assert.equal(netlifyDemoEnabled(), true);
+    assert.equal(netlifyDemoEnabled(), false);
   });
 });
 

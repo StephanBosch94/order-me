@@ -52,6 +52,7 @@ const demoAccountEmails = new Set<string>(
 const testInboxEmails = new Set<string>([
   "milan.kostic@savatrade.rs",
   "petar@restoranmorava.rs",
+  "jelena.stankovic@example.com",
   "porudzbine@savatrade.rs",
 ]);
 

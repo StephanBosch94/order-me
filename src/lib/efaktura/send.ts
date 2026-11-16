@@ -1,6 +1,6 @@
 export type EfakturaEnvironment = "demo" | "produkcija";
 
-/** Hosts from the Ministry API connection guide. The app sends to production. */
+/** Hosts from the Ministry API connection guide. Sending is limited to the demo host. */
 export const SEF_HOSTS: Record<EfakturaEnvironment, string> = {
   demo: "https://demoefaktura.mfin.gov.rs",
   produkcija: "https://efaktura.mfin.gov.rs",
@@ -11,7 +11,7 @@ export type SefPostResult =
   | { ok: false; message: string };
 
 export function salesInvoiceUrl(environment: EfakturaEnvironment, requestId: string) {
-  const host = SEF_HOSTS[environment] ?? SEF_HOSTS.produkcija;
+  const host = SEF_HOSTS[environment] ?? SEF_HOSTS.demo;
   const url = new URL("/api/publicApi/sales-invoice/ubl", host);
   url.searchParams.set("requestId", requestId);
   url.searchParams.set("sendToCir", "No");
@@ -48,6 +48,9 @@ export async function postSalesInvoice(input: {
   requestId: string;
   fetchImpl?: typeof fetch;
 }): Promise<SefPostResult> {
+  if (input.environment !== "demo") {
+    return { ok: false, message: "Slanje e-fakture u produkciju trenutno nije uključeno." };
+  }
   const apiKey = input.apiKey.trim();
   if (!apiKey) {
     return { ok: false, message: "API ključ za e-fakturu nije unet u Podešavanjima." };

@@ -3,7 +3,7 @@ import "server-only";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { getEmailFrom, getLocalDataDir } from "@/lib/config";
+import { getEmailFrom, getLocalDataDir, isEphemeralRuntime } from "@/lib/config";
 import type { EmailDelivery } from "@/lib/data/types";
 
 export type EmailMessage = {
@@ -52,6 +52,7 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDelivery> {
 }
 
 async function writeOutbox(message: EmailMessage) {
+  if (isEphemeralRuntime()) return;
   const dir = path.join(getLocalDataDir(), "outbox");
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, `${Date.now()}-${Math.random().toString(16).slice(2)}.json`);

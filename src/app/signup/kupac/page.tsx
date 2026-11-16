@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth/auth-forms";
 import { ProductionAccounts } from "@/components/auth/production-accounts";
 import { listProductionLoginChoices } from "@/lib/actions/production-login";
-import { getSession, landingPath } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { isDemoShopAccount } from "@/lib/demo-shops";
 import { AuthShell } from "@/app/login/page";
 
@@ -13,8 +13,7 @@ export const metadata: Metadata = { title: "Nalog kupca" };
 
 export default async function BuyerSignupPage() {
   const session = await getSession();
-  if (session && !isDemoShopAccount(session.email)) {
-    if (session.kind === "buyer") redirect(await landingPath(session, ""));
+  if (session && !isDemoShopAccount(session.email) && session.kind !== "buyer") {
     redirect("/dashboard");
   }
   const accounts = await listProductionLoginChoices();

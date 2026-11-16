@@ -4,17 +4,25 @@ import type { DemoMembership, DemoUser } from "@/lib/data/seed";
 import type { Organization } from "@/lib/data/types";
 
 const SESSION_MS = 14 * 24 * 60 * 60 * 1000;
-const DEMO_SECRET = "vendro-demo-session-v1";
+const MIN_SECRET_BYTES = 32;
 
-/** Account copy kept in the signed cookie so another Netlify instance can restore a new signup. */
+/** Account copy kept in the signed cookie so another server can restore a new signup. */
 export type SessionCarry = {
   user: DemoUser;
   organization?: Organization;
   member?: DemoMembership;
 };
 
+export function requireSessionSecret() {
+  const secret = process.env.SESSION_SECRET?.trim() ?? "";
+  if (Buffer.byteLength(secret) < MIN_SECRET_BYTES) {
+    throw new Error("SESSION_SECRET mora imati najmanje 32 bajta.");
+  }
+  return secret;
+}
+
 function sessionSecret() {
-  return process.env.SESSION_SECRET?.trim() || DEMO_SECRET;
+  return requireSessionSecret();
 }
 
 export function signDemoSession(userId: string, now = Date.now(), carry?: SessionCarry | null) {
@@ -62,7 +70,7 @@ function readCarry(value: unknown, userId: string): SessionCarry | null {
   const fields = user as DemoUser;
   if (fields.id !== userId || typeof fields.email !== "string" || typeof fields.name !== "string") return null;
   if (typeof fields.passwordHash !== "string" || typeof fields.createdAt !== "string") return null;
-  if (fields.kind !== "supplier" && fields.kind !== "buyer" && fields.kind !== "platform") return null;
+  if (fields.kind !== "supplier" && fields.kind !== "buyer") return null;
   const carry: SessionCarry = {
     user: {
       ...fields,

@@ -72,6 +72,22 @@ test("the sales invoice URL is the documented demo host unless production is sel
   );
 });
 
+test("production SEF is never called", async () => {
+  let called = false;
+  const result = await postSalesInvoice({
+    environment: "produkcija",
+    apiKey: "kljuc-za-test",
+    xml: "<Invoice/>",
+    requestId: "req-1",
+    fetchImpl: async () => {
+      called = true;
+      return new Response("{}", { status: 200 });
+    },
+  });
+  assert.equal(called, false);
+  assert.equal(result.ok, false);
+});
+
 test("an empty API key never calls the network", async () => {
   let called = false;
   const result = await postSalesInvoice({

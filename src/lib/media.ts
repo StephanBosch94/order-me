@@ -39,6 +39,9 @@ export async function storeImage(organizationId: string, file: File) {
     return data.publicUrl;
   }
 
+  if (process.env.NETLIFY === "true" || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    throw new Error("Čuvanje slike nije uspelo. Povežite Supabase Storage.");
+  }
   const dir = path.join(getLocalDataDir(), "uploads");
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, `${id}.${extension}`), bytes);
