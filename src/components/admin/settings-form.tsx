@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 
 import { updateSettingsAction, type FormState } from "@/lib/actions/catalog";
 import { showMarketplace } from "@/lib/marketing";
-import type { Organization } from "@/lib/data/types";
+import type { Audience, Organization } from "@/lib/data/types";
 import { slugify } from "@/lib/text";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
 import { AudienceChoice } from "@/components/supplier/audience-choice";
@@ -19,11 +19,12 @@ import {
   IMAGE_TYPE_ERROR,
 } from "@/components/ui/file-dropzone";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/fields";
+import { sellsToBusinesses } from "@/lib/constants";
 import { formatIpsAccount, parseIpsAccount } from "@/lib/ips";
 import { TRADES } from "@/lib/trades";
 
 const initial: FormState = {};
-type SettingsTab = "podaci" | "prodaja" | "placanje" | "izgled";
+type SettingsTab = "podaci" | "prodaja" | "izgled";
 
 export function SettingsForm({
   organization,
@@ -36,6 +37,9 @@ export function SettingsForm({
 }) {
   const [state, action, pending] = useActionState(updateSettingsAction, initial);
   const [tab, setTab] = useState<SettingsTab>(initialTab);
+  const [audience, setAudience] = useState<Audience>(organization.audience);
+  const companies = sellsToBusinesses(audience);
+  const [efakturaOn, setEfakturaOn] = useState(organization.efakturaEnabled === true && sellsToBusinesses(organization.audience));
   const [ipsOn, setIpsOn] = useState(organization.ipsEnabled === true);
   const [ipsAccount, setIpsAccount] = useState(formatIpsAccount(organization.ipsAccount));
   const ipsMissing = ipsOn && ipsAccount.trim() === "";
@@ -58,7 +62,7 @@ export function SettingsForm({
     if (!errors) return;
     const keys = Object.keys(errors);
     if (keys.includes("ipsAccount")) {
-      setTab("placanje");
+      setTab("prodaja");
       setIpsOn(true);
     }
     else if (keys.some((key) => key === "description" || key === "brandColor")) setTab("izgled");
@@ -75,9 +79,6 @@ export function SettingsForm({
         </SettingsTabButton>
         <SettingsTabButton selected={tab === "prodaja"} onClick={() => setTab("prodaja")}>
           Prodaja
-        </SettingsTabButton>
-        <SettingsTabButton selected={tab === "placanje"} onClick={() => setTab("placanje")}>
-          Plaćanje
         </SettingsTabButton>
         <SettingsTabButton selected={tab === "izgled"} onClick={() => setTab("izgled")}>
           Izgled stranice
@@ -122,7 +123,50 @@ export function SettingsForm({
         <Setting name="pib" label="PIB" defaultValue={organization.pib} error={state.fieldErrors?.pib} />
         <Setting name="mb" label="Matični broj" defaultValue={organization.mb} error={state.fieldErrors?.mb} />
       </div>
-      <div className={tab === "placanje" ? "grid gap-4" : "hidden"} role="tabpanel">
+      <div className={tab === "prodaja" ? "grid gap-4" : "hidden"} role="tabpanel">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="publicStore"
+              defaultChecked={organization.publicStore !== false}
+              className="mt-0.5 size-4 accent-zinc-950"
+            />
+            <span>
+              <span className="text-sm font-medium">Prodavnica</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Kupci sami poručuju na javnoj stranici. Isključite je ako porudžbine, kupce i ostalo unosite samo vi.
+              </span>
+            </span>
+          </label>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <AudienceChoice
+            defaultValue={organization.audience}
+            error={state.fieldErrors?.audience}
+            onValueChange={(value) => {
+              setAudience(value);
+              if (value === "fizicka") setEfakturaOn(false);
+            }}
+          />
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="trackStock"
+              defaultChecked={organization.trackStock === true}
+              className="mt-0.5 size-4 accent-zinc-950"
+            />
+            <span>
+              <span className="text-sm font-medium">Praćenje stanja u magacinu</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Kad je uključeno, svaki proizvod prikazuje stanje u magacinu, a nova porudžbina tu količinu smanjuje.
+                Otkazivanje je vraća.
+              </span>
+            </span>
+          </label>
+        </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <label className="flex items-start gap-3">
             <input
@@ -168,59 +212,24 @@ export function SettingsForm({
             </div>
           </div>
         </div>
-      </div>
-      <div className={tab === "prodaja" ? "grid gap-4" : "hidden"} role="tabpanel">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              name="publicStore"
-              defaultChecked={organization.publicStore !== false}
-              className="mt-0.5 size-4 accent-zinc-950"
-            />
-            <span>
-              <span className="text-sm font-medium">Prodavnica</span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Kupci sami poručuju na javnoj stranici. Isključite je ako porudžbine, kupce i ostalo unosite samo vi.
-              </span>
-            </span>
-          </label>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <AudienceChoice defaultValue={organization.audience} error={state.fieldErrors?.audience} />
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              name="trackStock"
-              defaultChecked={organization.trackStock === true}
-              className="mt-0.5 size-4 accent-zinc-950"
-            />
-            <span>
-              <span className="text-sm font-medium">Praćenje stanja u magacinu</span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Kad je uključeno, svaki proizvod prikazuje stanje u magacinu, a nova porudžbina tu količinu smanjuje.
-                Otkazivanje je vraća.
-              </span>
-            </span>
-          </label>
-        </div>
+        {companies ? (
         <div className="rounded-lg border border-border bg-card p-4">
           <label className="flex items-start gap-3">
             <input
               type="checkbox"
               name="efakturaEnabled"
-              defaultChecked={organization.efakturaEnabled === true}
+              checked={efakturaOn}
+              onChange={(event) => setEfakturaOn(event.target.checked)}
               className="mt-0.5 size-4 accent-zinc-950"
             />
             <span>
-              <span className="text-sm font-medium">Šalji e-fakturu za pravna lica</span>
+              <span className="text-sm font-medium">E-Faktura</span>
               <span className="mt-1 block text-xs text-muted-foreground">
                 Kad je uključeno, fakturu možete poslati kupcu kojeg ste označili da je u sistemu. Nalog za fizičko lice se ne šalje.
               </span>
             </span>
           </label>
+          {efakturaOn ? (
           <div className="mt-4">
             <Label htmlFor="efakturaApiKey">API ključ</Label>
             <Input
@@ -256,7 +265,9 @@ export function SettingsForm({
               </p>
             </div>
           </div>
+          ) : null}
         </div>
+        ) : null}
       </div>
       <div className={tab === "izgled" ? "grid gap-4 sm:grid-cols-2" : "hidden"} role="tabpanel">
         <LogoField organization={organization} />

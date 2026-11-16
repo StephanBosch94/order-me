@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSession } from "@/lib/auth";
+import { sellsToBusinesses } from "@/lib/constants";
 import { partyForPib, paymentTermFor } from "@/lib/customers";
 import { getCommerce } from "@/lib/data";
 import { buildSalesInvoiceUbl } from "@/lib/efaktura/ubl";
@@ -32,7 +33,10 @@ export async function sendEfakturaAction(orderId: string): Promise<EfakturaActio
     }
 
     const organization = await commerce.getOrganization(session.organization.id);
-    if (!organization?.efakturaEnabled) {
+    if (!organization || !sellsToBusinesses(organization.audience)) {
+      return { ok: false, message: "E-faktura je dostupna samo ako prodajete pravnim licima." };
+    }
+    if (!organization.efakturaEnabled) {
       return { ok: false, message: "Slanje e-fakture nije uključeno u Podešavanjima." };
     }
     if (order.sefInvoiceId) {

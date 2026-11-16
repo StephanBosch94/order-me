@@ -6,10 +6,12 @@ export function AudienceChoice({
   defaultValue = "oba",
   error,
   className,
+  onValueChange,
 }: {
   defaultValue?: Audience;
   error?: string;
   className?: string;
+  onValueChange?: (value: Audience) => void;
 }) {
   return (
     <fieldset className={className}>
@@ -24,6 +26,7 @@ export function AudienceChoice({
               defaultChecked={defaultValue === item.value}
               required
               className="size-4 accent-primary"
+              onChange={() => onValueChange?.(item.value)}
             />
             {item.label}
           </label>

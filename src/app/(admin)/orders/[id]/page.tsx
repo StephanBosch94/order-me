@@ -5,7 +5,7 @@ import { ConfirmOrderButton, SendEfakturaButton } from "@/components/admin/order
 import { IpsPayment } from "@/components/shop/ips-payment";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireSession } from "@/lib/auth";
-import { paymentLabel, unitLabel } from "@/lib/constants";
+import { paymentLabel, sellsToBusinesses, unitLabel } from "@/lib/constants";
 import { documentKind, documentLabel, partyForPib, partyLabel, paymentTermFor } from "@/lib/customers";
 import { getCommerce } from "@/lib/data";
 import { formatDateTime, formatQuantity, formatRsd } from "@/lib/format";
@@ -66,9 +66,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <p className="text-sm">
               <span className="font-medium">E-faktura:</span> Poslata · {order.sefInvoiceId}
             </p>
-          ) : order.status !== "nova" && party === "pravna" && session.organization.efakturaEnabled && session.organization.efakturaEnvironment !== "produkcija" && customerRecord?.sefRegistered ? (
+          ) : order.status !== "nova" && party === "pravna" && sellsToBusinesses(session.organization.audience) && session.organization.efakturaEnabled && session.organization.efakturaEnvironment !== "produkcija" && customerRecord?.sefRegistered ? (
             <SendEfakturaButton orderId={order.id} />
-          ) : order.status !== "nova" && party === "pravna" && session.organization.efakturaEnabled && session.organization.efakturaEnvironment !== "produkcija" ? (
+          ) : order.status !== "nova" && party === "pravna" && sellsToBusinesses(session.organization.audience) && session.organization.efakturaEnabled && session.organization.efakturaEnvironment !== "produkcija" ? (
             <p className="max-w-xs text-sm text-muted-foreground">
               Kupac nije označen kao korisnik Sistema elektronskih faktura.
             </p>
