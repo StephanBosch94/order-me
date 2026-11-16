@@ -4,7 +4,6 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useEffect, useState } from "react";
 
 import { openConfirmedStore } from "@/lib/actions/open-confirmed-store";
-import { authCookieDomainForHost } from "@/lib/config";
 
 /** The mail link can land on the site with the session in the address hash. Open the new shop from there. */
 export function ResumeEmailSession() {
@@ -22,8 +21,7 @@ export function ResumeEmailSession() {
     if (!url || !anon) return;
 
     setOpening(true);
-    const domain = authCookieDomainForHost(window.location.hostname);
-    const supabase = createBrowserClient(url, anon, domain ? { cookieOptions: { domain } } : undefined);
+    const supabase = createBrowserClient(url, anon);
     void supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(async (result) => {
       if (result.error) {
         setOpening(false);

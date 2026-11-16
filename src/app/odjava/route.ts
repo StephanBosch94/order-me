@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { parentAuthClearHeaders, vendroHost } from "@/lib/auth-cookie";
 import { clearDemoSession } from "@/lib/auth";
 import { getDataMode } from "@/lib/config";
 
@@ -14,7 +15,14 @@ async function endSession(request: Request) {
   const login = new URL("/login", request.url);
   const shop = shopPath(new URL(request.url).searchParams.get("next"));
   if (shop) login.searchParams.set("next", shop);
-  return NextResponse.redirect(login, 303);
+  const response = NextResponse.redirect(login, 303);
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+  if (vendroHost(host)) {
+    for (const clear of parentAuthClearHeaders(request.headers.get("cookie") ?? "")) {
+      response.headers.append("Set-Cookie", clear);
+    }
+  }
+  return response;
 }
 
 function shopPath(value: string | null) {

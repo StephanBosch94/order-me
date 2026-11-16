@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { authCookieDomainForHost } from "@/lib/config";
+import { AUTH_SCOPE_COOKIE, AUTH_SCOPE_VALUE, supabaseAuthCookieName, vendroHost } from "@/lib/auth-cookie";
 import { REQUEST_PATH_HEADER } from "@/lib/order-link";
 import { readDemoSessionCarry, requireSessionSecret } from "@/lib/session-token";
 import { storeHostAction } from "@/lib/store-host";
@@ -32,15 +32,19 @@ function storeHostResponse(request: NextRequest) {
   return NextResponse.rewrite(url);
 }
 
-function withCookies(response: NextResponse, cookies: PendingCookie[], hostname: string) {
-  const domain = authCookieDomainForHost(hostname);
-  for (const cookie of cookies) {
-    response.cookies.set(cookie.name, cookie.value, domain ? { ...cookie.options, domain } : cookie.options);
-  }
+function staleParentAuthCookies(request: NextRequest) {
+  if (!vendroHost(requestHostname(request))) return false;
+  if (request.cookies.get(AUTH_SCOPE_COOKIE)?.value === AUTH_SCOPE_VALUE) return false;
+  return request.cookies.getAll().some((cookie) => supabaseAuthCookieName(cookie.name));
+}
+
+function withCookies(response: NextResponse, cookies: PendingCookie[], headers: Record<string, string>) {
+  for (const cookie of cookies) response.cookies.set(cookie.name, cookie.value, cookie.options);
+  for (const [key, value] of Object.entries(headers)) response.headers.set(key, value);
   return response;
 }
 
-async function supabaseUser(request: NextRequest, pending: PendingCookie[]) {
+async function supabaseUser(request: NextRequest, pending: PendingCookie[], headers: Record<string, string>) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!url || !anon || !process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) return null;
@@ -49,8 +53,9 @@ async function supabaseUser(request: NextRequest, pending: PendingCookie[]) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet, cookieHeaders) {
         pending.splice(0, pending.length, ...cookiesToSet);
+        Object.assign(headers, cookieHeaders);
         for (const cookie of cookiesToSet) request.cookies.set(cookie.name, cookie.value);
       },
     },
@@ -65,26 +70,35 @@ async function supabaseUser(request: NextRequest, pending: PendingCookie[]) {
 
 export async function proxy(request: NextRequest) {
   requireSessionSecret();
+  const { pathname } = request.nextUrl;
+  if (request.method === "GET" && pathname !== "/auth/kolacici" && staleParentAuthCookies(request)) {
+    const url = request.nextUrl.clone();
+    const next = `${pathname}${request.nextUrl.search}`;
+    url.pathname = "/auth/kolacici";
+    url.search = "";
+    url.searchParams.set("next", next);
+    return NextResponse.redirect(url);
+  }
+
   const pending: PendingCookie[] = [];
+  const cookieHeaders: Record<string, string> = {};
   const supabaseConfigured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
       process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
-  const user = supabaseConfigured ? await supabaseUser(request, pending) : null;
+  const user = supabaseConfigured ? await supabaseUser(request, pending, cookieHeaders) : null;
 
-  const hostname = requestHostname(request);
   const hosted = storeHostResponse(request);
-  if (hosted) return withCookies(hosted, pending, hostname);
+  if (hosted) return withCookies(hosted, pending, cookieHeaders);
 
-  const { pathname } = request.nextUrl;
   // Catalog photos live under /products/*.jpg and must stay public.
-  if (/\.[a-z0-9]+$/i.test(pathname)) return withCookies(NextResponse.next(), pending, hostname);
+  if (/\.[a-z0-9]+$/i.test(pathname)) return withCookies(NextResponse.next(), pending, cookieHeaders);
 
   const isProtected = protectedRoots.some(
     (root) => pathname === root || pathname.startsWith(`${root}/`),
   );
-  if (!isProtected) return withCookies(NextResponse.next(), pending, hostname);
+  if (!isProtected) return withCookies(NextResponse.next(), pending, cookieHeaders);
 
   const hasSession = supabaseConfigured
     ? Boolean(user)
@@ -94,7 +108,7 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
-    return withCookies(NextResponse.redirect(url), pending, hostname);
+    return withCookies(NextResponse.redirect(url), pending, cookieHeaders);
   }
 
   const orderId = pathname.match(/^\/orders\/([^/]+)$/)?.[1];
@@ -105,13 +119,13 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = `/narudzbina/${orderId}`;
       url.search = "";
-      return withCookies(NextResponse.redirect(url), pending, hostname);
+      return withCookies(NextResponse.redirect(url), pending, cookieHeaders);
     }
   }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(REQUEST_PATH_HEADER, pathname);
-  return withCookies(NextResponse.next({ request: { headers: requestHeaders } }), pending, hostname);
+  return withCookies(NextResponse.next({ request: { headers: requestHeaders } }), pending, cookieHeaders);
 }
 
 export const config = {

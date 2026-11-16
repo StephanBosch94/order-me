@@ -1,9 +1,7 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
-import { cookies, headers } from "next/headers";
-
-import { authCookieDomainForHost } from "@/lib/config";
+import { cookies } from "next/headers";
 
 export async function createSupabaseServer() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -13,8 +11,6 @@ export async function createSupabaseServer() {
   }
 
   const cookieStore = await cookies();
-  const headerStore = await headers();
-  const domain = authCookieDomainForHost(headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "");
   return createServerClient(url, anon, {
     cookies: {
       getAll() {
@@ -23,7 +19,7 @@ export async function createSupabaseServer() {
       setAll(cookiesToSet) {
         try {
           for (const cookie of cookiesToSet) {
-            cookieStore.set(cookie.name, cookie.value, domain ? { ...cookie.options, domain } : cookie.options);
+            cookieStore.set(cookie.name, cookie.value, cookie.options);
           }
         } catch {
           // Server Components cannot always write cookies. The proxy refreshes the session.
