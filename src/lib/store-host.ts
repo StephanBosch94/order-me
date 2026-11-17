@@ -57,6 +57,19 @@ export function keepShopOnCurrentHost(
   return action.hostname !== currentHost;
 }
 
+/** The live host does not pass the RSC header through. The `_rsc` query is what the browser actually requests. */
+export function isAppFlight(input: {
+  search: string;
+  rsc: string | null;
+  prefetch: boolean;
+  segmentPrefetch: boolean;
+  fetchDest: string | null;
+}) {
+  if (new URLSearchParams(input.search).has("_rsc")) return true;
+  if (input.rsc === "1" || input.prefetch || input.segmentPrefetch) return true;
+  return input.fetchDest === "empty";
+}
+
 /** Map a public shop host onto the existing /shop and /s routes, and send apex /shop links to the shop host. */
 export function storeHostAction(hostname: string, pathname: string, domain: string | null = storeDomain()): StoreHostAction | null {
   const host = hostname.toLowerCase().split(":")[0] ?? "";

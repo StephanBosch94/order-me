@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { demoEntryDestination } from "./demo-shops";
-import { keepShopOnCurrentHost, publicConfirmationUrl, publicStoreUrl, shopSlugFromHostname, storeHostAction } from "./store-host";
+import { isAppFlight, keepShopOnCurrentHost, publicConfirmationUrl, publicStoreUrl, shopSlugFromHostname, storeHostAction } from "./store-host";
 
 const domain = "vendro.app";
 
@@ -107,6 +107,8 @@ test("a client fetch stays on vendro.rs instead of following the shop host", () 
   assert.equal(keepShopOnCurrentHost(action, "vendro.rs", true), true);
   assert.equal(keepShopOnCurrentHost(action, "vendro.rs", false), false);
   assert.equal(keepShopOnCurrentHost(storeHostAction("mesara-pajic.vendro.rs", "/", "vendro.rs"), "mesara-pajic.vendro.rs", true), false);
+  assert.equal(isAppFlight({ search: "?_rsc=5CB68i4pnAekjehf", rsc: null, prefetch: false, segmentPrefetch: false, fetchDest: null }), true);
+  assert.equal(isAppFlight({ search: "", rsc: null, prefetch: false, segmentPrefetch: false, fetchDest: "document" }), false);
 });
 
 test("every shop on vendro.rs uses its own host", () => {

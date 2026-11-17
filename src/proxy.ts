@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_SCOPE_COOKIE, AUTH_SCOPE_VALUE, supabaseAuthCookieName, vendroHost } from "@/lib/auth-cookie";
 import { REQUEST_PATH_HEADER } from "@/lib/order-link";
 import { readDemoSessionCarry, requireSessionSecret } from "@/lib/session-token";
-import { keepShopOnCurrentHost, storeHostAction } from "@/lib/store-host";
+import { isAppFlight, keepShopOnCurrentHost, storeHostAction } from "@/lib/store-host";
 
 const protectedRoots = ["/dashboard", "/orders", "/products", "/customers", "/zaposleni", "/settings", "/invoices", "/nalog", "/kupac", "/platform"];
 
@@ -22,11 +22,13 @@ function requestHostname(request: NextRequest) {
 
 function flightRequest(request: NextRequest) {
   const headers = request.headers;
-  return (
-    headers.get("rsc") === "1" ||
-    headers.has("next-router-prefetch") ||
-    headers.has("next-router-segment-prefetch")
-  );
+  return isAppFlight({
+    search: request.nextUrl.search,
+    rsc: headers.get("rsc"),
+    prefetch: headers.has("next-router-prefetch"),
+    segmentPrefetch: headers.has("next-router-segment-prefetch"),
+    fetchDest: headers.get("sec-fetch-dest"),
+  });
 }
 
 function storeHostResponse(request: NextRequest) {

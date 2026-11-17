@@ -14,10 +14,14 @@ export type EmailMessage = {
 };
 
 export async function sendEmail(message: EmailMessage): Promise<EmailDelivery> {
+  return (await deliverEmail(message)).delivery;
+}
+
+export async function deliverEmail(message: EmailMessage): Promise<{ delivery: EmailDelivery; reason: string }> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
     await writeOutbox(message);
-    return "outbox";
+    return { delivery: "outbox", reason: "" };
   }
 
   try {
@@ -37,17 +41,31 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDelivery> {
     });
     if (!response.ok) {
       const body = await response.text();
+      const reason = providerMessage(body);
+      console.error("[email]", response.status, reason);
       await writeOutbox({ ...message, subject: `[neuspelo] ${message.subject}`, text: `${message.text}\n\n${body}` });
-      return "failed";
+      return { delivery: "failed", reason };
     }
-    return "sent";
+    return { delivery: "sent", reason: "" };
   } catch (error) {
+    const reason = error instanceof Error ? error.message : "Email nije poslat.";
+    console.error("[email]", reason);
     await writeOutbox({
       ...message,
       subject: `[neuspelo] ${message.subject}`,
-      text: `${message.text}\n\n${error instanceof Error ? error.message : "Email nije poslat."}`,
+      text: `${message.text}\n\n${reason}`,
     });
-    return "failed";
+    return { delivery: "failed", reason };
+  }
+}
+
+function providerMessage(body: string) {
+  try {
+    const parsed = JSON.parse(body) as { message?: unknown };
+    const message = typeof parsed.message === "string" ? parsed.message : "";
+    return message.replace(/\s+/g, " ").slice(0, 180);
+  } catch {
+    return "";
   }
 }
 
