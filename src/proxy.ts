@@ -22,6 +22,9 @@ function requestHostname(request: NextRequest) {
 
 function flightRequest(request: NextRequest) {
   const headers = request.headers;
+  const accept = headers.get("accept") ?? "";
+  if (`${request.url} ${request.nextUrl.search}`.includes("_rsc=")) return true;
+  if (accept && !accept.includes("text/html")) return true;
   return isAppFlight({
     search: request.nextUrl.search,
     rsc: headers.get("rsc"),
