@@ -196,7 +196,8 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
     }).catch(() => ({ delivery: "failed" as const, reason: "" }));
     if (delivery.delivery === "failed") {
       await removeUnfinishedSignup(userId);
-      return { error: "Nismo uspeli da pošaljemo email za potvrdu. Pokušajte ponovo." };
+      const detail = delivery.reason ? ` ${delivery.reason}` : "";
+      return { error: `Nismo uspeli da pošaljemo email za potvrdu.${detail}` };
     }
     redirect(next ? `/signup/potvrda?next=${encodeURIComponent(next)}` : "/signup/potvrda");
   } catch (error) {
