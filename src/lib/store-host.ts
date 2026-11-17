@@ -47,6 +47,16 @@ export type StoreHostAction =
   | { type: "redirect"; hostname: string; pathname: string }
   | { type: "rewrite"; pathname: string };
 
+/** Next loads a shop with a same-origin fetch. A redirect to another host has no CORS header and the page fails. */
+export function keepShopOnCurrentHost(
+  action: StoreHostAction | null,
+  currentHost: string,
+  flight: boolean,
+) {
+  if (!flight || !action || action.type !== "redirect") return false;
+  return action.hostname !== currentHost;
+}
+
 /** Map a public shop host onto the existing /shop and /s routes, and send apex /shop links to the shop host. */
 export function storeHostAction(hostname: string, pathname: string, domain: string | null = storeDomain()): StoreHostAction | null {
   const host = hostname.toLowerCase().split(":")[0] ?? "";

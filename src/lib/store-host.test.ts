@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { demoEntryDestination } from "./demo-shops";
-import { publicConfirmationUrl, publicStoreUrl, shopSlugFromHostname, storeHostAction } from "./store-host";
+import { keepShopOnCurrentHost, publicConfirmationUrl, publicStoreUrl, shopSlugFromHostname, storeHostAction } from "./store-host";
 
 const domain = "vendro.app";
 
@@ -100,6 +100,13 @@ test("Sava Trade is served at savatrade.vendro.rs", () => {
   assert.equal(publicStoreUrl("sava-trade", null), "https://savatrade.vendro.rs");
   assert.equal(publicStoreUrl("sava-trade", "vendro.rs"), "https://savatrade.vendro.rs");
   assert.equal(publicConfirmationUrl("sava-trade", "token", null), "https://savatrade.vendro.rs/potvrda/token");
+});
+
+test("a client fetch stays on vendro.rs instead of following the shop host", () => {
+  const action = storeHostAction("vendro.rs", "/shop/mesara-pajic", "vendro.rs");
+  assert.equal(keepShopOnCurrentHost(action, "vendro.rs", true), true);
+  assert.equal(keepShopOnCurrentHost(action, "vendro.rs", false), false);
+  assert.equal(keepShopOnCurrentHost(storeHostAction("mesara-pajic.vendro.rs", "/", "vendro.rs"), "mesara-pajic.vendro.rs", true), false);
 });
 
 test("every shop on vendro.rs uses its own host", () => {

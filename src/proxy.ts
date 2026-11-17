@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_SCOPE_COOKIE, AUTH_SCOPE_VALUE, supabaseAuthCookieName, vendroHost } from "@/lib/auth-cookie";
 import { REQUEST_PATH_HEADER } from "@/lib/order-link";
 import { readDemoSessionCarry, requireSessionSecret } from "@/lib/session-token";
-import { storeHostAction } from "@/lib/store-host";
+import { keepShopOnCurrentHost, storeHostAction } from "@/lib/store-host";
 
 const protectedRoots = ["/dashboard", "/orders", "/products", "/customers", "/zaposleni", "/settings", "/invoices", "/nalog", "/kupac", "/platform"];
 
@@ -20,9 +20,19 @@ function requestHostname(request: NextRequest) {
   return host || request.nextUrl.hostname;
 }
 
+function flightRequest(request: NextRequest) {
+  const headers = request.headers;
+  return (
+    headers.get("rsc") === "1" ||
+    headers.has("next-router-prefetch") ||
+    headers.has("next-router-segment-prefetch")
+  );
+}
+
 function storeHostResponse(request: NextRequest) {
-  const action = storeHostAction(requestHostname(request), request.nextUrl.pathname);
-  if (!action) return null;
+  const hostname = requestHostname(request);
+  const action = storeHostAction(hostname, request.nextUrl.pathname);
+  if (!action || keepShopOnCurrentHost(action, hostname, flightRequest(request))) return null;
   const url = request.nextUrl.clone();
   url.pathname = action.pathname;
   if (action.type === "redirect") {
