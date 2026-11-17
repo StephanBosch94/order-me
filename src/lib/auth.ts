@@ -6,9 +6,10 @@ import { redirect } from "next/navigation";
 import { getDataMode } from "@/lib/config";
 import { storePath } from "@/lib/constants";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
-import type { AccountContext, BuyerAccount, PlatformAccount, SessionAccount } from "@/lib/data/types";
+import type { AccountContext, BuyerAccount, PlatformAccount, SessionAccount, SupplierAccount } from "@/lib/data/types";
 import { buyerOrderDestination, REQUEST_PATH_HEADER } from "@/lib/order-link";
 import { readDemoSession, readDemoSessionCarry } from "@/lib/session-token";
+import { readSupportGrant, signSupportGrant, SUPPORT_COOKIE } from "@/lib/support-access";
 
 export const SESSION_COOKIE = "poruci_session";
 
@@ -57,7 +58,7 @@ export async function landingPath(account: SessionAccount, nextPath: string) {
   return nextPath;
 }
 
-export async function getSession(): Promise<SessionAccount | null> {
+export async function getActor(): Promise<SessionAccount | null> {
   if (getDataMode() === "demo") {
     const token = (await cookies()).get(SESSION_COOKIE)?.value;
     if (!token) return null;
@@ -78,6 +79,41 @@ export async function getSession(): Promise<SessionAccount | null> {
   return getCommerce().resolveAccount(data.user.id);
 }
 
+export async function getSession(): Promise<SessionAccount | null> {
+  const actor = await getActor();
+  if (!actor) return null;
+  if (actor.kind !== "platform") return actor;
+  const opened = await supportAccount(actor);
+  return opened ?? actor;
+}
+
+async function supportAccount(actor: PlatformAccount): Promise<SupplierAccount | null> {
+  const token = (await cookies()).get(SUPPORT_COOKIE)?.value;
+  if (!token) return null;
+  const grant = readSupportGrant(token);
+  if (!grant || grant.adminId !== actor.userId) return null;
+  const organization = await getCommerce().getOrganization(grant.organizationId);
+  if (!organization) return null;
+  const members = await getCommerce().listMembers(organization.id);
+  const owner = members.find((member) => member.role === "owner") ?? members[0];
+  return {
+    kind: "supplier",
+    userId: owner?.userId ?? actor.userId,
+    name: owner?.name ?? actor.name,
+    email: owner?.email ?? actor.email,
+    role: "owner",
+    organization,
+    support: { adminId: actor.userId, adminName: actor.name, organizationName: organization.name },
+  };
+}
+
+export async function currentSupportShop() {
+  const actor = await getActor();
+  if (!actor || actor.kind !== "platform") return null;
+  const opened = await supportAccount(actor);
+  return opened?.support?.organizationName ?? null;
+}
+
 export async function requireSession(): Promise<AccountContext> {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -90,7 +126,7 @@ export async function requireSession(): Promise<AccountContext> {
 }
 
 export async function requireBuyerSession(): Promise<BuyerAccount> {
-  const session = await getSession();
+  const session = await getActor();
   if (!session) redirect("/login?next=/kupac");
   if (session.kind === "platform") redirect("/platform");
   if (session.kind !== "buyer") redirect("/dashboard");
@@ -100,7 +136,7 @@ export async function requireBuyerSession(): Promise<BuyerAccount> {
 }
 
 export async function requirePlatformSession(): Promise<PlatformAccount> {
-  const session = await getSession();
+  const session = await getActor();
   if (!session) redirect("/login?next=/platform");
   if (session.kind === "buyer") redirect(await buyerDestination("/kupac", session.userId));
   if (session.kind !== "platform") redirect("/dashboard");
@@ -110,6 +146,26 @@ export async function requirePlatformSession(): Promise<PlatformAccount> {
 export async function setDemoSession(token: string) {
   const store = await cookies();
   store.set(SESSION_COOKIE, token, sessionCookieOptions);
+}
+
+export function supportCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 2,
+  };
+}
+
+export async function setSupportAccess(adminId: string, organizationId: string) {
+  const store = await cookies();
+  store.set(SUPPORT_COOKIE, signSupportGrant(adminId, organizationId), supportCookieOptions());
+}
+
+export async function clearSupportAccess() {
+  const store = await cookies();
+  store.delete(SUPPORT_COOKIE);
 }
 
 export async function clearDemoSession() {

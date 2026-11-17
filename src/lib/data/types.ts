@@ -23,6 +23,8 @@ export type AccountContext = {
   email: string;
   role: MemberRole;
   organization: Organization;
+  /** Set only while a platform admin is inside this shop. The admin session stays separate. */
+  support?: { adminId: string; adminName: string; organizationName: string };
 };
 
 export type OrganizationMember = {

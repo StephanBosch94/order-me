@@ -25,7 +25,13 @@ export default async function AccountPage() {
           <dd className="mt-1">{session.organization.phone || "—"}</dd>
         </div>
       </dl>
-      <PasswordForm />
+      {session.support ? (
+        <p className="max-w-xl text-sm text-muted-foreground">
+          Iz pristupa podrške lozinka klijenta se ne menja.
+        </p>
+      ) : (
+        <PasswordForm />
+      )}
     </div>
   );
 }

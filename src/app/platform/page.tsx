@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/page-header";
 import { supplierAudienceLabel } from "@/components/platform/copy";
 import { ActiveToggle } from "@/components/platform/forms";
+import { openClientAccessAction } from "@/lib/actions/platform";
 import { storePath } from "@/lib/constants";
 import { getCommerce } from "@/lib/data";
 
@@ -45,11 +46,19 @@ export default async function PlatformSuppliersPage() {
                   </Link>
                 </td>
                 <td className="px-4 py-3">
-                  <ActiveToggle
-                    organizationId={row.organization.id}
-                    slug={row.organization.slug}
-                    active={row.organization.active}
-                  />
+                  <div className="flex flex-col items-start gap-2">
+                    <form action={openClientAccessAction}>
+                      <input type="hidden" name="organizationId" value={row.organization.id} />
+                      <button type="submit" className="text-sm font-medium underline-offset-2 hover:underline">
+                        Uđite
+                      </button>
+                    </form>
+                    <ActiveToggle
+                      organizationId={row.organization.id}
+                      slug={row.organization.slug}
+                      active={row.organization.active}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}

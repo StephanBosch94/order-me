@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { parentAuthClearHeaders, vendroHost } from "@/lib/auth-cookie";
-import { clearDemoSession } from "@/lib/auth";
+import { clearDemoSession, clearSupportAccess } from "@/lib/auth";
 import { getDataMode } from "@/lib/config";
+import { SUPPORT_COOKIE } from "@/lib/support-access";
 
 async function endSession(request: Request) {
+  await clearSupportAccess();
   if (getDataMode() === "demo") {
     await clearDemoSession();
   } else {
@@ -16,6 +18,13 @@ async function endSession(request: Request) {
   const shop = shopPath(new URL(request.url).searchParams.get("next"));
   if (shop) login.searchParams.set("next", shop);
   const response = NextResponse.redirect(login, 303);
+  response.cookies.set(SUPPORT_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
   if (vendroHost(host)) {
     for (const clear of parentAuthClearHeaders(request.headers.get("cookie") ?? "")) {

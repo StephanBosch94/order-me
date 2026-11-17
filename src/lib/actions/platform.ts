@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-import { requirePlatformSession } from "@/lib/auth";
+import { requirePlatformSession, setSupportAccess } from "@/lib/auth";
 import { getCommerce } from "@/lib/data";
 import type { SubscriptionStatus } from "@/lib/data/types";
 import { DataError } from "@/lib/errors";
@@ -39,6 +40,15 @@ async function run(work: () => Promise<void>, slug?: string): Promise<PlatformSt
   }
   refreshPlatform(slug);
   return { error: "" };
+}
+
+export async function openClientAccessAction(formData: FormData) {
+  const session = await requirePlatformSession();
+  const organizationId = text(formData, "organizationId");
+  const organization = await getCommerce().getOrganization(organizationId);
+  if (!organization) redirect("/platform");
+  await setSupportAccess(session.userId, organization.id);
+  redirect("/dashboard");
 }
 
 export async function setOrganizationActiveAction(_prev: PlatformState, formData: FormData): Promise<PlatformState> {

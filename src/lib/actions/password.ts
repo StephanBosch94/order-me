@@ -25,6 +25,9 @@ function text(formData: FormData, key: string) {
 export async function changePasswordAction(_prev: PasswordState, formData: FormData): Promise<PasswordState> {
   const session = await getSession();
   if (!session) return { error: "Prijavite se da biste promenili lozinku." };
+  if (session.kind === "supplier" && session.support) {
+    return { error: "Lozinku klijenta ne možete menjati iz pristupa podrške." };
+  }
 
   const parsed = passwordChangeSchema.safeParse({
     currentPassword: text(formData, "currentPassword"),

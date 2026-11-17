@@ -147,11 +147,11 @@ export function AdminShell({
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
         <BuyerMenu
-          name={session.name}
+          name={session.support ? "Podrška" : session.name}
           ordersHref="/orders"
-          accountHref="/nalog"
+          accountHref={session.support ? undefined : "/nalog"}
           shopPath={shopPath}
-          allowLogout={!demoShop}
+          allowLogout={!demoShop && !session.support}
         />
       </StoreHeader>
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -169,6 +169,17 @@ export function AdminShell({
           <div className={cn("flex min-h-0 flex-1", open && "hidden lg:flex")}>
             <div className="min-w-0 flex-1 overflow-y-auto">
               <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+                {session.support ? (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
+                    <p>
+                      Pristup podrške za <span className="font-medium">{session.support.organizationName}</span>. Lozinka
+                      klijenta ostaje njegova. Pristup važi 2 sata i možete ga ponovo otvoriti.
+                    </p>
+                    <a href="/podrska/izlaz" className="font-medium underline-offset-2 hover:underline">
+                      Završite pristup
+                    </a>
+                  </div>
+                ) : null}
                 {session.organization.active ? null : (
                   <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                     Nalog je deaktiviran. Prodavnica ne prima nove porudžbine. Pregled, fakture i podešavanja ostaju dostupni.

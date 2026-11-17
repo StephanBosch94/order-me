@@ -25,9 +25,11 @@ function isActive(pathname: string, href: string) {
 
 export function PlatformShell({
   session,
+  supportShop = null,
   children,
 }: {
   session: PlatformAccount;
+  supportShop?: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -102,7 +104,24 @@ export function PlatformShell({
             </div>
           ) : null}
           <div className={cn("min-h-0 flex-1 overflow-y-auto", open && "hidden lg:block")}>
-            <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+            <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+              {supportShop ? (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm">
+                  <p>
+                    Otvoren je pristup ka <span className="font-medium">{supportShop}</span>.
+                  </p>
+                  <span className="flex gap-4">
+                    <Link href="/dashboard" className="font-medium underline-offset-2 hover:underline">
+                      Nastavite
+                    </Link>
+                    <Link href="/podrska/izlaz" className="font-medium underline-offset-2 hover:underline">
+                      Završite
+                    </Link>
+                  </span>
+                </div>
+              ) : null}
+              {children}
+            </main>
           </div>
         </div>
       </div>
