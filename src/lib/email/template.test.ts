@@ -4,7 +4,6 @@ import test from "node:test";
 import { emailButton, emailDocument, emailLogoUrl, orderLinesHtml, orderLinesText, signupConfirmationEmail, staffInviteEmail } from "@/lib/email/template";
 import { confirmedAccountUrl, signupConfirmUrl } from "@/lib/signup-confirm";
 import { staffInviteUrl } from "@/lib/staff-invite";
-import { publicStoreUrl } from "@/lib/store-host";
 
 const lines = [
   { name: "Petrovačka kobasica", quantity: 2, unit: "kilogram" as const, lineTotalPara: 290000 },
@@ -58,9 +57,8 @@ test("a registration link confirms the address and keeps the return path", () =>
   assert.equal(signupConfirmUrl("https://vendro.rs", "abc", "https://evil.test"), "https://vendro.rs/auth/potvrda?token_hash=abc&type=signup");
 });
 
-test("a confirmed supplier opens the shop they created", () => {
-  assert.equal(confirmedAccountUrl("supplier", "nova-radnja", "/"), publicStoreUrl("nova-radnja"));
-  assert.notEqual(publicStoreUrl("nova-radnja"), "/");
+test("a confirmed supplier opens the shop dashboard", () => {
+  assert.equal(confirmedAccountUrl("supplier", "nova-radnja", "/"), "/dashboard");
   assert.equal(confirmedAccountUrl("buyer", "nova-radnja", "/kupac"), "/kupac");
   assert.equal(confirmedAccountUrl("supplier", "", "/dashboard"), "/dashboard");
 });
