@@ -200,6 +200,9 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
           phone: parsed.data.phone,
           audience: parsed.data.audience,
         });
+        const { ensureShopDomainAlias } = await import("@/lib/netlify-shop-host");
+        const host = await ensureShopDomainAlias(slug);
+        if (!host.ok) console.error("[shop-host]", slug, host.reason);
       }
     } catch (error) {
       await removeUnfinishedSignup(userId);
