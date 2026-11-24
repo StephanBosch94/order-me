@@ -40,7 +40,6 @@ export default async function SettingsPage({
       </section>
       <SettingsForm
         organization={{ ...session.organization, efakturaApiKey: "" }}
-        hasEfakturaApiKey={session.organization.efakturaApiKey.trim().length > 0}
         initialTab={tab === "izgled" || tab === "prodaja" ? tab : "podaci"}
       />
       {usesPostgres() ? (

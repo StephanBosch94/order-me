@@ -18,14 +18,14 @@ export function CustomerForm({ customer }: { customer: Customer }) {
   const [party, setParty] = useState<CustomerParty>(customer.party === "fizicka" ? "fizicka" : "pravna");
   const [days, setDays] = useState(String(customer.paymentTermDays ?? 15));
   const [inSef, setInSef] = useState(customer.sefRegistered === true);
-  const changes = useUnchangedForm();
+  const { ref: formRef, onInput: trackInput, onChange: trackChange, unchanged, markClean } = useUnchangedForm();
 
   return (
     <form
-      ref={changes.ref}
+      ref={formRef}
       className="space-y-4"
-      onInput={changes.onInput}
-      onChange={changes.onChange}
+      onInput={trackInput}
+      onChange={trackChange}
       onSubmit={async (event) => {
         event.preventDefault();
         setPending(true);
@@ -36,7 +36,7 @@ export function CustomerForm({ customer }: { customer: Customer }) {
           return;
         }
         setError("");
-        changes.markClean();
+        markClean();
         toast.success(result.message ?? "Podaci o kupcu su sačuvani.");
         router.refresh();
       }}
@@ -128,7 +128,7 @@ export function CustomerForm({ customer }: { customer: Customer }) {
           </label>
         </div>
       ) : null}
-      <Button type="submit" disabled={pending || changes.unchanged}>
+      <Button type="submit" disabled={pending || unchanged}>
         {pending ? "Čuvanje…" : "Sačuvaj izmene"}
       </Button>
       <p className="text-sm text-muted-foreground">

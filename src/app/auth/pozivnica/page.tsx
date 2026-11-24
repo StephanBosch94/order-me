@@ -14,17 +14,18 @@ export default async function StaffInvitePage({
   const params = await searchParams;
   const token = params.token?.trim() ?? "";
   const type = params.type === "recovery" ? "recovery" : "invite";
+  const recovery = type === "recovery";
 
   return (
     <AuthShell
-      title="Napravite lozinku"
-      subtitle="Pozivnica je za pristup prodavnici. Lozinku birate sami."
+      title={recovery ? "Postavite novu lozinku" : "Napravite lozinku"}
+      subtitle={recovery ? "Izaberite novu lozinku za svoj Vendro nalog." : "Pozivnica je za pristup prodavnici. Lozinku birate sami."}
     >
       {token ? (
         <StaffInviteForm token={token} type={type} />
       ) : (
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          Pozivnica nije potpuna. Otvorite link iz emaila.
+          Link nije potpun. Otvorite link iz emaila.
         </p>
       )}
     </AuthShell>

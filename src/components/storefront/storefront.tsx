@@ -113,7 +113,7 @@ export function Storefront({
     const key = `poruci-repeat:${repeatOrderId}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    repeatOrder(order.items);
+    queueMicrotask(() => repeatOrder(order.items));
     // The repeat link should fill the cart once when the page opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repeatOrderId]);

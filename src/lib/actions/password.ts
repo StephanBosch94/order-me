@@ -1,12 +1,14 @@
 "use server";
 
 import { getSession, setDemoSession } from "@/lib/auth";
-import { getDataMode } from "@/lib/config";
+import { getAppUrl, getDataMode } from "@/lib/config";
 import { getCommerce, getDemoIdentity } from "@/lib/data";
-import { deliverPasswordChangedEmail } from "@/lib/email/password";
+import { deliverPasswordChangedEmail, deliverPasswordResetEmail } from "@/lib/email/password";
 import { DataError } from "@/lib/errors";
 import { signDemoSession } from "@/lib/session-token";
+import { staffInviteUrl } from "@/lib/staff-invite";
 import { fieldErrors, passwordChangeSchema } from "@/lib/validators";
+import { consumeActionLimit, requestFingerprint } from "@/lib/rate-limit";
 import { z } from "zod";
 
 export type PasswordState = {
@@ -59,6 +61,43 @@ export async function changePasswordAction(_prev: PasswordState, formData: FormD
 }
 
 const loginEmail = z.email("Unesite ispravnu email adresu.");
+
+export async function requestPasswordResetAction(_prev: PasswordState, formData: FormData): Promise<PasswordState> {
+  const parsed = loginEmail.safeParse(text(formData, "email").trim());
+  if (!parsed.success) {
+    return { error: "Unesite ispravnu email adresu.", fieldErrors: { email: "Unesite ispravnu email adresu." } };
+  }
+
+  const message = "Ako nalog postoji, poslali smo link za novu lozinku.";
+  if (getDataMode() !== "supabase") return { ok: true, savedAt: Date.now(), message };
+
+  const email = parsed.data.toLowerCase();
+  const fingerprint = await requestFingerprint();
+  const allowed =
+    (await consumeActionLimit("recovery-ip", fingerprint, 5, 15 * 60)) &&
+    (await consumeActionLimit("recovery-email", email, 3, 15 * 60));
+  if (!allowed) return { error: "Previše zahteva. Sačekajte nekoliko minuta." };
+
+  const { getServiceClient } = await import("@/lib/supabase/admin");
+  const admin = getServiceClient();
+  const profile = await admin.from("profiles").select("id, name, email").eq("email", email).maybeSingle();
+  if (!profile.data || profile.error) return { ok: true, savedAt: Date.now(), message };
+
+  const link = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo: getAppUrl() },
+  });
+  const token = link.data.properties?.hashed_token ?? "";
+  if (link.error || !token) return { ok: true, savedAt: Date.now(), message };
+
+  await deliverPasswordResetEmail({
+    to: email,
+    name: String(profile.data.name ?? ""),
+    resetUrl: staffInviteUrl(getAppUrl(), token, "recovery"),
+  });
+  return { ok: true, savedAt: Date.now(), message };
+}
 
 export async function changePasswordFromLoginAction(_prev: PasswordState, formData: FormData): Promise<PasswordState> {
   const emailParsed = loginEmail.safeParse(text(formData, "email").trim());

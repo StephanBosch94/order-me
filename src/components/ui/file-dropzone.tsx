@@ -85,11 +85,8 @@ export function FileDropzone({
   const [preview, setPreview] = useState<string | null>(null);
   const isControlled = filesProp !== undefined;
   const files = filesProp ?? uncontrolled;
-  const filesRef = useRef(files);
-  filesRef.current = files;
 
   function commit(next: File[]) {
-    filesRef.current = next;
     const input = inputRef.current;
     if (input) assignFiles(input, next);
     if (!isControlled) setUncontrolled(next);
@@ -105,13 +102,23 @@ export function FileDropzone({
   const previewFile = showImagePreview && files.length === 1 && files[0]?.type.startsWith("image/") ? files[0] : null;
 
   useEffect(() => {
+    let cancelled = false;
     if (!previewFile) {
-      setPreview(null);
-      return;
+      queueMicrotask(() => {
+        if (!cancelled) setPreview(null);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     const url = URL.createObjectURL(previewFile);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
+    queueMicrotask(() => {
+      if (!cancelled) setPreview(url);
+    });
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(url);
+    };
   }, [previewFile]);
 
   function take(list: FileList | null) {
@@ -149,7 +156,7 @@ export function FileDropzone({
       accepted.push(file);
     }
 
-    const existing = filesRef.current;
+    const existing = files;
     const room = Math.max(0, (maxFiles ?? Number.POSITIVE_INFINITY) - existing.length);
     if (accepted.length > room) problem ??= limitError;
     const added = accepted.slice(0, room);

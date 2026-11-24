@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { AUTH_SCOPE_COOKIE, AUTH_SCOPE_VALUE, supabaseAuthCookieName, vendroHost } from "@/lib/auth-cookie";
+import { sharedAuthCookieOptions } from "@/lib/auth-cookie";
 import { REQUEST_PATH_HEADER } from "@/lib/order-link";
 import { readDemoSessionCarry, requireSessionSecret } from "@/lib/session-token";
 import { isAppFlight, keepShopOnCurrentHost, storeHostAction } from "@/lib/store-host";
@@ -47,12 +47,6 @@ function storeHostResponse(request: NextRequest) {
   return NextResponse.rewrite(url);
 }
 
-function staleParentAuthCookies(request: NextRequest) {
-  if (!vendroHost(requestHostname(request))) return false;
-  if (request.cookies.get(AUTH_SCOPE_COOKIE)?.value === AUTH_SCOPE_VALUE) return false;
-  return request.cookies.getAll().some((cookie) => supabaseAuthCookieName(cookie.name));
-}
-
 function withCookies(response: NextResponse, cookies: PendingCookie[], headers: Record<string, string>) {
   for (const cookie of cookies) response.cookies.set(cookie.name, cookie.value, cookie.options);
   for (const [key, value] of Object.entries(headers)) response.headers.set(key, value);
@@ -64,6 +58,7 @@ async function supabaseUser(request: NextRequest, pending: PendingCookie[], head
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!url || !anon || !process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) return null;
   const supabase = createServerClient(url, anon, {
+    cookieOptions: sharedAuthCookieOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -86,14 +81,6 @@ async function supabaseUser(request: NextRequest, pending: PendingCookie[], head
 export async function proxy(request: NextRequest) {
   requireSessionSecret();
   const { pathname } = request.nextUrl;
-  if (request.method === "GET" && pathname !== "/auth/kolacici" && staleParentAuthCookies(request)) {
-    const url = request.nextUrl.clone();
-    const next = `${pathname}${request.nextUrl.search}`;
-    url.pathname = "/auth/kolacici";
-    url.search = "";
-    url.searchParams.set("next", next);
-    return NextResponse.redirect(url);
-  }
 
   const pending: PendingCookie[] = [];
   const cookieHeaders: Record<string, string> = {};

@@ -160,6 +160,7 @@ function toPublic(organization: Organization): PublicSupplier {
     description: organization.description,
     channel: organization.channel,
     audience: organization.audience,
+    trackStock: organization.trackStock,
     ipsAccount: offeredIpsAccount(organization.ipsEnabled, organization.ipsAccount),
   };
 }
@@ -376,39 +377,21 @@ export const supabaseRepository: CommerceRepository = {
     }
     const admin = db();
     const { data, error } = await admin
-      .from("organizations")
-      .insert({
-        name: input.name,
-        slug: input.slug,
-        email: input.userEmail,
-        notification_email: input.userEmail,
-        phone: input.phone,
-        audience: input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna"),
-        channel: channelForAudience(input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna")),
-        order_prefix: orderPrefixFromName(input.name),
-        track_stock: false,
-        public_store: true,
+      .rpc("create_supplier_account", {
+        p_user_id: input.userId,
+        p_user_name: input.userName,
+        p_user_email: input.userEmail,
+        p_name: input.name,
+        p_slug: input.slug,
+        p_phone: input.phone,
+        p_audience: input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna"),
+        p_channel: channelForAudience(input.audience ?? (input.channel === "b2c" ? "fizicka" : "pravna")),
+        p_order_prefix: orderPrefixFromName(input.name),
       })
-      .select("*")
       .single();
     if (error?.code === "23505") throw new DataError("Ova adresa je već zauzeta.", "conflict");
     fail(error);
-    const organization = mapOrganization(data as Record<string, unknown>);
-    const profile = await admin.from("profiles").upsert({
-      id: input.userId,
-      email: input.userEmail,
-      name: input.userName,
-      kind: "supplier",
-    });
-    fail(profile.error);
-    const member = await admin.from("organization_members").insert({
-      organization_id: organization.id,
-      user_id: input.userId,
-      role: "owner",
-    });
-    fail(member.error);
-    await assignDefaultSubscription(organization.id);
-    return organization;
+    return mapOrganization(data as Record<string, unknown>);
   },
 
   async createBuyerProfile(input: CreateBuyerInput) {
@@ -1133,113 +1116,25 @@ export const supabaseRepository: CommerceRepository = {
     );
     if (!priced.ok) return priced;
 
-    const now = new Date().toISOString();
-    const email = input.email.toLowerCase();
-    const existingCodes = await admin.from("customers").select("code").eq("organization_id", organization.id);
-    fail(existingCodes.error);
-    const customerCode = nextCustomerCode(
-      ((existingCodes.data ?? []) as Record<string, unknown>[]).map((row) => String(row.code ?? "")),
-    );
-    const customerResult = await admin
-      .from("customers")
-      .select("*")
-      .eq("organization_id", organization.id)
-      .eq("email", email)
-      .maybeSingle();
-    fail(customerResult.error);
-    let customer = customerResult.data ? mapCustomer(customerResult.data as Record<string, unknown>) : null;
-    if (!customer) {
-      const inserted = await admin
-        .from("customers")
-        .insert({
-          organization_id: organization.id,
-          business_name: input.businessName,
-          contact_name: input.contactName,
-          email,
-          phone: input.phone,
-          pib: input.pib,
-          address: input.address,
-          city: input.city,
-          code: customerCode,
-          party: partyForPib(input.pib),
-          payment_term_days: paymentTermFor(partyForPib(input.pib)),
-          sef_registered: false,
-        })
-        .select("*")
-        .single();
-      fail(inserted.error);
-      customer = mapCustomer(inserted.data as Record<string, unknown>);
-    } else {
-      const updated = await admin
-        .from("customers")
-        .update({
-          business_name: input.businessName,
-          contact_name: input.contactName,
-          phone: input.phone,
-          pib: input.pib || customer.pib,
-          address: input.address || customer.address,
-          city: input.city || customer.city,
-          updated_at: now,
-        })
-        .eq("id", customer.id)
-        .eq("organization_id", organization.id)
-        .select("*")
-        .single();
-      fail(updated.error);
-      customer = mapCustomer(updated.data as Record<string, unknown>);
-    }
-
-    const number = await allocateNumber(organization.id);
-    const snapshot: CustomerSnapshot = {
-      code: customer.code,
-      businessName: customer.businessName,
-      contactName: customer.contactName,
-      email: customer.email,
-      phone: customer.phone,
-      pib: customer.pib,
-      mb: input.mb ?? "",
-      address: customer.address,
-      postalCode: input.postalCode ?? "",
-      city: customer.city,
-      bankAccount: input.bankAccount ?? "",
-      confirmationEmail: input.confirmationEmail?.trim() ?? "",
-    };
-    const insertedOrder = await admin
-      .from("orders")
-      .insert({
-        organization_id: organization.id,
-        customer_id: customer.id,
-        number,
-        status: "nova",
-        notes: input.notes,
-        subtotal_para: priced.subtotalPara,
-        total_para: priced.subtotalPara,
-        idempotency_key: input.idempotencyKey,
-        confirmation_token: randomUUID(),
-        customer_snapshot: snapshot,
-        buyer_user_id: input.buyerUserId || null,
-        payment_method: input.paymentMethod ?? null,
-        stock_held: organization.trackStock === true,
-      })
-      .select("*")
-      .single();
-    if (insertedOrder.error?.code === "23505") {
-      const again = await admin
-        .from("orders")
-        .select("*")
-        .eq("organization_id", organization.id)
-        .eq("idempotency_key", input.idempotencyKey)
-        .single();
-      fail(again.error);
-      const order = mapOrder(again.data as Record<string, unknown>);
-      return { ok: true, duplicate: true, order: await orderDetail(order), supplier: toPublic(organization) };
-    }
-    fail(insertedOrder.error);
-    const order = mapOrder(insertedOrder.data as Record<string, unknown>);
-    const items = await admin.from("order_items").insert(
-      priced.items.map((line) => ({
-        order_id: order.id,
-        organization_id: organization.id,
+    const created = await admin.rpc("create_public_order", {
+      p_organization_id: organization.id,
+      p_idempotency_key: input.idempotencyKey,
+      p_buyer_user_id: input.buyerUserId || null,
+      p_notes: input.notes,
+      p_payment_method: input.paymentMethod ?? null,
+      p_business_name: input.businessName,
+      p_contact_name: input.contactName,
+      p_email: input.email,
+      p_phone: input.phone,
+      p_pib: input.pib,
+      p_mb: input.mb ?? "",
+      p_address: input.address,
+      p_postal_code: input.postalCode ?? "",
+      p_city: input.city,
+      p_bank_account: input.bankAccount ?? "",
+      p_confirmation_email: input.confirmationEmail?.trim() ?? "",
+      p_subtotal_para: priced.subtotalPara,
+      p_items: priced.items.map((line) => ({
         product_id: line.productId,
         name: line.name,
         sku: line.sku,
@@ -1248,18 +1143,31 @@ export const supabaseRepository: CommerceRepository = {
         unit_price_para: line.unitPricePara,
         line_total_para: line.lineTotalPara,
       })),
-    );
-    fail(items.error);
-    if (organization.trackStock) await moveStock(organization.id, priced.items, "reserve");
-    const history = await admin.from("order_status_history").insert({
-      order_id: order.id,
-      organization_id: organization.id,
-      from_status: null,
-      to_status: "nova",
-      actor_name: "Kupac",
+      p_track_stock: organization.trackStock === true,
     });
-    fail(history.error);
-    return { ok: true, duplicate: false, order: await orderDetail(order), supplier: toPublic(organization) };
+    if (created.error) {
+      if (created.error.message?.includes("order_number_conflict")) {
+        throw new DataError("Broj porudžbine nije dodeljen. Pokušajte ponovo.", "conflict");
+      }
+      fail(created.error);
+    }
+    const payload = (created.data ?? {}) as { duplicate?: boolean; order_id?: string };
+    const orderId = typeof payload.order_id === "string" ? payload.order_id : "";
+    if (!orderId) throw new Error("Porudžbina nije sačuvana.");
+    const orderResult = await admin
+      .from("orders")
+      .select("*")
+      .eq("organization_id", organization.id)
+      .eq("id", orderId)
+      .single();
+    fail(orderResult.error);
+    const order = mapOrder(orderResult.data as Record<string, unknown>);
+    return {
+      ok: true,
+      duplicate: payload.duplicate === true,
+      order: await orderDetail(order),
+      supplier: toPublic(organization),
+    };
   },
 
   async updateOrderStatus(organizationId, orderId, status, actorName) {
@@ -1852,23 +1760,6 @@ async function refreshStaffInvite(
   };
 }
 
-async function assignDefaultSubscription(organizationId: string) {
-  const admin = db();
-  const plans = await admin.from("subscription_plans").select("id, name").order("monthly_price_para");
-  fail(plans.error);
-  const rows = (plans.data ?? []) as Record<string, unknown>[];
-  const plan = rows.find((item) => item.name === "Osnovni") ?? rows[0];
-  if (!plan) return;
-  const inserted = await admin.from("subscriptions").insert({
-    organization_id: organizationId,
-    plan_id: String(plan.id),
-    status: "aktivna",
-    period_start: new Date().toISOString(),
-  });
-  if (inserted.error?.code === "23505") return;
-  fail(inserted.error);
-}
-
 async function customerParties(organizationId: string) {
   const { data, error } = await db().from("customers").select("id, party, pib").eq("organization_id", organizationId);
   fail(error);
@@ -1919,18 +1810,13 @@ function summarize(customer: Customer, orders: Order[]): CustomerSummary {
 }
 
 async function consumeRateLimit(key: string) {
-  const admin = db();
-  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  const existing = await admin
-    .from("rate_limit_events")
-    .select("id", { count: "exact", head: true })
-    .eq("bucket", key)
-    .gte("created_at", since);
-  fail(existing.error);
-  if ((existing.count ?? 0) >= 20) return false;
-  const inserted = await admin.from("rate_limit_events").insert({ bucket: key });
-  fail(inserted.error);
-  return true;
+  const result = await db().rpc("consume_rate_limit", {
+    p_bucket: `order:${key}`,
+    p_limit: 20,
+    p_window_seconds: 10 * 60,
+  });
+  fail(result.error);
+  return result.data === true;
 }
 
 async function allocateNumber(organizationId: string) {

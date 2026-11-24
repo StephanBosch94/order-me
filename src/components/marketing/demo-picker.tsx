@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { distributionDemoLabel, showOnlineStore } from "@/lib/marketing";
+import { distributionDemoLabel, showDistributionDemo, showOnlineStore } from "@/lib/marketing";
 
 const choices = [
   {
@@ -23,7 +23,7 @@ const choices = [
 ];
 
 export function DemoPicker({ className }: { className?: string }) {
-  const visible = choices.filter((choice) => showOnlineStore || !choice.online);
+  const visible = choices.filter((choice) => (choice.online ? showOnlineStore : showDistributionDemo));
   const [open, setOpen] = useState(false);
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -46,6 +46,8 @@ export function DemoPicker({ className }: { className?: string }) {
       triggerRef.current?.focus();
     };
   }, [open]);
+
+  if (visible.length === 0) return null;
 
   if (visible.length === 1) {
     const choice = visible[0];

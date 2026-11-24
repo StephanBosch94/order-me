@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, useCallback, useState } from "react";
 
 function formSignature(form: HTMLFormElement) {
   const parts: string[] = [];
@@ -17,14 +17,15 @@ function formSignature(form: HTMLFormElement) {
 
 /** True until a field, file, or checkbox differs from the form's initial values. */
 export function useUnchangedForm() {
-  const formRef = useRef<HTMLFormElement | null>(null);
   const [form, setForm] = useState<HTMLFormElement | null>(null);
   const [baseline, setBaseline] = useState<string | null>(null);
   const [current, setCurrent] = useState<string | null>(null);
 
   const ref = useCallback((node: HTMLFormElement | null) => {
-    formRef.current = node;
     setForm(node);
+    const signature = node ? formSignature(node) : null;
+    setBaseline(signature);
+    setCurrent(signature);
   }, []);
 
   const read = useCallback((node: HTMLFormElement) => {
@@ -33,34 +34,20 @@ export function useUnchangedForm() {
     return signature;
   }, []);
 
-  useEffect(() => {
+  const sync = useCallback((event: FormEvent<HTMLFormElement>) => {
+    const node = event.currentTarget;
+    read(node);
+    requestAnimationFrame(() => {
+      if (node.isConnected) read(node);
+    });
+  }, [read]);
+
+  const markClean = useCallback(() => {
     if (!form) return;
     const signature = formSignature(form);
     setBaseline(signature);
     setCurrent(signature);
   }, [form]);
-
-  useEffect(() => {
-    if (!form) return;
-    read(form);
-  });
-
-  const sync = useCallback(() => {
-    const node = formRef.current;
-    if (!node) return;
-    read(node);
-    requestAnimationFrame(() => {
-      if (formRef.current === node) read(node);
-    });
-  }, [read]);
-
-  const markClean = useCallback(() => {
-    const node = formRef.current;
-    if (!node) return;
-    const signature = formSignature(node);
-    setBaseline(signature);
-    setCurrent(signature);
-  }, []);
 
   return {
     ref,

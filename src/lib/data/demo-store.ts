@@ -97,6 +97,7 @@ function toPublicSupplier(organization: Organization): PublicSupplier {
     description: organization.description,
     channel: organization.channel,
     audience: organization.audience,
+    trackStock: organization.trackStock,
     ipsAccount: offeredIpsAccount(organization.ipsEnabled, organization.ipsAccount),
   };
 }
@@ -1135,7 +1136,7 @@ export class DemoStore implements CommerceRepository {
           updatedAt: now,
         };
         db.customers.push(customer);
-      } else {
+      } else if (input.buyerUserId) {
         customer.businessName = input.businessName;
         customer.contactName = input.contactName;
         customer.phone = input.phone;
@@ -1161,12 +1162,20 @@ export class DemoStore implements CommerceRepository {
         totalPara: priced.subtotalPara,
         idempotencyKey: input.idempotencyKey,
         confirmationToken: randomUUID(),
-        customerSnapshot: snapshot(customer, {
-          bankAccount: input.bankAccount ?? "",
+        customerSnapshot: {
+          code: customer.code,
+          businessName: input.businessName,
+          contactName: input.contactName,
+          email: customer.email,
+          phone: input.phone,
+          pib: input.pib,
           mb: input.mb ?? "",
+          address: input.address,
           postalCode: input.postalCode ?? "",
+          city: input.city,
+          bankAccount: input.bankAccount ?? "",
           confirmationEmail: input.confirmationEmail ?? "",
-        }),
+        },
         customerEmailStatus: "pending",
         supplierEmailStatus: "pending",
         paymentMethod: input.paymentMethod ?? null,

@@ -4,7 +4,7 @@ import test from "node:test";
 import { isCompanyBuyer } from "@/lib/buyer";
 import { applySavaPhotos, createSeedDatabase, ensureRetailDemo } from "@/lib/data/seed";
 import { verifyPassword } from "@/lib/password";
-import { productionLoginByEmail } from "@/lib/production-logins";
+import { demoSeedPassword, productionLoginByEmail } from "@/lib/production-logins";
 
 test("the production shop is published beside the demo shops", async () => {
   const db = await createSeedDatabase();
@@ -28,8 +28,8 @@ test("the production shop is published beside the demo shops", async () => {
   const login = productionLoginByEmail("milan.kostic@savatrade.rs");
   const buyerLogin = productionLoginByEmail("jelena.stankovic@example.com");
   assert.ok(milan && login && jelena && buyerLogin);
-  assert.equal(await verifyPassword(login.password, milan.passwordHash), true);
-  assert.equal(await verifyPassword(buyerLogin.password, jelena.passwordHash), true);
+  assert.equal(await verifyPassword(demoSeedPassword(login!.email), milan.passwordHash), true);
+  assert.equal(await verifyPassword(demoSeedPassword(buyerLogin!.email), jelena.passwordHash), true);
   const savaOrders = db.orders.filter((order) => order.organizationId === shop.id);
   assert.ok(savaOrders.length >= 6);
   assert.equal(savaOrders.every((order) => order.customerEmailStatus === "skipped" && order.supplierEmailStatus === "skipped"), true);

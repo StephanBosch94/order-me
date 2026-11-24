@@ -1,10 +1,15 @@
 import { publicStoreUrl } from "@/lib/store-host";
 
 /** Link in the registration mail. Opening it confirms the address and signs the person in. */
-export function signupConfirmUrl(appUrl: string, tokenHash: string, nextPath: string) {
+export function signupConfirmUrl(
+  appUrl: string,
+  tokenHash: string,
+  nextPath: string,
+  type: "signup" | "magiclink" = "signup",
+) {
   const url = new URL("/auth/potvrda", appUrl);
   url.searchParams.set("token_hash", tokenHash);
-  url.searchParams.set("type", "signup");
+  url.searchParams.set("type", type);
   if (nextPath.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("://") && nextPath !== "/dashboard") {
     url.searchParams.set("next", nextPath);
   }

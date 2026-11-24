@@ -4,6 +4,9 @@ export const showOnlineStore = false;
 /** Public store directory. Off until it should be shown again. */
 export const showMarketplace = false;
 
+/** Never expose a demo CTA unless its production shop and catalog are verified. */
+export const showDistributionDemo = false;
+
 export const distributionDemoLabel = "Pogledajte demo veleprodaje";
 
 /** Public homepage hero uses the meat demo's own name and pictures. */

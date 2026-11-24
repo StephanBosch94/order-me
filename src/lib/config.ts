@@ -13,6 +13,12 @@ export function getDataMode(): DataMode {
     );
   }
 
+  if (!all && process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_MODE !== "true") {
+    throw new Error(
+      "Produkcija zahteva Supabase konfiguraciju. Demo režim je dozvoljen samo kada je ALLOW_DEMO_MODE=true.",
+    );
+  }
+
   return all ? "supabase" : "demo";
 }
 

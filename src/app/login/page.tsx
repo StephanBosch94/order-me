@@ -6,8 +6,6 @@ import { LoginForm } from "@/components/auth/auth-forms";
 import { LoginPasswordForm } from "@/components/auth/password-form";
 import { Logo } from "@/components/brand/logo";
 import { SupplierLogo } from "@/components/brand/supplier-logo";
-import { listProductionLoginChoices } from "@/lib/actions/production-login";
-import { ProductionAccounts } from "@/components/auth/production-accounts";
 import { getSession, landingPath } from "@/lib/auth";
 import { supplierTheme } from "@/lib/color";
 import { storePath } from "@/lib/constants";
@@ -31,20 +29,18 @@ export default async function LoginPage({
   const demoAccount = Boolean(session && isDemoShopAccount(session.email));
   if (session && !demoAccount && explicitNext) redirect(await landingPath(session, nextPath));
   const store = await storeFromPath(nextPath);
-  const accounts = changingPassword ? [] : await listProductionLoginChoices();
   return (
     <AuthShell
       title={changingPassword ? "Lozinka" : "Prijava"}
       subtitle={
         changingPassword
-          ? "Posle čuvanja šaljemo obaveštenje na email naloga."
+          ? "Poslaćemo bezbedan link ako nalog postoji."
           : "Prijavite se na nalog prodavca ili kupca."
       }
       store={store}
       showStoreBack={false}
     >
-      {changingPassword ? <LoginPasswordForm /> : <ProductionAccounts accounts={accounts} nextPath={nextPath} />}
-      {changingPassword ? null : <div className="mt-6"><LoginForm nextPath={nextPath} /></div>}
+      {changingPassword ? <LoginPasswordForm /> : <LoginForm nextPath={nextPath} />}
       {changingPassword ? (
         <p className="mt-6 text-sm text-muted-foreground">
           <Link href={loginHref(nextPath, false)} className="font-medium text-foreground underline-offset-2 hover:underline">
@@ -60,7 +56,7 @@ export default async function LoginPage({
             </Link>
           </p>
           <Link href={loginHref(nextPath, true)} className="shrink-0 font-medium text-foreground underline-offset-2 hover:underline">
-            Promenite lozinku
+            Zaboravili ste lozinku?
           </Link>
         </div>
       )}

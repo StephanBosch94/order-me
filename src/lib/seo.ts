@@ -184,7 +184,10 @@ export function productJsonLd(supplier: PublicSupplier, product: Product) {
       url: `${publicStoreUrl(supplier.slug)}/proizvod/${product.id}`,
       priceCurrency: "RSD",
       price: schemaPrice(price),
-      availability: "https://schema.org/InStock",
+      availability:
+        supplier.trackStock && product.stockQuantity <= 0
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
     },
   };
 }

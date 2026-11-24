@@ -36,7 +36,7 @@ export function PlatformShell({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    setOpen(false);
+    queueMicrotask(() => setOpen(false));
   }, [pathname]);
 
   function renderNav() {

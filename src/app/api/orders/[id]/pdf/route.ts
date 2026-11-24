@@ -31,6 +31,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     description: session.organization.description,
     channel: session.organization.channel,
     audience: session.organization.audience,
+    trackStock: session.organization.trackStock === true,
     ipsAccount:
       session.organization.ipsEnabled || order.paymentMethod === "ips" ? session.organization.ipsAccount : "",
   };
@@ -47,6 +48,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${filename}"`,
+      "Cache-Control": "private, no-store",
+      "Referrer-Policy": "no-referrer",
       "X-Document": documentLabel(kind),
     },
   });

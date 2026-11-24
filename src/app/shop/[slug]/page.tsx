@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const catalog = await getCommerce().getPublicCatalog(slug);
   if (!catalog) return { title: "Prodavnica", robots: { index: false, follow: false } };
-  return storeMetadata(catalog.supplier, !catalog.closedMessage);
+  return storeMetadata(catalog.supplier, !catalog.closedMessage && catalog.products.length > 0);
 }
 
 export default async function ShopPage({

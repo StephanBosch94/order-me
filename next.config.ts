@@ -1,18 +1,40 @@
 import type { NextConfig } from "next";
 
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://*.supabase.co",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "frame-src 'none'",
+  "upgrade-insecure-requests",
+].join("; ");
+
 const nextConfig: NextConfig = {
+  experimental: {
+    agentUpgrade: "security",
+  },
   serverExternalPackages: ["pg", "embedded-postgres"],
   allowedDevOrigins: ["*.localhost"],
-  async redirects() {
+  async headers() {
     return [
-      { source: "/shop/gastro-supply", destination: "/shop/mesara-pajic", permanent: false },
-      { source: "/shop/gastro-supply/:path*", destination: "/shop/mesara-pajic/:path*", permanent: false },
-      { source: "/s/gastro-supply", destination: "/shop/mesara-pajic", permanent: false },
-      { source: "/s/gastro-supply/:path*", destination: "/shop/mesara-pajic/:path*", permanent: false },
-      { source: "/shop/butik-vera", destination: "/shop/mercis-atelier", permanent: false },
-      { source: "/shop/butik-vera/:path*", destination: "/shop/mercis-atelier/:path*", permanent: false },
-      { source: "/s/butik-vera", destination: "/shop/mercis-atelier", permanent: false },
-      { source: "/s/butik-vera/:path*", destination: "/shop/mercis-atelier/:path*", permanent: false },
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "Content-Security-Policy", value: contentSecurityPolicy },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-site" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+        ],
+      },
     ];
   },
   // Orders, catalogs, and sessions are request-specific. The starter enables

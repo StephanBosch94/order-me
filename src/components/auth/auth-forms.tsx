@@ -28,6 +28,17 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         <Input id="password" name="password" type="password" autoComplete="current-password" required className="mt-1.5" />
         <FieldError message={state.fieldErrors?.password} />
       </div>
+            <p className="text-xs leading-5 text-muted-foreground">
+        Otvaranjem naloga prihvatate{" "}
+        <a href="/uslovi" className="underline underline-offset-2" target="_blank" rel="noreferrer">
+          uslove korišćenja
+        </a>{" "}
+        i{" "}
+        <a href="/privatnost" className="underline underline-offset-2" target="_blank" rel="noreferrer">
+          politiku privatnosti
+        </a>
+        .
+      </p>
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Prijava…" : "Prijavite se"}
       </Button>

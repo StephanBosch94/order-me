@@ -180,11 +180,11 @@ export function Shop({
   }
 
   useEffect(() => {
-    setCategoryId(categoryFromQuery);
+    queueMicrotask(() => setCategoryId(categoryFromQuery));
   }, [categoryFromQuery]);
 
   useEffect(() => {
-    setPane(openAccount ? "account" : "catalog");
+    queueMicrotask(() => setPane(openAccount ? "account" : "catalog"));
   }, [openAccount]);
 
   useEffect(() => {
@@ -194,7 +194,7 @@ export function Shop({
     const key = `poruci-repeat:${repeatOrderId}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    repeatOrder(order.items);
+    queueMicrotask(() => repeatOrder(order.items));
     // The repeat link should fill the cart once when the page opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repeatOrderId]);
@@ -613,14 +613,17 @@ function AccountPanel({
   const [formKey, setFormKey] = useState(0);
   const [state, action, pending] = useActionState(updateBuyerAccountAction, {} as BuyerAccountState);
   const shown = state.buyer ?? buyer;
-  const changes = useUnchangedForm();
+  const { ref: formRef, onInput: trackInput, onChange: trackChange, unchanged } = useUnchangedForm();
 
   useEffect(() => {
     if (!state.ok || !state.buyer) return;
-    onSaved(state.buyer);
-    setNotice("Podaci su sačuvani.");
-    setFormKey((key) => key + 1);
-    router.refresh();
+    const saved = state.buyer;
+    queueMicrotask(() => {
+      onSaved(saved);
+      setNotice("Podaci su sačuvani.");
+      setFormKey((key) => key + 1);
+      router.refresh();
+    });
   }, [state.ok, state.buyer, onSaved, router]);
 
   return (
@@ -631,10 +634,10 @@ function AccountPanel({
       {notice ? <p className="mt-3 text-sm text-emerald-700">{notice}</p> : null}
       <form
         key={formKey}
-        ref={changes.ref}
+        ref={formRef}
         action={action}
-        onInput={changes.onInput}
-        onChange={changes.onChange}
+        onInput={trackInput}
+        onChange={trackChange}
         className="mt-4 max-w-xl space-y-4"
       >
         <input type="hidden" name="slug" value={slug} />
@@ -710,7 +713,7 @@ function AccountPanel({
           required={false}
         />
         <div className="flex gap-2">
-          <Button type="submit" disabled={pending || changes.unchanged}>
+          <Button type="submit" disabled={pending || unchanged}>
             {pending ? "Čuvanje…" : "Sačuvaj"}
           </Button>
           <Button

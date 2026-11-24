@@ -158,9 +158,9 @@ export function supportCookieOptions() {
   };
 }
 
-export async function setSupportAccess(adminId: string, organizationId: string) {
+export async function setSupportAccess(adminId: string, organizationId: string, auditId: string) {
   const store = await cookies();
-  store.set(SUPPORT_COOKIE, signSupportGrant(adminId, organizationId), supportCookieOptions());
+  store.set(SUPPORT_COOKIE, signSupportGrant(adminId, organizationId, Date.now(), auditId), supportCookieOptions());
 }
 
 export async function clearSupportAccess() {

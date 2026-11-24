@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { DemoPicker } from "@/components/marketing/demo-picker";
-import { distributionDemo, distributionDemoLabel, showMarketplace, showOnlineStore } from "@/lib/marketing";
+import { distributionDemo, distributionDemoLabel, showDistributionDemo, showMarketplace, showOnlineStore } from "@/lib/marketing";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getAppUrl } from "@/lib/config";
 import { organizationJsonLd, siteDescription, siteTitle } from "@/lib/seo";
@@ -155,7 +155,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section aria-label="Demo" className="border-y border-[#E7E5E2] bg-[#F7F6F4]">
+        {showOnlineStore || showDistributionDemo ? <section aria-label="Demo" className="border-y border-[#E7E5E2] bg-[#F7F6F4]">
           <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-sm leading-5 text-[#6B6B6B]">Pre registracije</p>
             <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
@@ -165,12 +165,14 @@ export default function HomePage() {
                   <span className="mt-1 block text-[20px] leading-7 font-bold">Mercis Atelier</span>
                 </DemoStoreLink>
               ) : null}
-              <DemoStoreLink href={distributionDemo.href} className="text-base leading-6 font-semibold hover:underline">
-                {distributionDemoLabel}
-              </DemoStoreLink>
+              {showDistributionDemo ? (
+                <DemoStoreLink href={distributionDemo.href} className="text-base leading-6 font-semibold hover:underline">
+                  {distributionDemoLabel}
+                </DemoStoreLink>
+              ) : null}
             </div>
           </div>
-        </section>
+        </section> : null}
 
         {showOnlineStore ? (
           <section id="katalog" className="scroll-mt-20 border-t border-[#E7E5E2]">
@@ -210,9 +212,11 @@ export default function HomePage() {
                 <Link href="/signup" className={primaryButton}>
                   Otvorite veleprodaju
                 </Link>
-                <DemoStoreLink href={distributionDemo.href} className={outlineButton}>
-                  {distributionDemoLabel}
-                </DemoStoreLink>
+                {showDistributionDemo ? (
+                  <DemoStoreLink href={distributionDemo.href} className={outlineButton}>
+                    {distributionDemoLabel}
+                  </DemoStoreLink>
+                ) : null}
               </div>
               <p className="mt-4 text-sm leading-5 text-[#6B6B6B]">
                 Kupac može da{" "}
@@ -267,11 +271,7 @@ export default function HomePage() {
             <div>
               <h2 className={sectionTitle}>Otvorite veleprodaju</h2>
               <p className="mt-4 max-w-xl text-base leading-6 text-[#111111]">
-                3 meseca besplatno. Pogledajte{" "}
-                <DemoStoreLink href={distributionDemo.href} className="font-semibold underline-offset-2 hover:underline">
-                  {distributionDemoLabel}
-                </DemoStoreLink>{" "}
-                pre registracije.
+                3 meseca besplatno. Postavite katalog i primite prve porudžbine bez poziva.
               </p>
             </div>
             <Link href="/signup" className={primaryButtonLg}>
@@ -283,7 +283,7 @@ export default function HomePage() {
       </main>
 
       <footer className="border-t border-[#E7E5E2] bg-[#F7F6F4]">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr_1fr_1fr_1fr]">
           <div>
             <Logo />
             <p className="mt-3 max-w-xs text-sm leading-5 text-[#6B6B6B]">Porudžbine, bez poziva.</p>
@@ -292,7 +292,7 @@ export default function HomePage() {
             {showMarketplace ? <FooterLink href="/marketplace">Marketplace</FooterLink> : null}
             <FooterLink href="/signup">Otvorite veleprodaju</FooterLink>
             {showOnlineStore ? <FooterLink href="/shop/mercis-atelier" newTab>Mercis Atelier</FooterLink> : null}
-            <FooterLink href={distributionDemo.href} newTab>{distributionDemoLabel}</FooterLink>
+            {showDistributionDemo ? <FooterLink href={distributionDemo.href} newTab>{distributionDemoLabel}</FooterLink> : null}
           </FooterColumn>
           <FooterColumn title="Kupci">
             <FooterLink href="/signup/kupac">Nalog kupca</FooterLink>
@@ -301,6 +301,10 @@ export default function HomePage() {
             <FooterLink href="/login">Prijava</FooterLink>
             <FooterLink href="/signup">Otvorite nalog</FooterLink>
             <FooterLink href="/signup/kupac">Nalog kupca</FooterLink>
+          </FooterColumn>
+          <FooterColumn title="Pravno">
+            <FooterLink href="/privatnost">Privatnost</FooterLink>
+            <FooterLink href="/uslovi">Uslovi</FooterLink>
           </FooterColumn>
         </div>
       </footer>

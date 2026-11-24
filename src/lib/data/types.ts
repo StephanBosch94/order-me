@@ -136,6 +136,7 @@ export type PublicSupplier = {
   description: string;
   channel: StoreChannel;
   audience: Audience;
+  trackStock: boolean;
   /** Seller account for IPS. Empty when the shop has turned IPS off or has not set a code. */
   ipsAccount: string;
 };

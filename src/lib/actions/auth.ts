@@ -9,15 +9,21 @@ import { getCommerce, getDemoIdentity } from "@/lib/data";
 import { deliverSignupConfirmationEmail } from "@/lib/email/signup";
 import { DataError } from "@/lib/errors";
 import { signupConfirmUrl } from "@/lib/signup-confirm";
-import { publicStoreUrl } from "@/lib/store-host";
 import { safeNextPath, slugCandidate } from "@/lib/text";
 import { normalizeMb, normalizePostalCode } from "@/lib/buyer";
 import { signDemoSession } from "@/lib/session-token";
 import { fieldErrors, loginSchema, signupSchema } from "@/lib/validators";
+import { consumeActionLimit, requestFingerprint } from "@/lib/rate-limit";
 
 export type AuthState = {
   error: string;
   fieldErrors?: Record<string, string>;
+};
+
+export type ConfirmationState = {
+  error?: string;
+  message?: string;
+  sentAt?: number;
 };
 
 export async function loginAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -28,6 +34,11 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   });
   if (!parsed.success) {
     return { error: "Proverite email i lozinku.", fieldErrors: fieldErrors(parsed.error) };
+  }
+
+  const fingerprint = await requestFingerprint();
+  if (!(await consumeActionLimit("login", `${fingerprint}:${parsed.data.email}`, 10, 10 * 60))) {
+    return { error: "Previše pokušaja. Sačekajte nekoliko minuta." };
   }
 
   const nextPath = safeNextPath(parsed.data.next);
@@ -97,6 +108,12 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
     };
   }
 
+  const fingerprint = await requestFingerprint();
+  const signupAllowed =
+    (await consumeActionLimit("signup-ip", fingerprint, 5, 60 * 60)) &&
+    (await consumeActionLimit("signup-email", parsed.data.email, 3, 60 * 60));
+  if (!signupAllowed) return { error: "Previše pokušaja. Sačekajte i pokušajte ponovo." };
+
   try {
     const slug = parsed.data.kind === "supplier" ? await freeSlug(parsed.data.organizationName) : "";
     if (getDataMode() === "demo") {
@@ -142,7 +159,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
       password: parsed.data.password,
       options: {
         data: { name: parsed.data.name },
-        redirectTo: parsed.data.kind === "supplier" ? publicStoreUrl(slug) : getAppUrl(),
+        redirectTo: getAppUrl(),
       },
     });
     if (created.error || !created.data.user) {
@@ -206,6 +223,46 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
   }
 }
 
+export async function resendSignupConfirmationAction(
+  _prev: ConfirmationState,
+  formData: FormData,
+): Promise<ConfirmationState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const next = safeNextPath(String(formData.get("next") ?? ""));
+  if (!zEmail(email)) return { error: "Unesite ispravnu email adresu." };
+  const message = "Ako nalog čeka potvrdu, poslali smo novi link.";
+  if (getDataMode() !== "supabase") return { message, sentAt: Date.now() };
+  const fingerprint = await requestFingerprint();
+  const allowed =
+    (await consumeActionLimit("confirm-ip", fingerprint, 5, 15 * 60)) &&
+    (await consumeActionLimit("confirm-email", email, 3, 15 * 60));
+  if (!allowed) return { error: "Previše zahteva. Sačekajte nekoliko minuta." };
+
+  const { getServiceClient } = await import("@/lib/supabase/admin");
+  const admin = getServiceClient();
+  const profile = await admin.from("profiles").select("id, name").eq("email", email).maybeSingle();
+  if (!profile.data || profile.error) return { message, sentAt: Date.now() };
+  const user = await admin.auth.admin.getUserById(String(profile.data.id));
+  if (user.error || !user.data.user || user.data.user.email_confirmed_at) {
+    return { message, sentAt: Date.now() };
+  }
+
+  const link = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: { redirectTo: getAppUrl() },
+  });
+  const token = link.data.properties?.hashed_token ?? "";
+  if (!link.error && token) {
+    await deliverSignupConfirmationEmail({
+      to: email,
+      name: String(profile.data.name ?? ""),
+      confirmUrl: signupConfirmUrl(getAppUrl(), token, next, "magiclink"),
+    });
+  }
+  return { message, sentAt: Date.now() };
+}
+
 async function removeUnfinishedSignup(userId: string) {
   const { getServiceClient } = await import("@/lib/supabase/admin");
   const admin = getServiceClient();
@@ -228,6 +285,10 @@ async function freeSlug(name: string) {
     if (!(await getCommerce().isSlugTaken(candidate))) return candidate;
   }
   throw new DataError("Ne možemo da napravimo adresu od ovog naziva.", "conflict");
+}
+
+function zEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 export async function logoutAction() {

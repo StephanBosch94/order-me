@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 
 import { getSession, requireSession } from "@/lib/auth";
 import { isCompanyBuyer, normalizeBankAccount, normalizeMb, normalizePostalCode, orderConfirmationEmail } from "@/lib/buyer";
@@ -11,6 +10,7 @@ import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
 import type { BuyerAccount, OrderStatus } from "@/lib/data/types";
 import { deliverOrderEmails, deliverOrderStatusEmail } from "@/lib/email/order";
+import { isShopManager } from "@/lib/members";
 import {
   businessOrderSchema,
   customerSchema,
@@ -21,6 +21,7 @@ import {
   retailOrderSchema,
   statusSchema,
 } from "@/lib/validators";
+import { requestFingerprint } from "@/lib/rate-limit";
 
 export type OrderActionState = {
   ok: boolean;
@@ -46,9 +47,7 @@ export async function placeOrderAction(input: unknown): Promise<OrderActionState
     return { ok: false, message: "Ova prodavnica prima kupovine fizičkih lica preko korpe." };
   }
 
-  const headerStore = await headers();
-  const forwarded = headerStore.get("x-forwarded-for");
-  const ip = forwarded?.split(",")[0]?.trim() || headerStore.get("x-real-ip") || "local";
+  const ip = await requestFingerprint();
   const session = await getSession();
   const result = await getCommerce().createPublicOrder(
     {
@@ -122,9 +121,7 @@ export async function placeShopOrderAction(input: unknown): Promise<OrderActionS
     return { ok: false, message: "Ovaj nalog kupuje kao fizičko lice." };
   }
 
-  const headerStore = await headers();
-  const forwarded = headerStore.get("x-forwarded-for");
-  const ip = forwarded?.split(",")[0]?.trim() || headerStore.get("x-real-ip") || "local";
+  const ip = await requestFingerprint();
   const result = await getCommerce().createPublicOrder(
     {
       slug: parsed.data.slug,
@@ -206,9 +203,7 @@ async function finishShopOrder(
   bankAccount: string,
   data: { slug: string; idempotencyKey: string; notes: string; items: { productId: string; quantity: number }[] },
 ): Promise<OrderActionState> {
-  const headerStore = await headers();
-  const forwarded = headerStore.get("x-forwarded-for");
-  const ip = forwarded?.split(",")[0]?.trim() || headerStore.get("x-real-ip") || "local";
+  const ip = await requestFingerprint();
   const result = await getCommerce().createPublicOrder(
     {
       slug: data.slug,
@@ -280,6 +275,17 @@ export async function updateOrderStatusAction(orderId: string, status: string) {
 
 export async function deleteOrderAction(orderId: string) {
   const session = await requireSession();
+  if (!isShopManager(session.role)) {
+    return { ok: false, message: "Samo vlasnik ili admin mogu da obrišu porudžbinu." };
+  }
+  if (session.support) {
+    return { ok: false, message: "Porudžbinu ne možete obrisati iz pristupa podrške." };
+  }
+  const order = await getCommerce().getOrder(session.organization.id, orderId);
+  if (!order) return { ok: false, message: "Porudžbina nije pronađena." };
+  if (order.status !== "nova" || order.sefInvoiceId) {
+    return { ok: false, message: "Prihvaćena ili fakturisana porudžbina ostaje u evidenciji." };
+  }
   const deleted = await getCommerce().deleteOrder(session.organization.id, orderId);
   if (!deleted) return { ok: false, message: "Porudžbina nije pronađena." };
   revalidatePath("/orders");

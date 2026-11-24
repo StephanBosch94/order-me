@@ -47,8 +47,20 @@ export default async function PlatformSuppliersPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col items-start gap-2">
-                    <form action={openClientAccessAction}>
+                    <form action={openClientAccessAction} className="flex flex-col items-start gap-1">
                       <input type="hidden" name="organizationId" value={row.organization.id} />
+                      <label className="text-xs text-muted-foreground" htmlFor={`support-reason-${row.organization.id}`}>
+                        Razlog pristupa
+                      </label>
+                      <input
+                        id={`support-reason-${row.organization.id}`}
+                        name="reason"
+                        required
+                        minLength={3}
+                        maxLength={500}
+                        className="h-8 w-44 rounded-md border border-input bg-background px-2 text-xs"
+                        placeholder="Npr. prijavljen problem"
+                      />
                       <button type="submit" className="text-sm font-medium underline-offset-2 hover:underline">
                         Uđite
                       </button>

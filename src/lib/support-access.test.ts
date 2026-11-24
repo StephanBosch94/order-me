@@ -12,11 +12,12 @@ test("a support grant names the admin and the shop, and rejects a changed shop",
   assert.deepEqual(readSupportGrant(token, now), {
     adminId: "admin-1",
     organizationId: "org-1",
+    auditId: "",
     exp: now + 2 * 60 * 60 * 1000,
   });
   assert.equal(readSupportGrant(token, now + 2 * 60 * 60 * 1000), null);
 
-  const [version, payload, signature] = token.split(".");
+  const [version, , signature] = token.split(".");
   const swapped = Buffer.from(JSON.stringify({ adminId: "admin-1", organizationId: "org-2", exp: now + 1000 })).toString(
     "base64url",
   );

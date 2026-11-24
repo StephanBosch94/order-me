@@ -73,7 +73,7 @@ export function AdminShell({
   }
 
   useEffect(() => {
-    setOpen(false);
+    queueMicrotask(() => setOpen(false));
   }, [pathname]);
 
   function renderNav() {

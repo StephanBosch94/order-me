@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requirePlatformSession, setSupportAccess } from "@/lib/auth";
+import { getDataMode } from "@/lib/config";
 import { getCommerce } from "@/lib/data";
 import type { SubscriptionStatus } from "@/lib/data/types";
 import { DataError } from "@/lib/errors";
@@ -45,9 +46,22 @@ async function run(work: () => Promise<void>, slug?: string): Promise<PlatformSt
 export async function openClientAccessAction(formData: FormData) {
   const session = await requirePlatformSession();
   const organizationId = text(formData, "organizationId");
+  const reason = text(formData, "reason");
+  if (reason.length < 3) redirect("/platform");
   const organization = await getCommerce().getOrganization(organizationId);
   if (!organization) redirect("/platform");
-  await setSupportAccess(session.userId, organization.id);
+  let auditId = "demo";
+  if (getDataMode() === "supabase") {
+    const { getServiceClient } = await import("@/lib/supabase/admin");
+    const audit = await getServiceClient()
+      .from("support_access_log")
+      .insert({ admin_user_id: session.userId, organization_id: organization.id, reason })
+      .select("id")
+      .single();
+    if (audit.error || !audit.data) redirect("/platform");
+    auditId = String(audit.data.id);
+  }
+  await setSupportAccess(session.userId, organization.id, auditId);
   redirect("/dashboard");
 }
 

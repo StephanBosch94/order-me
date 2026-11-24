@@ -13,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     stores.map(async (store) => {
       const catalog = await getCommerce().getPublicCatalog(store.slug);
       const home = publicStoreUrl(store.slug);
-      if (!catalog || catalog.closedMessage) return [{ url: home, changeFrequency: "weekly" as const, priority: 0.6 }];
+      if (!catalog || catalog.closedMessage || catalog.products.length === 0) return [];
       return [
         { url: home, changeFrequency: "daily" as const, priority: 0.8 },
         ...catalog.products.map((product) => ({
@@ -30,6 +30,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: appUrl, changeFrequency: "weekly", priority: 1 },
     { url: `${appUrl}/signup`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${appUrl}/signup/kupac`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${appUrl}/privatnost`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${appUrl}/uslovi`, changeFrequency: "yearly", priority: 0.2 },
     ...shops.flat(),
   ];
 }

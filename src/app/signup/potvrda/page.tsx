@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AuthShell } from "@/app/login/page";
+import { ResendConfirmationForm } from "@/components/auth/resend-confirmation-form";
 import { buttonVariants } from "@/components/ui/button";
 import { safeNextPath } from "@/lib/text";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export default async function SignupConfirmationPage({
       <Link href={loginHref} className={cn(buttonVariants(), "w-full")}>
         Prijavite se
       </Link>
+      <ResendConfirmationForm nextPath={next} />
     </AuthShell>
   );
 }

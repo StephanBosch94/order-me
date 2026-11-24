@@ -28,18 +28,15 @@ type SettingsTab = "podaci" | "prodaja" | "izgled";
 
 export function SettingsForm({
   organization,
-  hasEfakturaApiKey,
   initialTab = "podaci",
 }: {
   organization: Organization;
-  hasEfakturaApiKey: boolean;
   initialTab?: SettingsTab;
 }) {
   const [state, action, pending] = useActionState(updateSettingsAction, initial);
   const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [audience, setAudience] = useState<Audience>(organization.audience);
   const companies = sellsToBusinesses(audience);
-  const [efakturaOn, setEfakturaOn] = useState(organization.efakturaEnabled === true && sellsToBusinesses(organization.audience));
   const [ipsOn, setIpsOn] = useState(organization.ipsEnabled === true);
   const [ipsAccount, setIpsAccount] = useState(formatIpsAccount(organization.ipsAccount));
   const ipsMissing = ipsOn && ipsAccount.trim() === "";
@@ -51,26 +48,34 @@ export function SettingsForm({
       : ipsMissing
         ? "IPS plaćanje je uključeno, a račun nije unet. Kupac tu opciju ne dobija dok račun nije ispravan."
         : undefined);
-  const changes = useUnchangedForm();
+  const {
+    ref: formRef,
+    onInput: trackInput,
+    onChange: trackChange,
+    unchanged,
+    markClean,
+  } = useUnchangedForm();
 
   useEffect(() => {
-    if (state.ok) changes.markClean();
-  }, [state, changes.markClean]);
+    if (state.ok) markClean();
+  }, [state.ok, markClean]);
 
   useEffect(() => {
     const errors = state.fieldErrors;
     if (!errors) return;
     const keys = Object.keys(errors);
-    if (keys.includes("ipsAccount")) {
-      setTab("prodaja");
-      setIpsOn(true);
-    }
-    else if (keys.some((key) => key === "description" || key === "brandColor")) setTab("izgled");
-    else if (keys.length > 0) setTab("podaci");
-  }, [state]);
+    queueMicrotask(() => {
+      if (keys.includes("ipsAccount")) {
+        setTab("prodaja");
+        setIpsOn(true);
+      }
+      else if (keys.some((key) => key === "description" || key === "brandColor")) setTab("izgled");
+      else if (keys.length > 0) setTab("podaci");
+    });
+  }, [state.fieldErrors]);
 
   return (
-    <form ref={changes.ref} action={action} className="max-w-2xl space-y-4" onInput={changes.onInput} onChange={changes.onChange}>
+    <form ref={formRef} action={action} className="max-w-2xl space-y-4" onInput={trackInput} onChange={trackChange}>
       {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
       {state.ok ? <p className="text-sm text-emerald-700">{state.message}</p> : null}
       <div className="inline-flex rounded-lg border border-border bg-card p-1" role="tablist" aria-label="Podešavanja">
@@ -146,7 +151,6 @@ export function SettingsForm({
             error={state.fieldErrors?.audience}
             onValueChange={(value) => {
               setAudience(value);
-              if (value === "fizicka") setEfakturaOn(false);
             }}
           />
         </div>
@@ -213,60 +217,12 @@ export function SettingsForm({
           </div>
         </div>
         {companies ? (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              name="efakturaEnabled"
-              checked={efakturaOn}
-              onChange={(event) => setEfakturaOn(event.target.checked)}
-              className="mt-0.5 size-4 accent-zinc-950"
-            />
-            <span>
-              <span className="text-sm font-medium">E-Faktura</span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Kad je uključeno, fakturu možete poslati kupcu kojeg ste označili da je u sistemu. Nalog za fizičko lice se ne šalje.
-              </span>
-            </span>
-          </label>
-          {efakturaOn ? (
-          <div className="mt-4">
-            <Label htmlFor="efakturaApiKey">API ključ</Label>
-            <Input
-              id="efakturaApiKey"
-              name="efakturaApiKey"
-              type="password"
-              autoComplete="off"
-              spellCheck={false}
-              className="mt-1.5"
-            />
-            <div className="mt-2 space-y-2 text-xs text-muted-foreground">
-              {hasEfakturaApiKey ? <p>API ključ je sačuvan. Prazno polje ga ne briše.</p> : null}
-              <p>API ključ uzimate vi, za svoju firmu. Kupac ga ne unosi.</p>
-              <ol className="list-decimal space-y-1 pl-4">
-                <li>
-                  Otvorite portal{" "}
-                  <a
-                    href="https://efaktura.mfin.gov.rs"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline decoration-zinc-300 underline-offset-2 hover:decoration-foreground"
-                  >
-                    efaktura.mfin.gov.rs
-                  </a>
-                  .
-                </li>
-                <li>Prijavite se kvalifikovanim elektronskim sertifikatom. To radi zakonski zastupnik upisan u APR.</li>
-                <li>Idite na Podešavanja, pa Upravljanje API, i napravite ključ.</li>
-                <li>Nalepite taj ključ ovde i uključite slanje iznad.</li>
-              </ol>
-              <p>
-                Na kartici kupca označite da li je ta firma u sistemu. E-faktura ide samo tako označenom pravnom licu. Ključ nije potreban za štampu fakture.
-              </p>
-            </div>
+          <div className="rounded-lg border border-border bg-card p-4">
+            <p className="text-sm font-medium">E-Faktura</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Produkcijsko slanje nije uključeno dok SEF integracija ne prođe sertifikaciju i kontrolisani test.
+            </p>
           </div>
-          ) : null}
-        </div>
         ) : null}
       </div>
       <div className={tab === "izgled" ? "grid gap-4 sm:grid-cols-2" : "hidden"} role="tabpanel">
@@ -290,7 +246,7 @@ export function SettingsForm({
           error={state.fieldErrors?.brandColor}
         />
       </div>
-      <Button type="submit" disabled={pending || changes.unchanged}>
+      <Button type="submit" disabled={pending || unchanged}>
         {pending ? "Čuvanje…" : "Sačuvaj izmene"}
       </Button>
     </form>

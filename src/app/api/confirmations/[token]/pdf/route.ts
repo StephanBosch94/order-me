@@ -12,6 +12,8 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="potvrda-${view.order.number}.pdf"`,
+      "Cache-Control": "private, no-store",
+      "Referrer-Policy": "no-referrer",
     },
   });
 }

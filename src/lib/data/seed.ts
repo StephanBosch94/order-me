@@ -5,7 +5,7 @@ import { DEMO_INBOX } from "@/lib/demo-shops";
 import { effectivePricePara } from "@/lib/data/pricing";
 import { belgradeYear, currentBelgradeMonthKey } from "@/lib/format";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { PRODUCTION_LOGINS } from "@/lib/production-logins";
+import { PRODUCTION_LOGINS, demoSeedPassword } from "@/lib/production-logins";
 import type {
   Category,
   Customer,
@@ -1380,7 +1380,7 @@ export function applySavaPhotos(db: DemoDatabase) {
 async function ensureProductionShop(db: DemoDatabase) {
   if (db.organizations.some((item) => item.slug === "sava-trade")) return false;
   const now = "2026-04-18T07:20:00.000Z";
-  const password = PRODUCTION_LOGINS.find((account) => account.email === "milan.kostic@savatrade.rs")?.password ?? "";
+  const password = demoSeedPassword("milan.kostic@savatrade.rs");
   const passwordHash = await hashPassword(password);
   const organization: Organization = {
     id: seedId("org:sava-trade"),
@@ -2055,7 +2055,7 @@ async function ensureSavaBuyer(db: DemoDatabase) {
       id: seedId(`user:${login.email}`),
       email: login.email,
       name: login.name,
-      passwordHash: await hashPassword(login.password),
+      passwordHash: await hashPassword(demoSeedPassword(login.email)),
       kind: "buyer",
       businessName: "",
       phone: "+381 64 330 2211",
@@ -2070,8 +2070,8 @@ async function ensureSavaBuyer(db: DemoDatabase) {
     };
     db.users.push(user);
     changed = true;
-  } else if (!(await verifyPassword(login.password, user.passwordHash))) {
-    user.passwordHash = await hashPassword(login.password);
+  } else if (!(await verifyPassword(demoSeedPassword(login.email), user.passwordHash))) {
+    user.passwordHash = await hashPassword(demoSeedPassword(login.email));
     user.kind = "buyer";
     user.name = login.name;
     changed = true;

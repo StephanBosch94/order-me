@@ -10,12 +10,13 @@ import { safeNextPath } from "@/lib/text";
 
 export async function confirmSignup(formData: FormData) {
   const tokenHash = String(formData.get("token_hash") ?? "").trim();
+  const type = formData.get("type") === "magiclink" ? "magiclink" : "signup";
   const next = safeNextPath(String(formData.get("next") ?? ""));
   if (!tokenHash || getDataMode() !== "supabase") redirect("/login");
 
   const { createSupabaseServer } = await import("@/lib/supabase/server");
   const supabase = await createSupabaseServer();
-  const { error } = await supabase.auth.verifyOtp({ type: "signup", token_hash: tokenHash });
+  const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
   if (error) redirect("/login");
 
   const { data } = await supabase.auth.getUser();

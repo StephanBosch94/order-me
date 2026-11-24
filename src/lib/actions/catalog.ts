@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSession } from "@/lib/auth";
-import { sellsToBusinesses, storePath } from "@/lib/constants";
+import { storePath } from "@/lib/constants";
 import { isShopManager } from "@/lib/members";
 import { getCommerce } from "@/lib/data";
 import { DataError } from "@/lib/errors";
@@ -230,8 +230,8 @@ export async function updateSettingsAction(_prev: FormState, formData: FormData)
       trackStock: formData.get("trackStock") === "on",
       publicStore: formData.get("publicStore") === "on",
       efakturaApiKey: submittedKey || stored?.efakturaApiKey || "",
-      efakturaEnabled: sellsToBusinesses(parsed.data.audience) && formData.get("efakturaEnabled") === "on",
-      efakturaEnvironment: "produkcija",
+      efakturaEnabled: false,
+      efakturaEnvironment: "demo",
       ipsAccount: parsed.data.ipsAccount,
       ipsEnabled,
     });

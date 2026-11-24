@@ -54,9 +54,12 @@ export function ProductForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
   const [slots, setSlots] = useState<GallerySlot[]>(() => initialSlots(product));
-  const changes = useUnchangedForm();
+  const { ref: formRef, onInput: trackInput, onChange: trackChange, unchanged } = useUnchangedForm();
   const slotsRef = useRef(slots);
-  slotsRef.current = slots;
+
+  useEffect(() => {
+    slotsRef.current = slots;
+  }, [slots]);
 
   useEffect(() => {
     return () => {
@@ -151,10 +154,10 @@ export function ProductForm({
 
   return (
     <form
-      ref={changes.ref}
+      ref={formRef}
       onSubmit={onSubmit}
-      onInput={changes.onInput}
-      onChange={changes.onChange}
+      onInput={trackInput}
+      onChange={trackChange}
       className="max-w-2xl space-y-5"
       noValidate
     >
@@ -318,7 +321,7 @@ export function ProductForm({
         </label>
       </div>
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending || changes.unchanged}>
+        <Button type="submit" disabled={pending || unchanged}>
           {pending ? "Čuvanje…" : "Sačuvaj izmene"}
         </Button>
         <Button type="button" variant="secondary" onClick={() => router.push("/products")}>
