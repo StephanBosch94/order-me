@@ -3,7 +3,7 @@ import type { OrderStatus } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
 const tones: Record<OrderStatus, { chip: string; dot: string }> = {
-  nova: { chip: "bg-mint-soft text-navy", dot: "bg-mint" },
+  nova: { chip: "bg-mint-soft text-foreground", dot: "bg-mint" },
   prihvacena: { chip: "bg-navy text-white", dot: "bg-mint" },
 };
 

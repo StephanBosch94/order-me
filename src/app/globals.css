@@ -8,18 +8,18 @@
   --navy-hover: #082e56;
 
   --background: #ffffff;
-  --foreground: #0a3a6b;
+  --foreground: #111111;
   --card: #ffffff;
-  --card-foreground: #0a3a6b;
+  --card-foreground: #111111;
   --primary: #5ddb92;
   --primary-hover: #4bcf84;
-  --primary-foreground: #0a3a6b;
+  --primary-foreground: #111111;
   --secondary: #ffffff;
-  --secondary-foreground: #0a3a6b;
+  --secondary-foreground: #111111;
   --muted: #e8f9ef;
-  --muted-foreground: #3d5f7a;
+  --muted-foreground: #525252;
   --accent: #5ddb92;
-  --accent-foreground: #0a3a6b;
+  --accent-foreground: #111111;
   --destructive: #b91c1c;
   --border: #b8e6c9;
   --input: #b8e6c9;
