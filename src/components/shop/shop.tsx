@@ -934,7 +934,7 @@ export function Checkout({
         <h2 className="text-lg font-semibold">Kasa</h2>
         <p className="text-sm text-muted-foreground">Firma mora da otvori nalog.</p>
         <div className="flex flex-wrap gap-3">
-          <Link href={`/shop/${slug}/nalog`} className="inline-flex h-11 items-center rounded-[10px] bg-[#111111] px-4 text-sm font-medium text-white hover:bg-[#333333]">
+          <Link href={`/shop/${slug}/nalog`} className="inline-flex h-11 items-center rounded-[10px] bg-navy px-4 text-sm font-medium text-white hover:bg-navy-hover">
             Otvorite nalog
           </Link>
           <Link href={`/login?next=${encodeURIComponent(back)}`} className="inline-flex h-11 items-center rounded-md border border-border bg-card px-4 text-sm font-medium">

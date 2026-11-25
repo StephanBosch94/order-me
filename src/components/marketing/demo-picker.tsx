@@ -100,7 +100,7 @@ export function DemoPicker({ className }: { className?: string }) {
                   href={choice.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-[16px] border border-border px-4 py-4 transition-colors hover:border-[#111111] hover:bg-mint-soft"
+                  className="rounded-[16px] border border-border px-4 py-4 transition-colors hover:border-navy hover:bg-mint-soft"
                 >
                   <span className="block text-xs font-medium text-muted-foreground">{choice.label}</span>
                   <span className="mt-2 block text-lg font-semibold tracking-tight">{choice.title}</span>

@@ -23,14 +23,14 @@ export function vendroLogoUrl(appUrl: string) {
   return emailLogoUrl("/brand/vendro-logo.png", appUrl);
 }
 
-/** Black button shared by every mail that has an action. */
+/** Navy button shared by every mail that has an action. */
 export function emailButton(href: string, label: string) {
   const safeUrl = escapeHtml(href);
   const safeLabel = escapeHtml(label);
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;border-collapse:separate">
     <tr>
-      <td align="center" bgcolor="#111111" style="background-color:#111111;border-radius:12px">
-        <a href="${safeUrl}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:Arial,sans-serif;font-size:16px;line-height:20px;font-weight:700;color:#ffffff;text-decoration:none;background-color:#111111;border-radius:12px">${safeLabel}</a>
+      <td align="center" bgcolor="#0A3A6B" style="background-color:#0A3A6B;border-radius:12px">
+        <a href="${safeUrl}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:Arial,sans-serif;font-size:16px;line-height:20px;font-weight:700;color:#ffffff;text-decoration:none;background-color:#0A3A6B;border-radius:12px">${safeLabel}</a>
       </td>
     </tr>
   </table>`;

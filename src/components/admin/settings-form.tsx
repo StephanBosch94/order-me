@@ -199,14 +199,14 @@ export function SettingsForm({
               autoComplete="off"
               spellCheck={false}
               aria-invalid={ipsAlert ? true : undefined}
-              className={ipsAlert ? "mt-1.5 border-[#111111] font-mono" : "mt-1.5 font-mono"}
+              className={ipsAlert ? "mt-1.5 border-navy font-mono" : "mt-1.5 font-mono"}
             />
             {ipsAlert ? (
-              <p role="alert" className="mt-3 rounded-[10px] border border-[#111111] bg-[#FCEDE9] px-4 py-3 text-base leading-6 font-bold text-[#111111]">
+              <p role="alert" className="mt-3 rounded-[10px] border border-navy bg-mint-soft px-4 py-3 text-base leading-6 font-bold text-navy">
                 {ipsAlert}
               </p>
             ) : null}
-            <div className="mt-3 space-y-2 text-base leading-6 text-[#111111]">
+            <div className="mt-3 space-y-2 text-base leading-6 text-navy">
               <p>Ovde ide tekući račun firme. Kupac ga ne unosi. QR kod se pravi posebno za svaku porudžbinu, sa njenim iznosom i brojem.</p>
               <ol className="list-decimal space-y-1 pl-5">
                 <li>Otvorite elektronsko bankarstvo firme.</li>

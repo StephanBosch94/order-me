@@ -36,7 +36,7 @@ test("an order mail lists each product and the order total", () => {
   assert.match(html, /890,00 RSD/);
   assert.match(html, /Ukupno/);
   assert.match(html, /3\.790,00 RSD/);
-  assert.match(html, /bgcolor="#111111"/);
+  assert.match(html, /bgcolor="#0A3A6B"/);
   assert.match(html, />Preuzmite PDF</);
   assert.equal(html.includes("biznis.jpg"), false);
   assert.equal(
@@ -77,7 +77,7 @@ test("a registration confirmation shows the Vendro logo and the confirm link", (
   assert.match(message.html, /alt="Vendro"/);
   assert.equal(message.html.includes("biznis.jpg"), false);
   assert.match(message.html, /Ana &lt;script&gt;,/);
-  assert.match(message.html, /bgcolor="#111111"/);
+  assert.match(message.html, /bgcolor="#0A3A6B"/);
   assert.match(message.html, />Potvrdite adresu</);
   assert.match(message.html, /href="https:\/\/vendro\.rs\/auth\/v1\/verify\?token=abc&amp;type=signup"/);
   assert.equal(message.html.includes("<script>"), false);
@@ -100,5 +100,5 @@ test("a staff invitation asks the person to choose a password", () => {
   assert.match(message.html, />Napravite lozinku</);
   assert.match(message.html, /Stefan &lt;b&gt;/);
   assert.equal(message.html.includes("Početna lozinka"), false);
-  assert.match(message.html, /bgcolor="#111111"/);
+  assert.match(message.html, /bgcolor="#0A3A6B"/);
 });

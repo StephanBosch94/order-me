@@ -94,7 +94,7 @@ export function AdminShell({
                 active && "bg-accent font-medium text-accent-foreground",
               )}
             >
-              <Icon className={cn("size-4", active && "text-[#EE8139]")} aria-hidden="true" />
+              <Icon className={cn("size-4", active && "text-navy")} aria-hidden="true" />
               {item.label}
             </Link>
           );
@@ -120,7 +120,7 @@ export function AdminShell({
               active && "bg-accent font-medium text-accent-foreground",
             )}
           >
-            <Receipt className={cn("size-4", active && "text-[#EE8139]")} aria-hidden="true" />
+            <Receipt className={cn("size-4", active && "text-navy")} aria-hidden="true" />
             Fakture
           </Link>
         ) : null}

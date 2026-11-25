@@ -25,7 +25,7 @@ export function OpenConfirmedAccount({
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="next" value={nextPath} />
       <noscript>
-        <button type="submit" className="h-10 w-full rounded-[10px] bg-[#111111] text-sm font-medium text-white">
+        <button type="submit" className="h-10 w-full rounded-[10px] bg-navy text-sm font-medium text-white hover:bg-navy-hover">
           Otvorite nalog
         </button>
       </noscript>
