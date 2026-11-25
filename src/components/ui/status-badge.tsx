@@ -3,8 +3,8 @@ import type { OrderStatus } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
 const tones: Record<OrderStatus, { chip: string; dot: string }> = {
-  nova: { chip: "bg-[#FCEDE9] text-[#111111]", dot: "bg-[#EE8139]" },
-  prihvacena: { chip: "bg-[#E7E5E2] text-[#111111]", dot: "bg-[#111111]" },
+  nova: { chip: "bg-mint-soft text-navy", dot: "bg-mint" },
+  prihvacena: { chip: "bg-navy text-white", dot: "bg-mint" },
 };
 
 export function StatusBadge({ status }: { status: OrderStatus }) {

@@ -1,23 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f6f4;
-  --foreground: #111111;
+  /* Palette from the green / navy reference */
+  --mint: #5ddb92;
+  --mint-soft: #e8f9ef;
+  --navy: #0a3a6b;
+  --navy-hover: #082e56;
+
+  --background: #ffffff;
+  --foreground: #0a3a6b;
   --card: #ffffff;
-  --card-foreground: #111111;
-  --primary: #ee8139;
-  --primary-hover: #e07028;
-  --primary-foreground: #111111;
+  --card-foreground: #0a3a6b;
+  --primary: #5ddb92;
+  --primary-hover: #4bcf84;
+  --primary-foreground: #0a3a6b;
   --secondary: #ffffff;
-  --secondary-foreground: #111111;
-  --muted: #f7f6f4;
-  --muted-foreground: #6b6b6b;
-  --accent: #fcede9;
-  --accent-foreground: #111111;
+  --secondary-foreground: #0a3a6b;
+  --muted: #e8f9ef;
+  --muted-foreground: #3d5f7a;
+  --accent: #5ddb92;
+  --accent-foreground: #0a3a6b;
   --destructive: #b91c1c;
-  --border: #e7e5e2;
-  --input: #e7e5e2;
-  --ring: #111111;
+  --border: #b8e6c9;
+  --input: #b8e6c9;
+  --ring: #0a3a6b;
   --sidebar: #ffffff;
 }
 
@@ -39,6 +45,10 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-navy: var(--navy);
+  --color-navy-hover: var(--navy-hover);
   --font-sans: var(--font-inter), system-ui, Helvetica, Arial, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --radius-sm: 0.375rem;
@@ -68,7 +78,7 @@ dialog {
 }
 
 dialog::backdrop {
-  background: rgb(24 24 27 / 0.45);
+  background: rgb(10 58 107 / 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {

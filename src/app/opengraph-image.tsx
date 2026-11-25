@@ -20,16 +20,16 @@ export default async function OpenGraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "#F7F6F4",
+          background: "#5DDB92",
           padding: "72px",
         }}
       >
         <img src={src} alt="" width={296} height={88} />
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 68, fontWeight: 700, color: "#111111", lineHeight: 1.15, letterSpacing: "-0.03em" }}>
+          <div style={{ fontSize: 68, fontWeight: 700, color: "#0A3A6B", lineHeight: 1.15, letterSpacing: "-0.03em" }}>
             Porudžbine, bez poziva.
           </div>
-          <div style={{ marginTop: 24, fontSize: 28, color: "#6B6B6B", lineHeight: 1.4 }}>
+          <div style={{ marginTop: 24, fontSize: 28, color: "#0A3A6B", lineHeight: 1.4, opacity: 0.85 }}>
             Kupci naručuju online. Svaka porudžbina stiže na jedno mesto.
           </div>
         </div>

@@ -12,18 +12,18 @@ export const metadata: Metadata = signupMetadata(
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-full bg-[#F7F6F4]">
-      <header className="border-b border-[#E7E5E2] bg-white">
+    <div className="min-h-full bg-mint-soft">
+      <header className="border-b border-border bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
           <Logo />
-          <Link href="/" className="text-sm text-[#6B6B6B] hover:text-[#111111]">
+          <Link href="/" className="text-sm text-muted-foreground hover:text-navy">
             Početna
           </Link>
         </div>
       </header>
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-10 sm:px-6 sm:py-14">
-        <h1 className="text-3xl font-bold tracking-[-0.02em] text-[#111111]">Politika privatnosti</h1>
-        <p className="text-sm text-[#6B6B6B]">Poslednje ažuriranje: 24. novembar 2026.</p>
+        <h1 className="text-3xl font-bold tracking-[-0.02em] text-navy">Politika privatnosti</h1>
+        <p className="text-sm text-muted-foreground">Poslednje ažuriranje: 24. novembar 2026.</p>
         <Section title="Rukovalac">
           Vendro obrađuje podatke radi pružanja usluge poručivanja. Kontakt za zahteve o privatnosti:{" "}
           <a className="underline" href="mailto:porudzbine@vendro.rs">
@@ -65,8 +65,8 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-lg font-semibold text-[#111111]">{title}</h2>
-      <p className="text-base leading-7 text-[#111111]">{children}</p>
+      <h2 className="text-lg font-semibold text-navy">{title}</h2>
+      <p className="text-base leading-7 text-navy">{children}</p>
     </section>
   );
 }
