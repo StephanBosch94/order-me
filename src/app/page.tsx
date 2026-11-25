@@ -298,7 +298,7 @@ export default function HomePage() {
       <footer className="bg-navy text-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_1fr_1fr_1fr_1fr]">
           <div>
-            <Logo />
+            <Logo inverse />
             <p className="mt-3 max-w-xs text-sm leading-5 text-white/75">Porudžbine, bez poziva.</p>
           </div>
           <FooterColumn title="Veleprodaja">
